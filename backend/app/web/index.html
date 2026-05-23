@@ -860,6 +860,18 @@
       return message;
     }
 
+    function addRichMessage(html, from = "ai") {
+      if (welcomeState.parentElement) welcomeState.style.display = "none";
+      const message = document.createElement("div");
+      message.className = `message ${from === "user" ? "user" : ""}`;
+      const label = from === "user" ? "YOU" : "ARI";
+      const mark = from === "user" ? "◇" : "☉";
+      message.innerHTML = `<div class="msg-avatar">${mark}</div><div>${html}<div class="msg-time">${label} · ${new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</div></div>`;
+      messagesEl.appendChild(message);
+      messagesEl.scrollTop = messagesEl.scrollHeight;
+      return message;
+    }
+
     function showTyping() {
       const typing = document.createElement("div");
       typing.className = "message";
@@ -885,21 +897,11 @@
       sendBtn.disabled = true;
 
       try {
-        const response = await fetch(`/api/v1/messages/${state.workspaceId}/chat`, {
-          method: "POST",
-          headers: {
-            "Authorization": `Bearer ${state.token}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ message: text, use_memory: true, memory_limit: 8 }),
-        });
-        if (!response.ok) throw new Error(await readError(response));
-        const data = await response.json();
-        removeTyping();
-        const reply = data.reply || tr("modelFallback");
-        addMessage(reply, "ai");
-        if (options.speak || state.spokenReplies) speakText(reply);
-        chatMeta.textContent = `ARI · ${data.model || "model"} · memory active`;
+        if (looksLikeTravelIntent(text)) {
+          const handled = await tryHandleTravelIntent(text, options);
+          if (handled) return;
+        }
+        await sendChatMessage(text, options);
       } catch (error) {
         removeTyping();
         addMessage(error.message, "ai");
@@ -908,6 +910,111 @@
         sendBtn.disabled = false;
         messageInput.focus();
       }
+    }
+
+    function looksLikeTravelIntent(text) {
+      return /\b(vuelo|vuelos|volar|viaje|viajar|flight|flights|fly|trip|travel)\b/i.test(text);
+    }
+
+    async function tryHandleTravelIntent(text, options = {}) {
+      const orchestration = await fetch(`/api/v1/messages/${state.workspaceId}/orchestrate`, {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${state.token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ message: text, use_memory: true, memory_limit: 8 }),
+      });
+      if (!orchestration.ok) throw new Error(await readError(orchestration));
+      const intent = await orchestration.json();
+      if (intent.tool_name === "search_flights" && intent.mode === "tool_ready") {
+        removeTyping();
+        addMessage(intent.reply || (state.language === "es" ? "Busco vuelos dentro de ARI." : "I will search flights inside ARI."), "ai");
+        showTyping();
+        const result = await searchFlights(intent.params || {});
+        removeTyping();
+        renderFlightResults(result, intent.params || {});
+        chatMeta.textContent = "ARI · Duffel · flight results";
+        return true;
+      }
+      if (intent.mode === "ask" || intent.tool_name === "search_flights") {
+        removeTyping();
+        addMessage(intent.reply || (state.language === "es" ? "Necesito un origen y destino concretos para buscar vuelos." : "I need a fixed origin and destination to search flights."), "ai");
+        chatMeta.textContent = "ARI · travel details required";
+        if (options.speak || state.spokenReplies) speakText(intent.reply || "");
+        return true;
+      }
+      return false;
+    }
+
+    async function sendChatMessage(text, options = {}) {
+      const response = await fetch(`/api/v1/messages/${state.workspaceId}/chat`, {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${state.token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ message: text, use_memory: true, memory_limit: 8 }),
+      });
+      if (!response.ok) throw new Error(await readError(response));
+      const data = await response.json();
+      removeTyping();
+      const reply = data.reply || tr("modelFallback");
+      addMessage(reply, "ai");
+      if (options.speak || state.spokenReplies) speakText(reply);
+      chatMeta.textContent = `ARI · ${data.model || "model"} · memory active`;
+    }
+
+    async function searchFlights(params) {
+      const body = {
+        origin: params.origin,
+        destination: params.destination,
+        departure_date: params.departure_date,
+        return_date: params.return_date || null,
+        passengers: Number(params.passengers || 1),
+        cabin_class: params.cabin_class || "economy",
+        max_results: 3,
+      };
+      const response = await fetch(`/api/v1/travel/${state.workspaceId}/flights/search`, {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${state.token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(body),
+      });
+      if (!response.ok) throw new Error(await readError(response));
+      return response.json();
+    }
+
+    function renderFlightResults(result, params) {
+      const results = result.results || [];
+      const title = `${escapeHtml(params.origin || "?")} → ${escapeHtml(params.destination || "?")}`;
+      const subtitle = result.live_mode ? "Live results" : "Duffel test mode";
+      if (!results.length) {
+        addRichMessage(`<div class="flight-card"><div class="flight-kicker">${subtitle}</div><div class="flight-title">${title}</div><p class="flight-note">${state.language === "es" ? "No encontre resultados para esa ruta y fecha." : "No results found for that route and date."}</p></div>`, "ai");
+        return;
+      }
+      const offers = results.map((offer) => {
+        const slices = (offer.slices || []).map((slice, index) => {
+          const label = index === 0 ? (state.language === "es" ? "Ida" : "Outbound") : (state.language === "es" ? "Vuelta" : "Return");
+          const segments = (slice || []).map((segment) => {
+            const time = formatSegmentTime(segment.departing_at, segment.arriving_at);
+            const carrier = segment.marketing_carrier ? ` · ${escapeHtml(segment.marketing_carrier)} ${escapeHtml(segment.flight_number || "")}` : "";
+            return `<div class="flight-segment"><b>${escapeHtml(segment.origin)} → ${escapeHtml(segment.destination)}</b><span>${time}${carrier}</span></div>`;
+          }).join("");
+          return `<div><div class="flight-kicker">${label}</div>${segments}</div>`;
+        }).join("");
+        return `<div class="flight-offer"><div class="flight-offer-top"><div class="flight-airline">${escapeHtml(offer.owner || "Duffel")}</div><div class="flight-price">${escapeHtml(offer.total_amount)} ${escapeHtml(offer.total_currency)}</div></div><div class="flight-slices">${slices}</div></div>`;
+      }).join("");
+      addRichMessage(`<div class="flight-card"><div class="flight-head"><div><div class="flight-kicker">${subtitle}</div><div class="flight-title">${title}</div></div><div class="flight-count">${results.length} / ${result.raw_result_count || results.length}</div></div><div class="flight-list">${offers}</div><p class="flight-note">${state.language === "es" ? "Resultados mostrados dentro de ARI. No se ha creado ninguna reserva." : "Results shown inside ARI. No booking has been created."}</p></div>`, "ai");
+    }
+
+    function formatSegmentTime(departingAt, arrivingAt) {
+      const options = { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" };
+      const dep = departingAt ? new Date(departingAt).toLocaleString(languageLocale(), options) : "";
+      const arr = arrivingAt ? new Date(arrivingAt).toLocaleString(languageLocale(), options) : "";
+      return [dep, arr].filter(Boolean).join(" - ");
     }
 
     function toggleVoiceMode() {
