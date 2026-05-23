@@ -6,21 +6,24 @@
 <title>ARI — Solara</title>
 <style>
 :root {
-  --cream: #F7F2EC;
+  --cream: #F4EFE7;
   --rose: #C4836A;
-  --gold: #C9A96E;
-  --dark: #1A1208;
-  --soft: #FFF8F0;
-  --soft-2: rgba(255,248,240,0.86);
-  --soft-3: rgba(255,248,240,0.72);
-  --border: rgba(201,169,110,0.18);
-  --panel: rgba(20,12,4,0.72);
+  --gold: #D99A3D;
+  --gold-light: #F0B85A;
+  --dark: #0B0805;
+  --panel-dark: #120D08;
+  --panel-elevated: #1A120B;
+  --soft: #F4EFE7;
+  --soft-2: #A89A88;
+  --soft-3: #6F604D;
+  --border: rgba(217,154,61,0.28);
+  --panel: #120D08;
   --danger: #E8A18E;
 }
 
 *{margin:0;padding:0;box-sizing:border-box}
 html,body{height:100%;overflow:hidden;background:var(--dark)}
-body{min-height:100vh;font-family:'Jost',system-ui,sans-serif;font-weight:300;color:var(--cream)}
+body{min-height:100vh;font-family:'Inter',system-ui,sans-serif;font-weight:400;color:var(--cream)}
 canvas{position:fixed;inset:0;z-index:0;pointer-events:none}
 button,input,textarea{font:inherit}
 button{cursor:pointer}
@@ -126,7 +129,7 @@ body.booting *{animation:none!important;transition:none!important}
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;transition:all .25s;
 }
 .recent-item:hover,.recent-item.active{border-color:var(--border);background:rgba(201,169,110,.05);color:var(--cream)}
-.glyph{color:rgba(201,169,110,.55);font-family:'Jost',sans-serif;font-size:11px;flex:0 0 auto}
+.glyph{color:rgba(201,169,110,.55);font-family:'Inter',sans-serif;font-size:11px;flex:0 0 auto}
 .side-footer{margin-top:auto;padding:22px 26px;border-top:1px solid var(--border)}
 .user-card{display:flex;align-items:center;gap:12px;color:var(--soft-2)}
 .avatar{width:38px;height:38px;border:1px solid rgba(201,169,110,.28);display:flex;align-items:center;justify-content:center;color:var(--gold)}
@@ -180,7 +183,7 @@ body.booting *{animation:none!important;transition:none!important}
 .activity-type{font-size:9px;letter-spacing:3px;text-transform:uppercase;color:var(--gold)}
 .activity-tool{font-family:'Cormorant Garamond',serif;font-size:18px;font-style:italic;color:var(--cream);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .activity-time{font-size:8px;letter-spacing:2px;text-transform:uppercase;color:rgba(201,169,110,.32);margin-top:6px}
-.activity-payload{font-family:'Jost',sans-serif;font-size:11px;line-height:1.55;color:var(--soft-3);word-break:break-word}
+.activity-payload{font-family:'Inter',sans-serif;font-size:11px;line-height:1.55;color:var(--soft-3);word-break:break-word}
 .activity-hash{font-size:8px;letter-spacing:1px;color:rgba(201,169,110,.28);margin-top:8px}
 
 .composer-wrap{border-top:1px solid var(--border);padding:20px 42px 28px;background:rgba(20,12,4,.58);flex:0 0 auto}
@@ -195,31 +198,69 @@ body.booting *{animation:none!important;transition:none!important}
 .voice-btn:hover,.voice-btn.active{border-color:rgba(201,169,110,.55);color:var(--cream);box-shadow:0 0 22px rgba(201,169,110,.1)}
 .voice-btn.listening{color:var(--danger);border-color:rgba(232,161,142,.58);box-shadow:0 0 24px rgba(232,161,142,.16)}
 
-@media (max-width:900px){
-  body{overflow:auto}
-  .screen{position:relative;min-height:100vh}
-  .app{min-height:100vh}
-  .app{grid-template-columns:1fr}
-  .sidebar{display:none}
-  .main{min-height:100vh}
-  .topbar{height:auto;min-height:80px;padding:18px 20px}
-  .actions{margin-left:auto;flex-wrap:wrap;justify-content:flex-end}
-  .actions .badge{display:none}
-  .messages{padding:28px 20px}
-  .composer-wrap{padding:16px 20px 22px}
-  .quick-row{grid-template-columns:repeat(2,minmax(0,1fr))}
-  .activity-card{grid-template-columns:1fr}
-  .message{max-width:94%}
-}
-@media (max-width:560px){
-  .topbar{gap:14px}
-  .chat-title{font-size:23px}
-  .chat-meta{max-width:calc(100vw - 44px);line-height:1.5}
-  .actions{width:100%;margin-left:0;justify-content:space-between}
-  .language-select{flex:1;min-width:0}
-  .badge{flex:1;justify-content:center}
-  .composer{grid-template-columns:1fr 44px 44px}
-}
+.app{grid-template-columns:minmax(340px,410px) minmax(0,1fr);background:radial-gradient(circle at 92% 2%,rgba(217,154,61,.14),transparent 28%),radial-gradient(circle at 18% 100%,rgba(217,154,61,.08),transparent 34%),linear-gradient(135deg,#0B0805,#120D08);border:1px solid rgba(217,154,61,.28);border-radius:38px;box-shadow:0 24px 80px rgba(0,0,0,.55),inset 0 1px 0 rgba(255,248,240,.04);overflow:hidden}
+.sidebar{padding:30px 24px;background:linear-gradient(180deg,#0B0805,#120D08);border-right:1px solid rgba(217,154,61,.18);gap:26px}
+.side-brand{border-bottom:0;padding:0;align-items:center;gap:18px}
+.brand-icon{width:72px;height:72px;border:1px solid rgba(217,154,61,.28);border-radius:18px;background:linear-gradient(145deg,rgba(217,154,61,.16),rgba(255,248,240,.02));box-shadow:0 0 24px rgba(217,154,61,.18),inset 0 1px 0 rgba(255,248,240,.08);color:var(--gold-light);display:grid;place-items:center;flex:0 0 auto}
+.brand-icon svg{width:34px;height:34px;stroke:currentColor}
+.side-brand .brand-name{font-family:'Inter',system-ui,sans-serif;font-size:28px;font-style:normal;letter-spacing:.5px;line-height:1.05}
+.side-brand .brand-sub{color:rgba(255,248,240,.62);font-size:14px;letter-spacing:.4px;margin-top:5px;text-transform:none}
+.side-nav{display:grid;gap:12px}
+.side-nav-item{min-height:72px;border:1px solid rgba(217,154,61,.28);border-radius:18px;background:linear-gradient(90deg,rgba(217,154,61,.18),rgba(217,154,61,.05));color:var(--gold-light);display:flex;align-items:center;justify-content:space-between;padding:0 22px;box-shadow:0 0 24px rgba(217,154,61,.16),inset 0 1px 0 rgba(255,248,240,.04)}
+.side-nav-main{display:flex;align-items:center;gap:14px;font-size:18px;font-weight:400}
+.nav-icon,.query-icon{width:46px;height:46px;border:1px solid rgba(217,154,61,.28);border-radius:14px;display:grid;place-items:center;color:var(--gold-light);background:rgba(217,154,61,.08);flex:0 0 auto}
+.nav-dot{width:10px;height:10px;border-radius:50%;background:var(--gold);box-shadow:0 0 24px rgba(217,154,61,.35)}
+.side-section{padding:0;overflow:visible}
+.side-label{color:rgba(255,248,240,.56);font-size:12px;letter-spacing:.8px;margin-bottom:14px}
+.search-shell{height:52px;border:1px solid rgba(217,154,61,.18);border-radius:18px;display:flex;align-items:center;gap:12px;padding:0 18px;color:var(--soft-2);background:rgba(18,13,8,.7);margin-bottom:18px}
+.search-shell input{min-width:0;flex:1;border:0;outline:0;background:transparent;color:var(--cream);font-size:14px}
+.search-shell input::placeholder{color:rgba(255,248,240,.42)}
+.recent-list{gap:10px;overflow:auto;padding-right:2px}
+.recent-item{min-height:84px;display:grid;grid-template-columns:48px minmax(0,1fr) auto;align-items:center;gap:14px;border:1px solid rgba(217,154,61,.12);border-radius:18px;background:#120D08;color:var(--soft-2);font-family:'Inter',system-ui,sans-serif;font-size:15px;font-style:normal;font-weight:400;padding:12px 14px;text-align:left;width:100%;box-shadow:0 24px 80px rgba(0,0,0,.18)}
+.recent-item:hover,.recent-item.active{border-color:rgba(217,154,61,.28);background:linear-gradient(90deg,rgba(217,154,61,.22),rgba(217,154,61,.07));box-shadow:0 24px 80px rgba(0,0,0,.35),0 0 24px rgba(217,154,61,.35),inset 4px 0 0 var(--gold)}
+.recent-title,.recent-sub{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.recent-title{color:var(--cream);font-weight:400}
+.recent-sub{color:rgba(255,248,240,.48);font-size:12px;margin-top:5px}
+.recent-time{color:rgba(255,248,240,.52);font-size:12px;white-space:nowrap}
+.glyph{margin:0}
+.side-footer{border-top:1px solid rgba(255,248,240,.1);display:grid;gap:10px;margin-top:auto;padding:22px 0 0}
+.side-control{min-height:56px;border:1px solid rgba(217,154,61,.18);border-radius:16px;background:#120D08;display:flex;align-items:center;gap:14px;padding:0 18px;color:var(--soft-2)}
+.language-select.side-control-select{width:100%;height:56px;border-radius:16px;padding:0 18px 0 50px;background:#120D08;font-size:14px;letter-spacing:.2px;text-transform:none}
+.main{position:relative;background:radial-gradient(circle at 96% 4%,rgba(217,154,61,.12),transparent 24%),radial-gradient(circle at 78% 94%,rgba(217,154,61,.12),transparent 26%),linear-gradient(145deg,#0B0805,#120D08)}
+.main::before,.main::after{content:'';position:absolute;pointer-events:none;border:1px solid rgba(244,142,32,.12);border-left-color:transparent;border-bottom-color:transparent;opacity:.6}
+.main::before{width:360px;height:360px;right:-120px;top:-150px;border-radius:50%}
+.main::after{width:520px;height:260px;right:-120px;bottom:-70px;border-radius:50%;transform:rotate(-18deg)}
+.topbar{position:relative;z-index:1;height:148px;align-items:flex-start;border-bottom:0;padding:44px 48px 0;background:transparent}
+.chat-title{font-family:'Inter',system-ui,sans-serif;font-size:34px;font-style:normal;font-weight:500;letter-spacing:.2px;line-height:1.1}
+.chat-meta{display:inline-flex;align-items:center;gap:8px;min-height:34px;margin-top:14px;border:1px solid rgba(255,248,240,.11);border-radius:999px;background:rgba(255,248,240,.035);color:rgba(255,248,240,.64);font-size:13px;letter-spacing:.2px;padding:0 16px;text-transform:none}
+.actions{gap:10px}.actions .language-select{display:none}
+.badge{border-radius:999px;height:36px;letter-spacing:.6px;text-transform:none;background:rgba(255,248,240,.035)}
+.icon-btn{width:48px;height:48px;border-radius:14px;background:#120D08;color:var(--soft-2);display:grid;place-items:center}
+.messages{position:relative;z-index:1;padding:28px 72px 34px 108px;gap:40px}
+.welcome{margin:36px auto auto}.quick{border-radius:16px;background:rgba(255,248,240,.03)}
+.message{position:relative;display:block;max-width:min(640px,82%);margin-left:68px}
+.message:not(.user)::before{content:'';position:absolute;left:-70px;top:17px;width:46px;height:46px;border-radius:50%;border:1px solid rgba(244,170,69,.5);background:radial-gradient(circle,#F0B85A 0 5px,rgba(244,170,69,.22) 6px 14px,rgba(0,0,0,.42) 15px);box-shadow:0 0 24px rgba(244,170,69,.14)}
+.message:not(.user)::after{content:'';position:absolute;left:-48px;top:63px;width:1px;height:calc(100% + 32px);background:linear-gradient(rgba(244,170,69,.42),rgba(244,170,69,.08))}
+.message.user{align-self:flex-end;margin-left:0;max-width:min(620px,86%)}
+.msg-avatar{display:none}
+.bubble{border-color:rgba(217,154,61,.28);border-radius:18px;background:linear-gradient(145deg,rgba(26,18,11,.96),rgba(18,13,8,.82));box-shadow:0 24px 80px rgba(0,0,0,.55),inset 0 1px 0 rgba(255,248,240,.05);font-family:'Cormorant Garamond',serif;font-size:25px;font-style:italic;font-weight:500;line-height:1.6;padding:28px 34px}
+.msg-time{color:rgba(244,170,69,.72);font-size:14px;letter-spacing:3px;margin:16px 0 0 4px}
+.composer-wrap{position:relative;z-index:2;border:1px solid rgba(217,154,61,.28);border-radius:24px;background:#120D08;box-shadow:0 24px 80px rgba(0,0,0,.55),inset 0 1px 0 rgba(255,248,240,.05);margin:0 28px 28px;padding:20px 20px 22px}
+.modes{justify-content:center;background:rgba(255,248,240,.03);border:1px solid rgba(255,248,240,.09);border-radius:18px;margin:0 auto 18px;max-width:640px;padding:5px}
+.mode{border-radius:14px;border-color:transparent;font-size:13px;letter-spacing:.2px;min-height:42px;text-transform:none}
+.mode.active,.mode:hover{background:linear-gradient(135deg,rgba(244,142,32,.28),rgba(244,142,32,.08));border-color:rgba(244,170,69,.24);color:var(--cream);box-shadow:0 12px 28px rgba(244,142,32,.12)}
+.composer{border-color:rgba(244,170,69,.2);border-radius:18px;background:rgba(255,248,240,.035);grid-template-columns:1fr 62px 62px;padding:14px 16px 14px 22px}
+.composer textarea{font-family:'Inter',system-ui,sans-serif;font-size:18px;font-style:normal;line-height:1.5}
+.send,.voice-btn{height:62px;border-radius:50%;font-size:24px}
+.send{background:linear-gradient(135deg,var(--gold-light),var(--gold));color:#0B0805;border-color:transparent;box-shadow:0 0 24px rgba(217,154,61,.35)}
+.voice-btn{background:rgba(0,0,0,.22);border-color:rgba(255,248,240,.12)}
+.lucide{width:20px;height:20px;display:block;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.send .lucide,.voice-btn .lucide{width:22px;height:22px}
+.activity-payload,.glyph{font-family:'Inter',system-ui,sans-serif}
+.side-brand .brand-name,.composer textarea{font-family:'Inter',system-ui,sans-serif}
+.message:not(.user)::before{border-color:rgba(217,154,61,.28);background:radial-gradient(circle,var(--gold-light) 0 5px,rgba(217,154,61,.22) 6px 14px,rgba(0,0,0,.42) 15px);box-shadow:0 0 24px rgba(217,154,61,.35)}
+@media (max-width:900px){body{overflow:hidden}.screen{position:fixed;min-height:100vh}.app{grid-template-columns:72px minmax(0,1fr);min-height:100vh;border-radius:0;border:0}.sidebar{display:flex;padding:20px 12px;align-items:center}.side-brand{justify-content:center}.brand-icon{width:48px;height:48px;border-radius:14px}.side-brand>div:last-child,.side-nav-main span,.nav-dot,.side-label,.search-shell,.recent-item .recent-copy,.recent-time,.user-card>div:not(.avatar){display:none}.side-nav-item{width:48px;min-height:48px;padding:0;justify-content:center;border-radius:14px}.nav-icon,.query-icon{width:48px;height:48px;border-radius:14px}.side-section{width:100%}.recent-list{align-items:center;max-height:48vh}.recent-item{width:48px;min-height:48px;display:grid;grid-template-columns:1fr;place-items:center;padding:0;border-radius:14px}.side-footer{width:100%;padding-top:18px;align-items:center}.side-control,.language-select.side-control-select{display:none}.avatar{width:48px;height:48px;border-radius:14px}.main{min-height:100vh;grid-template-rows:auto minmax(0,1fr) auto}.topbar{height:96px;min-height:96px;padding:20px}.chat-title{font-size:28px}.chat-meta{font-size:12px;max-width:100%}.actions{align-items:flex-start}.actions .badge{display:none}.icon-btn{width:48px;height:48px;border-radius:14px}.messages{padding:22px 20px 22px 56px;gap:34px}.welcome{margin-top:12px}.quick-row{grid-template-columns:repeat(2,minmax(0,1fr))}.activity-card{grid-template-columns:1fr}.message{max-width:94%;margin-left:38px}.message:not(.user)::before{left:-48px;width:38px;height:38px}.message:not(.user)::after{left:-30px;top:55px}.bubble{width:min(260px,100%);min-height:128px;font-size:21px;padding:22px 24px}.composer-wrap{min-height:190px;margin:0 20px 20px;border-radius:24px;padding:14px}.modes{justify-content:flex-start;overflow-x:auto;flex-wrap:nowrap}.mode{white-space:nowrap}.composer{min-height:72px;grid-template-columns:1fr 54px 54px;gap:10px;padding:12px}.send,.voice-btn{height:54px}}
+@media (max-width:560px){.app{grid-template-columns:72px minmax(0,1fr)}.sidebar{padding:20px 12px}.brand-icon,.side-nav-item,.recent-item{width:48px;min-height:48px}.brand-icon{height:48px}.topbar{padding:20px;min-height:96px}.chat-title{font-size:25px}.chat-meta{padding:0 12px;min-height:30px}.messages{padding:18px 20px 18px 44px}.quick-row{display:none}.bubble{width:min(240px,100%);font-size:19px;padding:20px}.msg-time{font-size:11px;letter-spacing:2px}.composer-wrap{min-height:180px;margin:0 20px 20px}.modes{display:none}.composer{grid-template-columns:1fr 50px 50px}.composer textarea{font-size:16px;min-height:64px}.send,.voice-btn{height:50px}}
 </style>
 </head>
 <body class="booting">
@@ -228,12 +269,12 @@ body.booting *{animation:none!important;transition:none!important}
 
 <div id="cur">
   <svg width="30" height="30" viewBox="0 0 30 30" fill="none">
-    <circle cx="15" cy="15" r="13" stroke="#C9A96E" stroke-width=".6" opacity=".5"/>
-    <circle cx="15" cy="15" r="3.5" stroke="#C9A96E" stroke-width=".5" opacity=".3"/>
-    <line x1="15" y1="2" x2="15" y2="6" stroke="#C9A96E" stroke-width=".8" opacity=".55"/>
-    <line x1="15" y1="24" x2="15" y2="28" stroke="#C9A96E" stroke-width=".8" opacity=".55"/>
-    <line x1="2" y1="15" x2="6" y2="15" stroke="#C9A96E" stroke-width=".8" opacity=".55"/>
-    <line x1="24" y1="15" x2="28" y2="15" stroke="#C9A96E" stroke-width=".8" opacity=".55"/>
+    <circle cx="15" cy="15" r="13" stroke="#D99A3D" stroke-width=".6" opacity=".5"/>
+    <circle cx="15" cy="15" r="3.5" stroke="#D99A3D" stroke-width=".5" opacity=".3"/>
+    <line x1="15" y1="2" x2="15" y2="6" stroke="#D99A3D" stroke-width=".8" opacity=".55"/>
+    <line x1="15" y1="24" x2="15" y2="28" stroke="#D99A3D" stroke-width=".8" opacity=".55"/>
+    <line x1="2" y1="15" x2="6" y2="15" stroke="#D99A3D" stroke-width=".8" opacity=".55"/>
+    <line x1="24" y1="15" x2="28" y2="15" stroke="#D99A3D" stroke-width=".8" opacity=".55"/>
   </svg>
 </div>
 <div id="cd"></div>
@@ -245,19 +286,19 @@ body.booting *{animation:none!important;transition:none!important}
       <div class="brand-block">
         <div class="sun-wrap">
           <svg width="56" height="56" viewBox="0 0 56 56" fill="none">
-            <circle cx="28" cy="28" r="9" stroke="#C9A96E" stroke-width=".7" opacity=".6"/>
-            <circle cx="28" cy="28" r="15" stroke="#C9A96E" stroke-width=".45" opacity=".3"/>
-            <circle cx="28" cy="28" r="21" stroke="#C9A96E" stroke-width=".35" opacity=".18"/>
-            <line x1="28" y1="2" x2="28" y2="8" stroke="#C9A96E" stroke-width=".8" opacity=".5"/>
-            <line x1="28" y1="48" x2="28" y2="54" stroke="#C9A96E" stroke-width=".8" opacity=".5"/>
-            <line x1="2" y1="28" x2="8" y2="28" stroke="#C9A96E" stroke-width=".8" opacity=".5"/>
-            <line x1="48" y1="28" x2="54" y2="28" stroke="#C9A96E" stroke-width=".8" opacity=".5"/>
-            <line x1="8" y1="8" x2="13" y2="13" stroke="#C9A96E" stroke-width=".65" opacity=".4"/>
-            <line x1="48" y1="8" x2="43" y2="13" stroke="#C9A96E" stroke-width=".65" opacity=".4"/>
-            <line x1="8" y1="48" x2="13" y2="43" stroke="#C9A96E" stroke-width=".65" opacity=".4"/>
-            <line x1="48" y1="48" x2="43" y2="43" stroke="#C9A96E" stroke-width=".65" opacity=".4"/>
-            <circle cx="28" cy="28" r="3" fill="#C9A96E" opacity=".22"/>
-            <circle cx="28" cy="28" r="1.5" fill="#C9A96E" opacity=".7"/>
+            <circle cx="28" cy="28" r="9" stroke="#D99A3D" stroke-width=".7" opacity=".6"/>
+            <circle cx="28" cy="28" r="15" stroke="#D99A3D" stroke-width=".45" opacity=".3"/>
+            <circle cx="28" cy="28" r="21" stroke="#D99A3D" stroke-width=".35" opacity=".18"/>
+            <line x1="28" y1="2" x2="28" y2="8" stroke="#D99A3D" stroke-width=".8" opacity=".5"/>
+            <line x1="28" y1="48" x2="28" y2="54" stroke="#D99A3D" stroke-width=".8" opacity=".5"/>
+            <line x1="2" y1="28" x2="8" y2="28" stroke="#D99A3D" stroke-width=".8" opacity=".5"/>
+            <line x1="48" y1="28" x2="54" y2="28" stroke="#D99A3D" stroke-width=".8" opacity=".5"/>
+            <line x1="8" y1="8" x2="13" y2="13" stroke="#D99A3D" stroke-width=".65" opacity=".4"/>
+            <line x1="48" y1="8" x2="43" y2="13" stroke="#D99A3D" stroke-width=".65" opacity=".4"/>
+            <line x1="8" y1="48" x2="13" y2="43" stroke="#D99A3D" stroke-width=".65" opacity=".4"/>
+            <line x1="48" y1="48" x2="43" y2="43" stroke="#D99A3D" stroke-width=".65" opacity=".4"/>
+            <circle cx="28" cy="28" r="3" fill="#D99A3D" opacity=".22"/>
+            <circle cx="28" cy="28" r="1.5" fill="#D99A3D" opacity=".7"/>
           </svg>
         </div>
         <div class="brand-name"><span>A</span>ri</div>
@@ -307,24 +348,48 @@ body.booting *{animation:none!important;transition:none!important}
   <div class="app">
     <aside class="sidebar">
       <div class="side-brand">
-        <div class="brand-name"><span>A</span>ri</div>
-        <div class="brand-sub">Solara</div>
+        <div class="brand-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none">
+            <path d="M4 13v-2M7 17V7M10 20V4M13 17V7M16 15V9M20 13v-2" stroke-width="1.8" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <div>
+          <div class="brand-name">ARI</div>
+          <div class="brand-sub">Asistente</div>
+        </div>
       </div>
-      <div class="side-section">
-        <div class="side-label">Recent queries</div>
-        <div class="recent-list" id="recent-queries">
-          <div class="recent-item active"><span class="glyph">☉</span>No queries yet</div>
+      <div class="side-nav" aria-label="Primary">
+        <div class="side-nav-item">
+          <div class="side-nav-main">
+            <span class="nav-icon" aria-hidden="true"><svg class="lucide" viewBox="0 0 24 24"><path d="M21 15a4 4 0 0 1-4 4H7l-4 4V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"/></svg></span>
+            <span>Conversaciones</span>
+          </div>
+          <span class="nav-dot" aria-hidden="true"></span>
         </div>
       </div>
       <div class="side-section">
-        <div class="side-label">Memory</div>
-        <div class="recent-list">
-          <div class="recent-item" onclick="setMode('memory')"><span class="glyph">⊹</span>Search memory</div>
-          <div class="recent-item" onclick="setMode('activity')"><span class="glyph">◎</span>Activity log</div>
-          <div class="recent-item" onclick="setMode('text')"><span class="glyph">✦</span>Return to chat</div>
+        <div class="side-label">Todas las conversaciones</div>
+        <label class="search-shell" for="conversation-search">
+          <span aria-hidden="true"><svg class="lucide" viewBox="0 0 24 24"><path d="m21 21-4.3-4.3"/><circle cx="11" cy="11" r="8"/></svg></span>
+          <input id="conversation-search" type="search" placeholder="Buscar conversación">
+        </label>
+        <div class="recent-list" id="recent-queries">
+          <div class="recent-item active">
+            <span class="query-icon"><svg class="lucide" viewBox="0 0 24 24"><path d="M21 15a4 4 0 0 1-4 4H7l-4 4V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"/></svg></span>
+            <span class="recent-copy"><span class="recent-title">No queries yet</span><span class="recent-sub">ARI</span></span>
+            <span class="recent-time">Ahora</span>
+          </div>
         </div>
       </div>
       <div class="side-footer">
+        <div class="side-control">
+          <span aria-hidden="true"><svg class="lucide" viewBox="0 0 24 24"><path d="M16 9a5 5 0 0 1 0 6M19.4 5.6a10 10 0 0 1 0 12.8"/><path d="M11 5 6 9H2v6h4l5 4z"/><path d="m22 2-20 20"/></svg></span>
+          <span id="side-voice-status">Voz desactivada</span>
+        </div>
+        <div style="position:relative">
+          <span aria-hidden="true" style="position:absolute;left:18px;top:18px;color:#F0B85A;z-index:1"><svg class="lucide" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 0 20"/><path d="M12 2a15.3 15.3 0 0 0 0 20"/></svg></span>
+          <select class="language-select side-control-select" id="app-language" aria-label="Language"></select>
+        </div>
         <div class="user-card">
           <div class="avatar">☉</div>
           <div style="min-width:0">
@@ -342,10 +407,9 @@ body.booting *{animation:none!important;transition:none!important}
           <div class="chat-meta" id="chat-meta">ARI · login required</div>
         </div>
         <div class="actions">
-          <select class="language-select" id="app-language" aria-label="Language"></select>
           <div class="badge"><span class="badge-dot"></span><span id="connection-label">LOGIN</span></div>
-          <button class="icon-btn" onclick="clearChat()">◎</button>
-          <button class="icon-btn" onclick="logoutUser()">⎋</button>
+          <button class="icon-btn" onclick="clearChat()" aria-label="Reset"><svg class="lucide" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 3v6h6"/></svg></button>
+          <button class="icon-btn" onclick="logoutUser()" aria-label="Cerrar"><svg class="lucide" viewBox="0 0 24 24"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button>
         </div>
       </header>
 
@@ -353,11 +417,11 @@ body.booting *{animation:none!important;transition:none!important}
         <div class="welcome" id="welcome-state">
           <div class="sun-wrap">
             <svg width="56" height="56" viewBox="0 0 56 56" fill="none">
-              <circle cx="28" cy="28" r="9" stroke="#C9A96E" stroke-width=".7" opacity=".6"/>
-              <circle cx="28" cy="28" r="15" stroke="#C9A96E" stroke-width=".45" opacity=".3"/>
-              <circle cx="28" cy="28" r="21" stroke="#C9A96E" stroke-width=".35" opacity=".18"/>
-              <circle cx="28" cy="28" r="3" fill="#C9A96E" opacity=".22"/>
-              <circle cx="28" cy="28" r="1.5" fill="#C9A96E" opacity=".7"/>
+              <circle cx="28" cy="28" r="9" stroke="#D99A3D" stroke-width=".7" opacity=".6"/>
+              <circle cx="28" cy="28" r="15" stroke="#D99A3D" stroke-width=".45" opacity=".3"/>
+              <circle cx="28" cy="28" r="21" stroke="#D99A3D" stroke-width=".35" opacity=".18"/>
+              <circle cx="28" cy="28" r="3" fill="#D99A3D" opacity=".22"/>
+              <circle cx="28" cy="28" r="1.5" fill="#D99A3D" opacity=".7"/>
             </svg>
           </div>
           <div class="welcome-title">ARI is awake</div>
@@ -383,11 +447,11 @@ body.booting *{animation:none!important;transition:none!important}
           <textarea id="chat-input" rows="1" placeholder="Ask the sun..." oninput="autoResize(this)" onkeydown="handleKey(event)"></textarea>
           <button class="voice-btn" id="voice-btn" onclick="startVoiceInput()" aria-label="Voice input">
             <svg class="voice-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-              <path d="M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3Z" stroke="currentColor" stroke-width="1.7"/>
-              <path d="M5 11a7 7 0 0 0 14 0M12 18v3M9 21h6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>
+              <path d="M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3Z"/>
+              <path d="M5 11a7 7 0 0 0 14 0M12 18v3M9 21h6"/>
             </svg>
           </button>
-          <button class="send" onclick="sendMessage()">◇</button>
+          <button class="send" onclick="sendMessage()" aria-label="Enviar"><svg class="lucide" viewBox="0 0 24 24"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg></button>
         </div>
       </footer>
     </main>
@@ -439,7 +503,7 @@ function draw(){
   dust.forEach(p=>{p.x+=p.vx;p.y+=p.vy;if(p.x<0)p.x=cv.width;if(p.x>cv.width)p.x=0;if(p.y<0)p.y=cv.height;if(p.y>cv.height)p.y=0;const a=.03+.07*(.5+.5*Math.sin(t*.3+p.x*.01));ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);ctx.fillStyle=`rgba(201,169,110,${a})`;ctx.fill()});
   ctx.save();ctx.setLineDash([3,6]);LIBRA_LINES.forEach(([i,j])=>{const a=sp(LIBRA_STARS[i]),b=sp(LIBRA_STARS[j]);ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.strokeStyle=`rgba(201,169,110,${0.10+0.05*Math.sin(t*.35)})`;ctx.lineWidth=.65;ctx.stroke()});ctx.setLineDash([]);ctx.restore();
   LIBRA_STARS.forEach((star,i)=>{const{x,y}=sp(star),tw=.5+.5*Math.sin(t*(1.4+i*.28)+star.rx*9),alph=star.mag*(.5+.5*tw),r=star.main?(1.8+tw*.7):(1.0+tw*.45);if(star.main){const gg=ctx.createRadialGradient(x,y,0,x,y,r*10);gg.addColorStop(0,`rgba(201,169,110,${alph*.22})`);gg.addColorStop(1,'transparent');ctx.fillStyle=gg;ctx.beginPath();ctx.arc(x,y,r*10,0,Math.PI*2);ctx.fill()}const gm=ctx.createRadialGradient(x,y,0,x,y,r*4);gm.addColorStop(0,`rgba(247,230,170,${alph*.55})`);gm.addColorStop(1,'transparent');ctx.fillStyle=gm;ctx.beginPath();ctx.arc(x,y,r*4,0,Math.PI*2);ctx.fill();ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fillStyle=`rgba(255,240,190,${.7+.3*tw})`;ctx.fill();if(star.main){const sl=5+tw*4,sa=alph*.38;ctx.save();ctx.strokeStyle=`rgba(247,220,130,${sa})`;ctx.lineWidth=.55;ctx.beginPath();ctx.moveTo(x-sl,y);ctx.lineTo(x+sl,y);ctx.stroke();ctx.beginPath();ctx.moveTo(x,y-sl);ctx.lineTo(x,y+sl);ctx.stroke();ctx.restore()}});
-  ctx.fillStyle='rgba(201,169,110,0.2)';ctx.font='200 8px Jost, sans-serif';LIBRA_STARS.filter(s=>s.main).forEach(s=>{const{x,y}=sp(s);ctx.fillText(s.name,x+8,y-6)});
+  ctx.fillStyle='rgba(201,169,110,0.2)';ctx.font='200 8px Inter, sans-serif';LIBRA_STARS.filter(s=>s.main).forEach(s=>{const{x,y}=sp(s);ctx.fillText(s.name,x+8,y-6)});
   shoots=shoots.filter(s=>{s.x+=s.vx;s.y+=s.vy;s.life-=.012;if(s.life<=0)return false;const sg=ctx.createLinearGradient(s.x-s.vx*20,s.y,s.x,s.y);sg.addColorStop(0,'transparent');sg.addColorStop(1,`rgba(201,169,110,${s.life*.5})`);ctx.beginPath();ctx.moveTo(s.x-s.vx*20,s.y);ctx.lineTo(s.x,s.y);ctx.strokeStyle=sg;ctx.lineWidth=.8;ctx.stroke();return true});
   requestAnimationFrame(draw);
 }
@@ -479,6 +543,14 @@ if(!userPrefs.replyLanguage)userPrefs.replyLanguage=userPrefs.appLanguage;
 function appTranslationLanguage(){return APP_I18N[userPrefs.appLanguage]?userPrefs.appLanguage:'en'}
 function appText(key){const language=appTranslationLanguage();return APP_I18N[language]?.[key]||APP_I18N.en[key]||key}
 function appLocale(){return {de:'de-DE',en:'en-US',es:'es-ES',it:'it-IT',pt:'pt-PT',ru:'ru-RU',uk:'uk-UA'}[userPrefs.appLanguage]||userPrefs.appLanguage||'en-US'}
+function lucideIcon(name){
+  const icons={
+    message:'<svg class="lucide" viewBox="0 0 24 24"><path d="M21 15a4 4 0 0 1-4 4H7l-4 4V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"/></svg>',
+    brain:'<svg class="lucide" viewBox="0 0 24 24"><path d="M12 5a3 3 0 0 0-5.6-1.5A3.5 3.5 0 0 0 3 7a3 3 0 0 0 1 2.2A4 4 0 0 0 4 16a4 4 0 0 0 4 4h1"/><path d="M12 5a3 3 0 0 1 5.6-1.5A3.5 3.5 0 0 1 21 7a3 3 0 0 1-1 2.2A4 4 0 0 1 20 16a4 4 0 0 1-4 4h-1"/><path d="M12 5v16"/><path d="M8 8h.01"/><path d="M16 8h.01"/></svg>',
+    trend:'<svg class="lucide" viewBox="0 0 24 24"><path d="m3 17 6-6 4 4 8-8"/><path d="M14 7h7v7"/></svg>'
+  };
+  return icons[name]||icons.message;
+}
 function formatActiveDate(date=new Date()){
   const language=appTranslationLanguage();
   if(language==='es'){
@@ -531,12 +603,7 @@ function applyAppLanguage(){
   document.getElementById('auth-heading').textContent=appText('heading');
   document.querySelector('label[for="auth-email"], .fg label')?.replaceChildren(document.createTextNode(appText('email')));
   document.querySelector('#forgot-row .link').textContent=appText('forgot');
-  document.querySelectorAll('.side-label')[0].textContent=appText('recent');
-  document.querySelectorAll('.side-label')[1].textContent=appText('memory');
-  const nav=document.querySelectorAll('.side-section .recent-item');
-  if(nav[1])nav[1].innerHTML='<span class="glyph">⊹</span>'+appText('searchMemory');
-  if(nav[2])nav[2].innerHTML='<span class="glyph">◎</span>'+appText('activityLog');
-  if(nav[3])nav[3].innerHTML='<span class="glyph">✦</span>'+appText('returnChat');
+  document.querySelectorAll('.side-label')[0].textContent=userPrefs.appLanguage==='es'?'Todas las conversaciones':appText('recent');
   document.querySelector('.chat-title').textContent=appText('activeQuery');
   document.getElementById('mode-text').textContent=appText('text');
   document.getElementById('mode-memory').textContent=appText('memory');
@@ -566,7 +633,7 @@ function afterFirstPaint(fn){requestAnimationFrame(()=>setTimeout(fn,0))}
 function loadFontsLater(){
   const link=document.createElement('link');
   link.rel='stylesheet';
-  link.href='https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400;1,600&family=Jost:wght@200;300;400;500&display=swap';
+  link.href='https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@1,500&family=Inter:wght@400;500;600&display=swap';
   document.head.appendChild(link);
 }
 function isLocalBackendUrl(url){
@@ -909,7 +976,9 @@ function setMode(mode){
 }
 function syncVoiceControls(){
   const voiceMode=document.getElementById('mode-voice'),voiceBtn=document.getElementById('voice-btn');
+  const sideVoiceStatus=document.getElementById('side-voice-status');
   if(voiceMode)voiceMode.classList.toggle('active',spokenReplies);
+  if(sideVoiceStatus)sideVoiceStatus.textContent=(spokenReplies?appText('voiceOn'):appText('voiceOff')).replace(/^ARI ·\s*/i,'');
   if(voiceBtn){
     voiceBtn.classList.toggle('active',spokenReplies);
     voiceBtn.disabled=!window.MediaRecorder;
@@ -1006,7 +1075,7 @@ function showTyping(){const msgs=document.getElementById('messages'),div=documen
 function removeTyping(){const t=document.getElementById('typing-msg');if(t)t.remove()}
 function clearChat(){
   currentConversationHasMessages=false;
-  document.getElementById('messages').innerHTML=`<div class="welcome" id="welcome-state"><div class="sun-wrap"><svg width="56" height="56" viewBox="0 0 56 56" fill="none"><circle cx="28" cy="28" r="9" stroke="#C9A96E" stroke-width=".7" opacity=".6"/><circle cx="28" cy="28" r="15" stroke="#C9A96E" stroke-width=".45" opacity=".3"/><circle cx="28" cy="28" r="21" stroke="#C9A96E" stroke-width=".35" opacity=".18"/><circle cx="28" cy="28" r="3" fill="#C9A96E" opacity=".22"/><circle cx="28" cy="28" r="1.5" fill="#C9A96E" opacity=".7"/></svg></div><div class="welcome-title">${escapeHtml(appText('welcomeTitle'))}</div><div class="welcome-copy">${escapeHtml(appText('welcomeCopy'))}</div><div class="quick-row"><button class="quick" onclick="sendQuick('${escapeAttr(appText('promptPriorities'))}')">☉<b>${escapeHtml(appText('priorities'))}</b><span>${escapeHtml(appText('prioritiesCopy'))}</span></button><button class="quick" onclick="sendQuick('${escapeAttr(appText('promptWriting'))}')">✦<b>${escapeHtml(appText('writing'))}</b><span>${escapeHtml(appText('writingCopy'))}</span></button><button class="quick" onclick="sendQuick('${escapeAttr(appText('promptProduct'))}')">⊹<b>${escapeHtml(appText('product'))}</b><span>${escapeHtml(appText('productCopy'))}</span></button><button class="quick" onclick="sendQuick('${escapeAttr(appText('promptMemory'))}')">◇<b>${escapeHtml(appText('memory'))}</b><span>${escapeHtml(appText('memoryCopy'))}</span></button></div></div>`;
+  document.getElementById('messages').innerHTML=`<div class="welcome" id="welcome-state"><div class="sun-wrap"><svg width="56" height="56" viewBox="0 0 56 56" fill="none"><circle cx="28" cy="28" r="9" stroke="#D99A3D" stroke-width=".7" opacity=".6"/><circle cx="28" cy="28" r="15" stroke="#D99A3D" stroke-width=".45" opacity=".3"/><circle cx="28" cy="28" r="21" stroke="#D99A3D" stroke-width=".35" opacity=".18"/><circle cx="28" cy="28" r="3" fill="#D99A3D" opacity=".22"/><circle cx="28" cy="28" r="1.5" fill="#D99A3D" opacity=".7"/></svg></div><div class="welcome-title">${escapeHtml(appText('welcomeTitle'))}</div><div class="welcome-copy">${escapeHtml(appText('welcomeCopy'))}</div><div class="quick-row"><button class="quick" onclick="sendQuick('${escapeAttr(appText('promptPriorities'))}')">☉<b>${escapeHtml(appText('priorities'))}</b><span>${escapeHtml(appText('prioritiesCopy'))}</span></button><button class="quick" onclick="sendQuick('${escapeAttr(appText('promptWriting'))}')">✦<b>${escapeHtml(appText('writing'))}</b><span>${escapeHtml(appText('writingCopy'))}</span></button><button class="quick" onclick="sendQuick('${escapeAttr(appText('promptProduct'))}')">⊹<b>${escapeHtml(appText('product'))}</b><span>${escapeHtml(appText('productCopy'))}</span></button><button class="quick" onclick="sendQuick('${escapeAttr(appText('promptMemory'))}')">◇<b>${escapeHtml(appText('memory'))}</b><span>${escapeHtml(appText('memoryCopy'))}</span></button></div></div>`;
   if(authSession)document.getElementById('chat-meta').textContent=activeQueryMeta();
 }
 function sendQuick(text){document.getElementById('chat-input').value=text;sendMessage()}
@@ -1740,9 +1809,14 @@ async function loadActivityLog(){
   }
 }
 function renderRecentQueries(items){
-  const container=document.getElementById('recent-queries'),glyphs=['☉','✦','⊹','◇','☽'];
-  if(!items.length){container.innerHTML=`<div class="recent-item active"><span class="glyph">☉</span>${appText('noQueries')}</div>`;return}
-  container.innerHTML=items.map((item,index)=>`<div class="recent-item ${index===0?'active':''}" data-query="${escapeAttr(item.title)}" data-date="${escapeAttr(item.date||'')}" data-line="${item.line_number||''}" onclick="openConversation(this)"><span class="glyph">${glyphs[index%glyphs.length]}</span>${escapeHtml(item.title)}</div>`).join('');
+  const container=document.getElementById('recent-queries'),icons=['message','brain','trend'];
+  if(!items.length){container.innerHTML=`<div class="recent-item active"><span class="query-icon">${lucideIcon('message')}</span><span class="recent-copy"><span class="recent-title">${appText('noQueries')}</span><span class="recent-sub">ARI</span></span><span class="recent-time">--</span></div>`;return}
+  container.innerHTML=items.map((item,index)=>{
+    const title=escapeHtml(item.title||appText('activeQuery'));
+    const date=escapeHtml(item.date||'ARI');
+    const time=item.updated_at?new Intl.DateTimeFormat(appLocale(),{hour:'2-digit',minute:'2-digit'}).format(new Date(item.updated_at)):(index===0?'Ahora':'');
+    return `<div class="recent-item ${index===0?'active':''}" data-query="${escapeAttr(item.title)}" data-date="${escapeAttr(item.date||'')}" data-line="${item.line_number||''}" onclick="openConversation(this)"><span class="query-icon">${lucideIcon(icons[index%icons.length])}</span><span class="recent-copy"><span class="recent-title">${title}</span><span class="recent-sub">${date} · ARI</span></span><span class="recent-time">${escapeHtml(time)}</span></div>`;
+  }).join('');
 }
 function addRecentQuery(title){const container=document.getElementById('recent-queries');const existing=Array.from(container.querySelectorAll('.recent-item')).map(item=>item.textContent.trim()).filter(item=>item&&item!=='No queries yet'&&item!==title);renderRecentQueries([{title},...existing.slice(0,7).map(item=>({title:item}))])}
 async function loadRecentQueries(){if(!invoke||!authSession)return;try{const items=await invoke('list_recent_messages',{limit:8});renderRecentQueries(items)}catch(_error){renderRecentQueries([])}}
@@ -1751,7 +1825,7 @@ async function openConversation(el){
   if(!date||!lineNumber){sendQuick(el.dataset.query||el.textContent.trim());return}
   try{const conversation=await invoke('read_conversation',{date,lineNumber});renderConversation(conversation);document.querySelectorAll('#recent-queries .recent-item').forEach(item=>item.classList.remove('active'));el.classList.add('active')}catch(error){addMessage(commandError(error),'ai')}
 }
-function renderConversation(conversation){const msgs=document.getElementById('messages');msgs.innerHTML='';currentConversationHasMessages=false;conversation.messages.forEach(message=>addMessage(message.content,message.role==='assistant'?'ai':'user'));currentConversationHasMessages=true;document.getElementById('chat-meta').textContent=`ARI · ${conversation.date} · line ${conversation.line_number}`;showScreen('screen-chat')}
+function renderConversation(conversation){const msgs=document.getElementById('messages');msgs.innerHTML='';currentConversationHasMessages=false;conversation.messages.forEach(message=>addMessage(message.content,message.role==='assistant'?'ai':'user'));currentConversationHasMessages=true;document.querySelector('.chat-title').textContent=conversation.title||appText('activeQuery');document.getElementById('chat-meta').textContent=activeQueryMeta();showScreen('screen-chat')}
 async function initializeApp(){
   buildLanguageSelects();
   applyAppLanguage();

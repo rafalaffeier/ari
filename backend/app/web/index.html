@@ -4,13 +4,13 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>ARI - Solara</title>
-  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Jost:wght@200;300;400;500&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@1,500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <style>
     :root {
       --cream: #F7F2EC;
       --rose: #C4836A;
-      --gold: #C9A96E;
-      --dark: #1A1208;
+      --gold: #D99A3D;
+      --dark: #0B0805;
       --soft: #FFF8F0;
       --soft-2: rgba(255,248,240,0.86);
       --soft-3: rgba(255,248,240,0.72);
@@ -25,7 +25,7 @@
       min-height: 100vh;
       overflow: hidden;
       color: var(--cream);
-      font-family: "Jost", system-ui, sans-serif;
+      font-family: "Inter", system-ui, sans-serif;
       font-weight: 300;
     }
 
@@ -223,7 +223,7 @@
       text-overflow: ellipsis;
     }
     .recent-item:hover, .recent-item.active { border-color: var(--border); background: rgba(201,169,110,.05); color: var(--cream); }
-    .glyph { color: rgba(201,169,110,.55); font-family: "Jost", sans-serif; font-size: 11px; margin-right: 10px; }
+    .glyph { color: rgba(201,169,110,.55); font-family: "Inter", sans-serif; font-size: 11px; margin-right: 10px; }
     .side-footer { margin-top: auto; padding: 22px 26px; border-top: 1px solid var(--border); }
     .user-card { display: flex; align-items: center; gap: 12px; min-width: 0; }
     .avatar { width: 38px; height: 38px; border: 1px solid rgba(201,169,110,.28); display: flex; align-items: center; justify-content: center; color: var(--gold); flex: 0 0 auto; }
@@ -334,14 +334,14 @@
       border-radius: 20px;
       background: linear-gradient(145deg, rgba(249,166,45,.16), rgba(255,248,240,.02));
       box-shadow: 0 0 28px rgba(245,151,35,.1), inset 0 1px 0 rgba(255,248,240,.08);
-      color: #F4AA45;
+      color: #F0B85A;
       display: grid;
       place-items: center;
       flex: 0 0 auto;
     }
     .brand-icon svg { width: 34px; height: 34px; stroke: currentColor; }
     .side-brand .brand-name {
-      font-family: "Jost", system-ui, sans-serif;
+      font-family: "Inter", system-ui, sans-serif;
       font-size: 28px;
       font-style: normal;
       letter-spacing: .5px;
@@ -378,11 +378,11 @@
       border-radius: 14px;
       display: grid;
       place-items: center;
-      color: #F4AA45;
+      color: #F0B85A;
       background: rgba(249,166,45,.08);
       flex: 0 0 auto;
     }
-    .nav-dot { width: 10px; height: 10px; border-radius: 50%; background: #F4AA45; box-shadow: 0 0 16px rgba(244,170,69,.8); }
+    .nav-dot { width: 10px; height: 10px; border-radius: 50%; background: #F0B85A; box-shadow: 0 0 16px rgba(244,170,69,.8); }
     .side-section { padding: 0; overflow: visible; }
     .side-label {
       color: rgba(255,248,240,.56);
@@ -423,7 +423,7 @@
       border-radius: 22px;
       background: rgba(255,248,240,.025);
       color: rgba(255,248,240,.82);
-      font-family: "Jost", system-ui, sans-serif;
+      font-family: "Inter", system-ui, sans-serif;
       font-size: 15px;
       font-style: normal;
       padding: 12px 14px;
@@ -433,7 +433,7 @@
     .recent-item:hover, .recent-item.active {
       border-color: rgba(244,170,69,.42);
       background: linear-gradient(90deg, rgba(244,142,32,.26), rgba(244,142,32,.08));
-      box-shadow: 0 16px 34px rgba(0,0,0,.2), inset 4px 0 0 #F4AA45;
+      box-shadow: 0 16px 34px rgba(0,0,0,.2), inset 4px 0 0 #F0B85A;
     }
     .recent-title, .recent-sub { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .recent-title { color: var(--cream); font-weight: 400; }
@@ -496,7 +496,7 @@
       background: transparent;
     }
     .chat-title {
-      font-family: "Jost", system-ui, sans-serif;
+      font-family: "Inter", system-ui, sans-serif;
       font-size: 34px;
       font-style: normal;
       letter-spacing: .2px;
@@ -556,7 +556,7 @@
       height: 46px;
       border-radius: 50%;
       border: 1px solid rgba(244,170,69,.5);
-      background: radial-gradient(circle, #F4AA45 0 5px, rgba(244,170,69,.22) 6px 14px, rgba(0,0,0,.42) 15px);
+      background: radial-gradient(circle, #F0B85A 0 5px, rgba(244,170,69,.22) 6px 14px, rgba(0,0,0,.42) 15px);
       box-shadow: 0 0 24px rgba(244,170,69,.14);
     }
     .message:not(.user)::after {
@@ -626,7 +626,7 @@
       padding: 14px 16px 14px 22px;
     }
     .composer textarea {
-      font-family: "Jost", system-ui, sans-serif;
+      font-family: "Inter", system-ui, sans-serif;
       font-size: 18px;
       font-style: normal;
       line-height: 1.5;
@@ -638,7 +638,7 @@
     }
     .send {
       background: linear-gradient(135deg, #F8B24B, #D28322);
-      color: #1A1208;
+      color: #0B0805;
       border-color: transparent;
       box-shadow: 0 12px 32px rgba(244,142,32,.28);
     }
@@ -716,6 +716,63 @@
       .composer textarea { font-size: 16px; }
       .send, .voice-btn { height: 50px; }
     }
+
+    :root {
+      --cream: #F4EFE7;
+      --gold: #D99A3D;
+      --gold-light: #F0B85A;
+      --dark: #0B0805;
+      --soft: #F4EFE7;
+      --soft-2: #A89A88;
+      --soft-3: #6F604D;
+      --border: rgba(217,154,61,.28);
+      --panel: #120D08;
+    }
+    body { font-family: "Inter", system-ui, sans-serif; font-weight: 400; }
+    .app {
+      background: radial-gradient(circle at 92% 2%, rgba(217,154,61,.14), transparent 28%), radial-gradient(circle at 18% 100%, rgba(217,154,61,.08), transparent 34%), linear-gradient(135deg,#0B0805,#120D08);
+      border-color: rgba(217,154,61,.28);
+      box-shadow: 0 24px 80px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,248,240,.04);
+    }
+    .sidebar { background: linear-gradient(180deg,#0B0805,#120D08); border-right-color: rgba(217,154,61,.18); }
+    .brand-icon { border-color: rgba(217,154,61,.28); border-radius: 18px; background: linear-gradient(145deg,rgba(217,154,61,.16),rgba(255,248,240,.02)); box-shadow: 0 0 24px rgba(217,154,61,.18), inset 0 1px 0 rgba(255,248,240,.08); color: var(--gold-light); }
+    .side-brand .brand-name, .chat-title, .composer textarea, .recent-item { font-family: "Inter", system-ui, sans-serif; }
+    .chat-title { font-weight: 500; }
+    .side-nav-item { border-color: rgba(217,154,61,.28); border-radius: 18px; background: linear-gradient(90deg,rgba(217,154,61,.18),rgba(217,154,61,.05)); color: var(--gold-light); box-shadow: 0 0 24px rgba(217,154,61,.16), inset 0 1px 0 rgba(255,248,240,.04); }
+    .nav-icon, .query-icon { border-color: rgba(217,154,61,.28); color: var(--gold-light); background: rgba(217,154,61,.08); }
+    .nav-dot { background: var(--gold); box-shadow: 0 0 24px rgba(217,154,61,.35); }
+    .search-shell { border-color: rgba(217,154,61,.18); color: var(--soft-2); background: rgba(18,13,8,.7); }
+    .recent-item { border-color: rgba(217,154,61,.12); border-radius: 18px; background: #120D08; color: var(--soft-2); box-shadow: 0 24px 80px rgba(0,0,0,.18); }
+    .recent-item:hover, .recent-item.active { border-color: rgba(217,154,61,.28); background: linear-gradient(90deg,rgba(217,154,61,.22),rgba(217,154,61,.07)); box-shadow: 0 24px 80px rgba(0,0,0,.35), 0 0 24px rgba(217,154,61,.35), inset 4px 0 0 var(--gold); }
+    .side-control, .language-select.side-control-select { border-color: rgba(217,154,61,.18); background: #120D08; }
+    .main { background: radial-gradient(circle at 96% 4%,rgba(217,154,61,.12),transparent 24%), radial-gradient(circle at 78% 94%,rgba(217,154,61,.12),transparent 26%), linear-gradient(145deg,#0B0805,#120D08); }
+    .icon-btn { width: 48px; height: 48px; display: grid; place-items: center; background: #120D08; color: var(--soft-2); }
+    .bubble { border-color: rgba(217,154,61,.28); background: linear-gradient(145deg,rgba(26,18,11,.96),rgba(18,13,8,.82)); box-shadow: 0 24px 80px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,248,240,.05); font-family: "Cormorant Garamond", serif; font-style: italic; font-weight: 500; }
+    .composer-wrap { border-color: rgba(217,154,61,.28); border-radius: 24px; background: #120D08; box-shadow: 0 24px 80px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,248,240,.05); }
+    .send { background: linear-gradient(135deg,var(--gold-light),var(--gold)); color: #0B0805; box-shadow: 0 0 24px rgba(217,154,61,.35); }
+    .lucide { width: 20px; height: 20px; display: block; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+    .send .lucide, .voice-btn .lucide { width: 22px; height: 22px; }
+    .activity-payload, .glyph { font-family: "Inter", system-ui, sans-serif; }
+    .message:not(.user)::before { border-color: rgba(217,154,61,.28); background: radial-gradient(circle,var(--gold-light) 0 5px,rgba(217,154,61,.22) 6px 14px,rgba(0,0,0,.42) 15px); box-shadow: 0 0 24px rgba(217,154,61,.35); }
+    @media (max-width: 900px) {
+      .app { grid-template-columns: 72px minmax(0,1fr); }
+      .sidebar { padding: 20px 12px; }
+      .brand-icon, .side-nav-item, .recent-item, .nav-icon, .query-icon { width: 48px; min-height: 48px; border-radius: 14px; }
+      .topbar { height: 96px; min-height: 96px; padding: 20px; }
+      .icon-btn { width: 48px; height: 48px; border-radius: 14px; }
+      .messages { padding: 22px 20px 22px 56px; }
+      .bubble { width: min(260px,100%); min-height: 128px; }
+      .composer-wrap { min-height: 190px; margin: 0 20px 20px; }
+      .composer textarea { min-height: 64px; }
+    }
+    @media (max-width: 560px) {
+      .app { grid-template-columns: 72px minmax(0,1fr); }
+      .sidebar { padding: 20px 12px; }
+      .topbar { min-height: 96px; padding: 20px; }
+      .messages { padding: 18px 20px 18px 44px; }
+      .bubble { width: min(240px,100%); }
+      .composer-wrap { min-height: 180px; margin: 0 20px 20px; }
+    }
   </style>
 </head>
 <body>
@@ -728,19 +785,19 @@
         <div class="brand-block">
           <div class="sun-wrap" aria-hidden="true">
             <svg width="56" height="56" viewBox="0 0 56 56" fill="none">
-              <circle cx="28" cy="28" r="9" stroke="#C9A96E" stroke-width=".7" opacity=".6"/>
-              <circle cx="28" cy="28" r="15" stroke="#C9A96E" stroke-width=".45" opacity=".3"/>
-              <circle cx="28" cy="28" r="21" stroke="#C9A96E" stroke-width=".35" opacity=".18"/>
-              <line x1="28" y1="2" x2="28" y2="8" stroke="#C9A96E" stroke-width=".8" opacity=".5"/>
-              <line x1="28" y1="48" x2="28" y2="54" stroke="#C9A96E" stroke-width=".8" opacity=".5"/>
-              <line x1="2" y1="28" x2="8" y2="28" stroke="#C9A96E" stroke-width=".8" opacity=".5"/>
-              <line x1="48" y1="28" x2="54" y2="28" stroke="#C9A96E" stroke-width=".8" opacity=".5"/>
-              <line x1="8" y1="8" x2="13" y2="13" stroke="#C9A96E" stroke-width=".65" opacity=".4"/>
-              <line x1="48" y1="8" x2="43" y2="13" stroke="#C9A96E" stroke-width=".65" opacity=".4"/>
-              <line x1="8" y1="48" x2="13" y2="43" stroke="#C9A96E" stroke-width=".65" opacity=".4"/>
-              <line x1="48" y1="48" x2="43" y2="43" stroke="#C9A96E" stroke-width=".65" opacity=".4"/>
-              <circle cx="28" cy="28" r="3" fill="#C9A96E" opacity=".22"/>
-              <circle cx="28" cy="28" r="1.5" fill="#C9A96E" opacity=".7"/>
+              <circle cx="28" cy="28" r="9" stroke="#D99A3D" stroke-width=".7" opacity=".6"/>
+              <circle cx="28" cy="28" r="15" stroke="#D99A3D" stroke-width=".45" opacity=".3"/>
+              <circle cx="28" cy="28" r="21" stroke="#D99A3D" stroke-width=".35" opacity=".18"/>
+              <line x1="28" y1="2" x2="28" y2="8" stroke="#D99A3D" stroke-width=".8" opacity=".5"/>
+              <line x1="28" y1="48" x2="28" y2="54" stroke="#D99A3D" stroke-width=".8" opacity=".5"/>
+              <line x1="2" y1="28" x2="8" y2="28" stroke="#D99A3D" stroke-width=".8" opacity=".5"/>
+              <line x1="48" y1="28" x2="54" y2="28" stroke="#D99A3D" stroke-width=".8" opacity=".5"/>
+              <line x1="8" y1="8" x2="13" y2="13" stroke="#D99A3D" stroke-width=".65" opacity=".4"/>
+              <line x1="48" y1="8" x2="43" y2="13" stroke="#D99A3D" stroke-width=".65" opacity=".4"/>
+              <line x1="8" y1="48" x2="13" y2="43" stroke="#D99A3D" stroke-width=".65" opacity=".4"/>
+              <line x1="48" y1="48" x2="43" y2="43" stroke="#D99A3D" stroke-width=".65" opacity=".4"/>
+              <circle cx="28" cy="28" r="3" fill="#D99A3D" opacity=".22"/>
+              <circle cx="28" cy="28" r="1.5" fill="#D99A3D" opacity=".7"/>
             </svg>
           </div>
           <div class="brand-name"><span>A</span>ri</div>
@@ -803,7 +860,7 @@
         <div class="side-nav" aria-label="Primary">
           <div class="side-nav-item">
             <div class="side-nav-main">
-              <span class="nav-icon" aria-hidden="true">◌</span>
+              <span class="nav-icon" aria-hidden="true"><svg class="lucide" viewBox="0 0 24 24"><path d="M21 15a4 4 0 0 1-4 4H7l-4 4V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"/></svg></span>
               <span>Conversaciones</span>
             </div>
             <span class="nav-dot" aria-hidden="true"></span>
@@ -812,12 +869,12 @@
         <div class="side-section">
           <div class="side-label">Todas las conversaciones</div>
           <label class="search-shell" for="conversationSearch">
-            <span aria-hidden="true">⌕</span>
+            <span aria-hidden="true"><svg class="lucide" viewBox="0 0 24 24"><path d="m21 21-4.3-4.3"/><circle cx="11" cy="11" r="8"/></svg></span>
             <input id="conversationSearch" type="search" placeholder="Buscar conversación">
           </label>
           <div class="recent-list" id="recentQueries">
             <div class="recent-item active">
-              <span class="query-icon">◌</span>
+              <span class="query-icon"><svg class="lucide" viewBox="0 0 24 24"><path d="M21 15a4 4 0 0 1-4 4H7l-4 4V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"/></svg></span>
               <span class="recent-copy"><span class="recent-title">No queries yet</span><span class="recent-sub">ARI</span></span>
               <span class="recent-time">Ahora</span>
             </div>
@@ -825,11 +882,11 @@
         </div>
         <div class="side-footer">
           <div class="side-control">
-            <span aria-hidden="true">◎</span>
+            <span aria-hidden="true"><svg class="lucide" viewBox="0 0 24 24"><path d="M16 9a5 5 0 0 1 0 6M19.4 5.6a10 10 0 0 1 0 12.8"/><path d="M11 5 6 9H2v6h4l5 4z"/><path d="m22 2-20 20"/></svg></span>
             <span id="sideVoiceStatus">Voz desactivada</span>
           </div>
           <div style="position:relative">
-            <span aria-hidden="true" style="position:absolute;left:18px;top:18px;color:#F4AA45;z-index:1">◎</span>
+            <span aria-hidden="true" style="position:absolute;left:18px;top:18px;color:#F0B85A;z-index:1"><svg class="lucide" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 0 20"/><path d="M12 2a15.3 15.3 0 0 0 0 20"/></svg></span>
             <select class="language-select side-control-select" id="appLanguage" aria-label="Language"></select>
           </div>
           <div class="user-card">
@@ -850,8 +907,8 @@
           </div>
           <div class="actions">
             <div class="badge"><span class="badge-dot"></span><span id="connectionLabel">LOGIN</span></div>
-            <button class="icon-btn" id="clearBtn" type="button" title="Clear chat">◎</button>
-            <button class="icon-btn" id="logoutBtn" type="button" title="Logout">⎋</button>
+            <button class="icon-btn" id="clearBtn" type="button" title="Clear chat" aria-label="Reset"><svg class="lucide" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 3v6h6"/></svg></button>
+            <button class="icon-btn" id="logoutBtn" type="button" title="Logout" aria-label="Cerrar"><svg class="lucide" viewBox="0 0 24 24"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button>
           </div>
         </header>
 
@@ -859,11 +916,11 @@
           <div class="welcome" id="welcomeState">
             <div class="sun-wrap" aria-hidden="true">
               <svg width="56" height="56" viewBox="0 0 56 56" fill="none">
-                <circle cx="28" cy="28" r="9" stroke="#C9A96E" stroke-width=".7" opacity=".6"/>
-                <circle cx="28" cy="28" r="15" stroke="#C9A96E" stroke-width=".45" opacity=".3"/>
-                <circle cx="28" cy="28" r="21" stroke="#C9A96E" stroke-width=".35" opacity=".18"/>
-                <circle cx="28" cy="28" r="3" fill="#C9A96E" opacity=".22"/>
-                <circle cx="28" cy="28" r="1.5" fill="#C9A96E" opacity=".7"/>
+                <circle cx="28" cy="28" r="9" stroke="#D99A3D" stroke-width=".7" opacity=".6"/>
+                <circle cx="28" cy="28" r="15" stroke="#D99A3D" stroke-width=".45" opacity=".3"/>
+                <circle cx="28" cy="28" r="21" stroke="#D99A3D" stroke-width=".35" opacity=".18"/>
+                <circle cx="28" cy="28" r="3" fill="#D99A3D" opacity=".22"/>
+                <circle cx="28" cy="28" r="1.5" fill="#D99A3D" opacity=".7"/>
               </svg>
             </div>
             <div class="welcome-title">ARI is awake</div>
@@ -888,11 +945,11 @@
             <textarea id="messageInput" rows="1" placeholder="Ask the sun..." required></textarea>
             <button class="voice-btn" id="voiceBtn" type="button" title="Speak to ARI" aria-label="Voice input">
               <svg class="voice-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                <path d="M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3Z" stroke="currentColor" stroke-width="1.7"/>
-                <path d="M5 11a7 7 0 0 0 14 0M12 18v3M9 21h6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>
+                <path d="M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3Z"/>
+                <path d="M5 11a7 7 0 0 0 14 0M12 18v3M9 21h6"/>
               </svg>
             </button>
-            <button class="send" id="sendBtn" type="submit">◇</button>
+            <button class="send" id="sendBtn" type="submit" aria-label="Enviar"><svg class="lucide" viewBox="0 0 24 24"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg></button>
           </form>
         </footer>
       </main>
@@ -1320,6 +1377,14 @@
       };
       return localeByLanguage[state.language] || state.language || "en-US";
     }
+    function lucideIcon(name) {
+      const icons = {
+        message: '<svg class="lucide" viewBox="0 0 24 24"><path d="M21 15a4 4 0 0 1-4 4H7l-4 4V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"/></svg>',
+        brain: '<svg class="lucide" viewBox="0 0 24 24"><path d="M12 5a3 3 0 0 0-5.6-1.5A3.5 3.5 0 0 0 3 7a3 3 0 0 0 1 2.2A4 4 0 0 0 4 16a4 4 0 0 0 4 4h1"/><path d="M12 5a3 3 0 0 1 5.6-1.5A3.5 3.5 0 0 1 21 7a3 3 0 0 1-1 2.2A4 4 0 0 1 20 16a4 4 0 0 1-4 4h-1"/><path d="M12 5v16"/><path d="M8 8h.01"/><path d="M16 8h.01"/></svg>',
+        trend: '<svg class="lucide" viewBox="0 0 24 24"><path d="m3 17 6-6 4 4 8-8"/><path d="M14 7h7v7"/></svg>',
+      };
+      return icons[name] || icons.message;
+    }
     function formatActiveDate(date = new Date()) {
       if (translationLanguage() === "es") {
         const weekday = new Intl.DateTimeFormat("es-ES", { weekday: "short" }).format(date).replace(".", "").normalize("NFD").replace(/[\u0300-\u036f]/g, "");
@@ -1680,10 +1745,10 @@
 
     function renderThreads() {
       if (!state.threads.length) {
-        recentQueries.innerHTML = `<div class="recent-item active"><span class="query-icon">◌</span><span class="recent-copy"><span class="recent-title">${tr("noQueries")}</span><span class="recent-sub">ARI</span></span><span class="recent-time">--</span></div>`;
+        recentQueries.innerHTML = `<div class="recent-item active"><span class="query-icon">${lucideIcon("message")}</span><span class="recent-copy"><span class="recent-title">${tr("noQueries")}</span><span class="recent-sub">ARI</span></span><span class="recent-time">--</span></div>`;
         return;
       }
-      const glyphs = ["◌", "□", "▱", "⌁", "◇"];
+      const icons = ["message", "brain", "trend"];
       recentQueries.innerHTML = "";
       state.threads.forEach((item, index) => {
         const row = document.createElement("button");
@@ -1694,7 +1759,7 @@
         const timeText = item.updated_at
           ? new Intl.DateTimeFormat(languageLocale(), { hour: "2-digit", minute: "2-digit" }).format(new Date(item.updated_at))
           : index === 0 ? "Ahora" : "";
-        row.innerHTML = `<span class="query-icon">${glyphs[index % glyphs.length]}</span><span class="recent-copy"><span class="recent-title">${title}</span><span class="recent-sub">${dateText} · ARI</span></span><span class="recent-time">${escapeHtml(timeText)}</span>`;
+        row.innerHTML = `<span class="query-icon">${lucideIcon(icons[index % icons.length])}</span><span class="recent-copy"><span class="recent-title">${title}</span><span class="recent-sub">${dateText} · ARI</span></span><span class="recent-time">${escapeHtml(timeText)}</span>`;
         row.addEventListener("click", () => {
           openThread(item.id);
         });
