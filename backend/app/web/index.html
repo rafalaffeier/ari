@@ -124,8 +124,21 @@
       letter-spacing: .5px;
     }
     .fg input { padding: 10px 0; }
+    .fg.has-toggle input { padding-right: 44px; }
     .fg input:focus, .composer textarea:focus { border-bottom-color: rgba(201,169,110,0.55); }
     .fg input::placeholder, .composer textarea::placeholder { color: rgba(201,169,110,0.2); }
+    .password-toggle {
+      position: absolute;
+      right: 0;
+      bottom: 11px;
+      border: 0;
+      background: transparent;
+      color: rgba(201,169,110,0.52);
+      line-height: 0;
+      padding: 4px;
+    }
+    .password-toggle:hover { color: var(--gold); }
+    .password-toggle svg { width: 20px; height: 20px; stroke: currentColor; }
 
     .cta {
       width: 100%;
@@ -356,9 +369,10 @@
             <label for="email">Email</label>
             <input id="email" type="email" autocomplete="email" placeholder="soul@ari.ai" required>
           </div>
-          <div class="fg">
+          <div class="fg has-toggle">
             <label for="password">Password</label>
             <input id="password" type="password" autocomplete="current-password" placeholder="••••••••" required minlength="8">
+            <button class="password-toggle" id="passwordToggle" type="button" aria-controls="password" aria-pressed="false" aria-label="Show password"></button>
           </div>
           <button class="cta" id="authBtn" type="submit">Align me →</button>
         </form>
@@ -528,6 +542,10 @@
         sessionActive: "— session active —",
         recoverySent: "— recovery email sent —",
         passwordUpdated: "— password updated —",
+        hidePassword: "Hide",
+        hidePasswordLabel: "Hide password",
+        showPassword: "Show",
+        showPasswordLabel: "Show password",
         text: "Text",
         voice: "Voice",
         voiceOff: "ARI · voice replies off",
@@ -583,6 +601,10 @@
         sessionActive: "— sesion activa —",
         recoverySent: "— email de recuperacion enviado —",
         passwordUpdated: "— contrasena actualizada —",
+        hidePassword: "Ocultar",
+        hidePasswordLabel: "Ocultar contrasena",
+        showPassword: "Mostrar",
+        showPasswordLabel: "Mostrar contrasena",
         text: "Texto",
         voice: "Voz",
         voiceOff: "ARI · respuestas de voz apagadas",
@@ -893,6 +915,7 @@
     const authFooterText = document.getElementById("authFooterText");
     const authToggle = document.getElementById("authToggle");
     const forgotBtn = document.getElementById("forgotBtn");
+    const passwordToggle = document.getElementById("passwordToggle");
     const googleBtn = document.getElementById("googleBtn");
     const authDivider = document.getElementById("authDivider");
     const chatMeta = document.getElementById("chatMeta");
@@ -944,6 +967,7 @@
       authDivider.textContent = tr("divider");
       authBtn.textContent = state.mode === "login" ? tr("alignMe") : tr("createLight");
       forgotBtn.textContent = tr("forgotPassword");
+      updatePasswordToggle();
       document.querySelector(".chat-title").textContent = tr("activeQuery");
       document.getElementById("newQueryBtn").textContent = tr("newQuery");
       document.querySelector(".side-label").textContent = tr("recent");
@@ -986,6 +1010,7 @@
       emailInput.required = mode !== "reset";
       passwordInput.required = mode !== "forgot";
       passwordInput.autocomplete = mode === "reset" ? "new-password" : "current-password";
+      passwordToggle.style.display = mode === "forgot" ? "none" : "block";
       googleBtn.style.display = mode === "login" ? "flex" : "none";
       authDivider.style.display = mode === "login" ? "flex" : "none";
       forgotBtn.style.display = mode === "login" ? "inline" : "none";
@@ -998,6 +1023,23 @@
               ? tr("authForgotStatus")
               : tr("authResetStatus"),
       );
+    }
+
+    function updatePasswordToggle() {
+      const passwordInput = document.getElementById("password");
+      const isVisible = passwordInput.type === "text";
+      passwordToggle.innerHTML = isVisible ? eyeOffIcon() : eyeIcon();
+      passwordToggle.setAttribute("aria-pressed", String(isVisible));
+      passwordToggle.setAttribute("aria-label", isVisible ? tr("hidePasswordLabel") : tr("showPasswordLabel"));
+      passwordToggle.title = isVisible ? tr("hidePasswordLabel") : tr("showPasswordLabel");
+    }
+
+    function eyeIcon() {
+      return '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6-10-6-10-6Z"/><circle cx="12" cy="12" r="3"/></svg>';
+    }
+
+    function eyeOffIcon() {
+      return '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3l18 18"/><path d="M10.6 10.6a3 3 0 0 0 2.8 2.8"/><path d="M9.9 5.2A10.7 10.7 0 0 1 12 5c6.5 0 10 7 10 7a18.5 18.5 0 0 1-3.1 4.1"/><path d="M6.7 6.7C3.8 8.6 2 12 2 12s3.5 7 10 7c1.9 0 3.5-.5 4.9-1.2"/></svg>';
     }
 
     function showScreen(name) {
@@ -1115,6 +1157,12 @@
 
     authToggle.addEventListener("click", () => setAuthMode(state.mode === "login" ? "register" : "login"));
     forgotBtn.addEventListener("click", () => setAuthMode("forgot"));
+    passwordToggle.addEventListener("click", () => {
+      const passwordInput = document.getElementById("password");
+      passwordInput.type = passwordInput.type === "password" ? "text" : "password";
+      updatePasswordToggle();
+      passwordInput.focus();
+    });
     loginTab.addEventListener("click", () => setAuthMode("login"));
     registerTab.addEventListener("click", () => setAuthMode("register"));
     googleBtn.addEventListener("click", () => {

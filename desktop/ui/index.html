@@ -109,8 +109,9 @@ body.booting *{animation:none!important;transition:none!important}
 
 .app{width:100%;height:100%;min-height:0;overflow:hidden;display:grid;grid-template-columns:310px 1fr;background:rgba(20,12,4,.34);backdrop-filter:blur(14px)}
 .sidebar{height:100vh;min-height:0;border-right:1px solid var(--border);background:rgba(20,12,4,.64);display:flex;flex-direction:column;min-width:0;overflow:hidden}
-.side-brand{padding:38px 34px 30px;border-bottom:1px solid var(--border)}
-.side-brand .brand-name{font-size:36px}
+.side-brand{padding:38px 34px 30px;border-bottom:1px solid var(--border);display:flex;align-items:baseline;gap:18px;min-width:0}
+.side-brand .brand-name{font-size:36px;margin-bottom:0;flex:0 0 auto}
+.side-brand .brand-sub{letter-spacing:4px;white-space:nowrap}
 .side-section{padding:28px 26px 0;min-height:0;overflow:hidden}
 .side-label{font-size:8px;font-weight:300;letter-spacing:5px;text-transform:uppercase;color:rgba(201,169,110,.34);margin-bottom:14px}
 .recent-list{display:flex;flex-direction:column;gap:8px;min-width:0}
@@ -122,7 +123,6 @@ body.booting *{animation:none!important;transition:none!important}
 }
 .recent-item:hover,.recent-item.active{border-color:var(--border);background:rgba(201,169,110,.05);color:var(--cream)}
 .glyph{color:rgba(201,169,110,.55);font-family:'Jost',sans-serif;font-size:11px;flex:0 0 auto}
-.new-query{display:block;width:calc(100% - 52px);margin:24px 26px 0}
 .side-footer{margin-top:auto;padding:22px 26px;border-top:1px solid var(--border)}
 .user-card{display:flex;align-items:center;gap:12px;color:var(--soft-2)}
 .avatar{width:38px;height:38px;border:1px solid rgba(201,169,110,.28);display:flex;align-items:center;justify-content:center;color:var(--gold)}
@@ -130,9 +130,9 @@ body.booting *{animation:none!important;transition:none!important}
 .user-email{font-size:9px;letter-spacing:1px;color:rgba(201,169,110,.35);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
 .main{height:100vh;min-height:0;min-width:0;overflow:hidden;display:grid;grid-template-rows:auto minmax(0,1fr) auto}
-.topbar{height:92px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 42px;background:rgba(20,12,4,.44)}
+.topbar{min-height:92px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:24px;padding:20px 42px;background:rgba(20,12,4,.44)}
 .chat-title{font-family:'Cormorant Garamond',serif;font-size:26px;font-style:italic;font-weight:300;letter-spacing:3px;color:var(--cream)}
-.chat-meta{font-size:9px;font-weight:300;letter-spacing:3px;text-transform:uppercase;color:rgba(201,169,110,.35);margin-top:5px}
+.chat-meta{font-size:9px;font-weight:300;letter-spacing:3px;color:rgba(201,169,110,.35);margin-top:5px}
 .actions{display:flex;align-items:center;gap:12px}
 .badge{height:34px;padding:0 16px;border:1px solid rgba(201,169,110,.22);display:flex;align-items:center;gap:10px;font-size:9px;letter-spacing:3px;text-transform:uppercase;color:var(--soft-2)}
 .badge-dot{width:7px;height:7px;border-radius:50%;background:var(--gold);box-shadow:0 0 12px var(--gold)}
@@ -194,12 +194,22 @@ body.booting *{animation:none!important;transition:none!important}
 @media (max-width:900px){
   .app{grid-template-columns:1fr}
   .sidebar{display:none}
-  .topbar{padding:0 22px}
+  .topbar{padding:16px 22px;align-items:flex-start;flex-wrap:wrap}
+  .actions{margin-left:auto;flex-wrap:wrap;justify-content:flex-end}
   .messages{padding:28px 22px}
   .composer-wrap{padding:16px 22px 22px}
   .quick-row{grid-template-columns:repeat(2,minmax(0,1fr))}
   .activity-card{grid-template-columns:1fr}
   .message{max-width:92%}
+}
+@media (max-width:560px){
+  .topbar{gap:14px}
+  .chat-title{font-size:23px}
+  .chat-meta{max-width:calc(100vw - 44px);line-height:1.5}
+  .actions{width:100%;margin-left:0;justify-content:space-between}
+  .language-select{flex:1;min-width:0}
+  .badge{flex:1;justify-content:center}
+  .composer{grid-template-columns:1fr 44px 44px}
 }
 </style>
 </head>
@@ -286,7 +296,6 @@ body.booting *{animation:none!important;transition:none!important}
         <div class="brand-name"><span>A</span>ri</div>
         <div class="brand-sub">Solara</div>
       </div>
-      <button class="cta new-query" onclick="clearChat()">New query →</button>
       <div class="side-section">
         <div class="side-label">Recent queries</div>
         <div class="recent-list" id="recent-queries">
@@ -445,6 +454,19 @@ userPrefs.appLanguage=normalizeAppLanguage(userPrefs.appLanguage||navigator.lang
 function appTranslationLanguage(){return APP_I18N[userPrefs.appLanguage]?userPrefs.appLanguage:'en'}
 function appText(key){const language=appTranslationLanguage();return APP_I18N[language]?.[key]||APP_I18N.en[key]||key}
 function appLocale(){return {de:'de-DE',en:'en-US',es:'es-ES',it:'it-IT',pt:'pt-PT',ru:'ru-RU',uk:'uk-UA'}[userPrefs.appLanguage]||userPrefs.appLanguage||'en-US'}
+function formatActiveDate(date=new Date()){
+  const language=appTranslationLanguage();
+  if(language==='es'){
+    const weekday=new Intl.DateTimeFormat('es-ES',{weekday:'short'}).format(date).replace('.', '').normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+    const day=new Intl.DateTimeFormat('es-ES',{day:'numeric'}).format(date);
+    const month=new Intl.DateTimeFormat('es-ES',{month:'long'}).format(date);
+    const year=new Intl.DateTimeFormat('es-ES',{year:'numeric'}).format(date);
+    const rest=`${day} de ${month} ${year}`;
+    return `${weekday.charAt(0).toUpperCase()}${weekday.slice(1)} ${rest}`;
+  }
+  return new Intl.DateTimeFormat(appLocale(),{weekday:'short',day:'numeric',month:'long',year:'numeric'}).format(date).replace(/\./g,'');
+}
+function activeQueryMeta(){return formatActiveDate()}
 function desktopText(key){
   const texts={
     sessionClosed:{en:'— session closed —',ru:'— сессия закрыта —',uk:'— сесію закрито —',es:'— sesion cerrada —',de:'— Sitzung geschlossen —',it:'— sessione chiusa —',pt:'— sessão encerrada —'},
@@ -484,7 +506,8 @@ function applyAppLanguage(){
   document.getElementById('auth-heading').textContent=appText('heading');
   document.querySelector('label[for="auth-email"], .fg label')?.replaceChildren(document.createTextNode(appText('email')));
   document.querySelector('#forgot-row .link').textContent=appText('forgot');
-  document.querySelector('.new-query').textContent=appText('newQuery');
+  const newQueryButton=document.querySelector('.new-query');
+  if(newQueryButton)newQueryButton.textContent=appText('newQuery');
   document.querySelectorAll('.side-label')[0].textContent=appText('recent');
   document.querySelectorAll('.side-label')[1].textContent=appText('memory');
   const nav=document.querySelectorAll('.side-section .recent-item');
@@ -757,7 +780,7 @@ function hydrateSession(auth){
   authSession=auth;const email=auth.email||document.getElementById('auth-email').value.trim();
   document.getElementById('sidebar-user-name').textContent=email?email.split('@')[0]:appText('privateUser');
   document.getElementById('sidebar-user-email').textContent=email||auth.user_id;
-  document.getElementById('chat-meta').textContent=`ARI · workspace ${auth.default_workspace_id||'local'} · ${new Date().toLocaleDateString(appLocale())}`;
+  document.getElementById('chat-meta').textContent=activeQueryMeta();
   document.getElementById('connection-label').textContent=appText('connected');
   setAuthStatus('— session active —','ok');
   loadToolCatalog();
@@ -904,7 +927,7 @@ function removeTyping(){const t=document.getElementById('typing-msg');if(t)t.rem
 function clearChat(){
   currentConversationHasMessages=false;
   document.getElementById('messages').innerHTML=`<div class="welcome" id="welcome-state"><div class="sun-wrap"><svg width="56" height="56" viewBox="0 0 56 56" fill="none"><circle cx="28" cy="28" r="9" stroke="#C9A96E" stroke-width=".7" opacity=".6"/><circle cx="28" cy="28" r="15" stroke="#C9A96E" stroke-width=".45" opacity=".3"/><circle cx="28" cy="28" r="21" stroke="#C9A96E" stroke-width=".35" opacity=".18"/><circle cx="28" cy="28" r="3" fill="#C9A96E" opacity=".22"/><circle cx="28" cy="28" r="1.5" fill="#C9A96E" opacity=".7"/></svg></div><div class="welcome-title">${escapeHtml(appText('welcomeTitle'))}</div><div class="welcome-copy">${escapeHtml(appText('welcomeCopy'))}</div><div class="quick-row"><button class="quick" onclick="sendQuick('${escapeAttr(appText('promptPriorities'))}')">☉<b>${escapeHtml(appText('priorities'))}</b><span>${escapeHtml(appText('prioritiesCopy'))}</span></button><button class="quick" onclick="sendQuick('${escapeAttr(appText('promptWriting'))}')">✦<b>${escapeHtml(appText('writing'))}</b><span>${escapeHtml(appText('writingCopy'))}</span></button><button class="quick" onclick="sendQuick('${escapeAttr(appText('promptProduct'))}')">⊹<b>${escapeHtml(appText('product'))}</b><span>${escapeHtml(appText('productCopy'))}</span></button><button class="quick" onclick="sendQuick('${escapeAttr(appText('promptMemory'))}')">◇<b>${escapeHtml(appText('memory'))}</b><span>${escapeHtml(appText('memoryCopy'))}</span></button></div></div>`;
-  if(authSession)document.getElementById('chat-meta').textContent=`ARI · workspace ${authSession.default_workspace_id||'local'} · ${new Date().toLocaleDateString(appLocale())}`;
+  if(authSession)document.getElementById('chat-meta').textContent=activeQueryMeta();
 }
 function sendQuick(text){document.getElementById('chat-input').value=text;sendMessage()}
 function detectOpenUrlAction(text){
