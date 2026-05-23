@@ -504,6 +504,8 @@ class MemoryApiTest(unittest.TestCase):
         self.assertEqual(payload["mode"], "ask")
         self.assertEqual(payload["tool_name"], "search_flights")
         self.assertIn("origin", payload["missing"])
+        self.assertIn("origen concreto", payload["reply"])
+        self.assertNotIn("Busco vuelos", payload["reply"])
 
     def test_orchestrate_prepares_google_maps_url(self):
         original_api_key = settings.OPENAI_API_KEY

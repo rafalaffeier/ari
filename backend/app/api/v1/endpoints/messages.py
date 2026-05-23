@@ -652,6 +652,8 @@ def _normalize_orchestration(data: dict, memory_results: list[RecallSource]) -> 
         if mode in {"tool_confirmation", "tool_ready"}:
             mode = "reply"
     reply = str(data.get("reply") or "").strip()
+    if tool_name == "search_flights" and mode == "ask" and missing:
+        reply = _flight_search_clarifying_reply(missing, str(data.get("language") or "es"))
     if not reply:
         reply = "I need one more detail." if mode == "ask" else "I can do that."
     return OrchestrateResponse(
@@ -678,6 +680,26 @@ def _flight_search_missing_fields(params: dict, missing: list[str]) -> list[str]
         if (not value or is_flexible or not is_iata) and field not in normalized_missing:
             normalized_missing.append(field)
     return normalized_missing
+
+
+def _flight_search_clarifying_reply(missing: list[str], language: str) -> str:
+    wants_spanish = str(language or "").lower().startswith("es")
+    fields = {field for field in missing if field in {"origin", "destination"}}
+    if wants_spanish:
+        if fields == {"origin", "destination"}:
+            return "Necesito un origen y un destino concretos para buscar vuelos dentro de ARI."
+        if "origin" in fields:
+            return "Necesito un origen concreto, ciudad o aeropuerto, para buscar vuelos dentro de ARI."
+        if "destination" in fields:
+            return "Necesito un destino concreto, ciudad o aeropuerto, para buscar vuelos dentro de ARI."
+        return "Necesito un detalle más para buscar vuelos dentro de ARI."
+    if fields == {"origin", "destination"}:
+        return "I need a fixed origin and destination to search flights inside ARI."
+    if "origin" in fields:
+        return "I need a fixed origin, city or airport, to search flights inside ARI."
+    if "destination" in fields:
+        return "I need a fixed destination, city or airport, to search flights inside ARI."
+    return "I need one more detail to search flights inside ARI."
 
 
 def _executable_tool_catalog() -> list[dict]:
