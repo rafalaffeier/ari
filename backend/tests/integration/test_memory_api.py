@@ -130,6 +130,76 @@ class MemoryApiTest(unittest.TestCase):
 
         self.assertEqual(response.status_code, 503)
 
+    def test_voice_transcribes_chats_synthesizes_and_does_not_store_audio(self):
+        original_api_key = settings.OPENAI_API_KEY
+        original_transcribe_audio = messages.transcribe_audio
+        original_synthesize_speech = messages.synthesize_speech
+        original_complete_text = messages.complete_text
+        original_log_ai_usage = messages._log_ai_usage
+        usage_events = []
+
+        async def fake_transcribe_audio(audio: bytes, **kwargs):
+            self.assertEqual(audio, b"fake audio")
+            self.assertEqual(kwargs["content_type"], "audio/webm")
+            return "Hola ARI"
+
+        async def fake_complete_text(user_prompt: str, system_prompt: str):
+            self.assertIn("User message:\nHola ARI", user_prompt)
+            return "Hola, te escucho."
+
+        async def fake_synthesize_speech(text: str):
+            self.assertEqual(text, "Hola, te escucho.")
+            return b"fake mp3"
+
+        async def fake_log_ai_usage(db, **kwargs):
+            usage_events.append(kwargs)
+
+        settings.OPENAI_API_KEY = "test-key"
+        messages.transcribe_audio = fake_transcribe_audio
+        messages.complete_text = fake_complete_text
+        messages.synthesize_speech = fake_synthesize_speech
+        messages._log_ai_usage = fake_log_ai_usage
+        try:
+            response = self.client.post(
+                f"/api/v1/messages/{WORKSPACE_ID}/voice",
+                files={"audio": ("voice.webm", b"fake audio", "audio/webm")},
+                data={"language": "es", "tts": "true"},
+            )
+        finally:
+            settings.OPENAI_API_KEY = original_api_key
+            messages.transcribe_audio = original_transcribe_audio
+            messages.complete_text = original_complete_text
+            messages.synthesize_speech = original_synthesize_speech
+            messages._log_ai_usage = original_log_ai_usage
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertEqual(payload["transcript"], "Hola ARI")
+        self.assertEqual(payload["reply"], "Hola, te escucho.")
+        self.assertEqual(payload["audio_base64"], "ZmFrZSBtcDM=")
+        self.assertEqual([event["operation"] for event in usage_events], ["stt", "tts"])
+        self.assertTrue(all(event["usage_metadata"]["audio_stored"] is False for event in usage_events))
+
+        stored = self.client.get(f"/api/v1/memory/{WORKSPACE_ID}/journal/today")
+        self.assertIn("User: Hola ARI", stored.json()["content"])
+        self.assertNotIn("fake audio", stored.json()["content"])
+
+    def test_voice_rejects_audio_over_size_limit(self):
+        original_api_key = settings.OPENAI_API_KEY
+        original_limit = settings.VOICE_MAX_AUDIO_BYTES
+        settings.OPENAI_API_KEY = "test-key"
+        settings.VOICE_MAX_AUDIO_BYTES = 4
+        try:
+            response = self.client.post(
+                f"/api/v1/messages/{WORKSPACE_ID}/voice",
+                files={"audio": ("voice.webm", b"too-large", "audio/webm")},
+            )
+        finally:
+            settings.OPENAI_API_KEY = original_api_key
+            settings.VOICE_MAX_AUDIO_BYTES = original_limit
+
+        self.assertEqual(response.status_code, 413)
+
     def test_chat_recall_by_date_passes_cited_memory_context(self):
         self.client.post(
             f"/api/v1/memory/{WORKSPACE_ID}/journal/2026-05-11/entries",

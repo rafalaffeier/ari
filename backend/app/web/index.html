@@ -463,8 +463,8 @@
     const voiceBtn = document.getElementById("voiceBtn");
     const voiceModeBtn = document.getElementById("voiceModeBtn");
     const recentQueries = document.getElementById("recentQueries");
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    let recognition = null;
+    let mediaRecorder = null;
+    let voiceChunks = [];
 
     function setStatus(text, tone = "muted") {
       statusEl.textContent = text;
@@ -502,8 +502,8 @@
       }
       messageInput.disabled = !active;
       sendBtn.disabled = !active;
-      voiceBtn.disabled = !active || !SpeechRecognition;
-      voiceBtn.title = SpeechRecognition ? "Speak to ARI" : "Voice input is not supported in this browser";
+      voiceBtn.disabled = !active || !window.MediaRecorder;
+      voiceBtn.title = window.MediaRecorder ? "Speak to ARI" : "Voice input is not supported in this browser";
       voiceModeBtn.classList.toggle("active", state.spokenReplies);
       voiceBtn.classList.toggle("active", state.spokenReplies);
       renderRecent();
@@ -720,43 +720,77 @@
       if (state.spokenReplies) speakText("Voice replies are on.");
     }
 
-    function startVoiceInput() {
+    async function startVoiceInput() {
       if (!state.token || !state.workspaceId) return;
-      if (!SpeechRecognition) {
+      if (!window.MediaRecorder) {
         addMessage("Voice input is not supported in this browser yet.", "ai");
         return;
       }
-      if (state.listening && recognition) {
-        recognition.stop();
+      if (state.listening && mediaRecorder) {
+        mediaRecorder.stop();
         return;
       }
-      recognition = new SpeechRecognition();
-      recognition.lang = navigator.language || "es-ES";
-      recognition.interimResults = false;
-      recognition.continuous = false;
-      recognition.maxAlternatives = 1;
-      state.listening = true;
-      voiceBtn.classList.add("listening");
-      chatMeta.textContent = "ARI · listening";
-      recognition.onresult = (event) => {
-        const transcript = Array.from(event.results)
-          .map((result) => result[0]?.transcript || "")
-          .join(" ")
-          .trim();
-        if (!transcript) return;
-        messageInput.value = transcript;
-        autoResize(messageInput);
-        sendMessage({ speak: true });
-      };
-      recognition.onerror = (event) => {
-        addMessage(`Voice input stopped: ${event.error || "unknown error"}.`, "ai");
-      };
-      recognition.onend = () => {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        voiceChunks = [];
+        mediaRecorder = new MediaRecorder(stream);
+        state.listening = false;
+        mediaRecorder.ondataavailable = (event) => {
+          if (event.data && event.data.size > 0) voiceChunks.push(event.data);
+        };
+        mediaRecorder.onstop = async () => {
+          stream.getTracks().forEach((track) => track.stop());
+          state.listening = false;
+          voiceBtn.classList.remove("listening");
+          chatMeta.textContent = "ARI · transcribing";
+          await sendVoiceAudio(new Blob(voiceChunks, { type: mediaRecorder.mimeType || "audio/webm" }));
+          chatMeta.textContent = state.spokenReplies ? "ARI · voice replies on" : "ARI · memory active";
+        };
+        state.listening = true;
+        voiceBtn.classList.add("listening");
+        chatMeta.textContent = "ARI · listening";
+        mediaRecorder.start();
+      } catch (error) {
         state.listening = false;
         voiceBtn.classList.remove("listening");
-        chatMeta.textContent = state.spokenReplies ? "ARI · voice replies on" : "ARI · memory active";
-      };
-      recognition.start();
+        addMessage(`Voice input stopped: ${error.message || "microphone unavailable"}.`, "ai");
+      }
+    }
+
+    async function sendVoiceAudio(blob) {
+      if (!blob.size) return;
+      const form = new FormData();
+      form.append("audio", blob, "ari-voice.webm");
+      form.append("language", (navigator.language || "es").slice(0, 2));
+      form.append("tts", "true");
+      form.append("use_memory", "true");
+      form.append("memory_limit", "8");
+      showTyping();
+      voiceBtn.disabled = true;
+      try {
+        const response = await fetch(`/api/v1/messages/${state.workspaceId}/voice`, {
+          method: "POST",
+          headers: { "Authorization": `Bearer ${state.token}` },
+          body: form,
+        });
+        if (!response.ok) throw new Error(await readError(response));
+        const data = await response.json();
+        removeTyping();
+        addMessage(data.transcript, "user");
+        addRecent(data.transcript);
+        addMessage(data.reply || "ARI did not return a response.", "ai");
+        if (data.audio_base64) playAudioBase64(data.audio_base64, data.audio_content_type || "audio/mpeg");
+      } catch (error) {
+        removeTyping();
+        addMessage(error.message, "ai");
+      } finally {
+        voiceBtn.disabled = false;
+      }
+    }
+
+    function playAudioBase64(audioBase64, contentType) {
+      const audio = new Audio(`data:${contentType};base64,${audioBase64}`);
+      audio.play().catch(() => {});
     }
 
     function speakText(text) {

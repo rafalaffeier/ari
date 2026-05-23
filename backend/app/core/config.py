@@ -18,6 +18,11 @@ class Settings(BaseSettings):
     OPENAI_API_KEY: str = ""
     AI_MODEL: str = "gpt-4o"
     AI_CONFIDENCE_THRESHOLD: float = 0.75
+    VOICE_STT_MODEL: str = "whisper-1"
+    VOICE_TTS_MODEL: str = "tts-1"
+    VOICE_TTS_VOICE: str = "nova"
+    VOICE_TTS_RESPONSE_FORMAT: str = "mp3"
+    VOICE_MAX_AUDIO_BYTES: int = 10 * 1024 * 1024
 
     GOOGLE_OAUTH_CLIENT_ID: str = ""
     GOOGLE_OAUTH_CLIENT_SECRET: str = ""

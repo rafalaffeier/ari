@@ -411,8 +411,7 @@ let t=0;
   requestAnimationFrame(draw);
 })();
 
-let activeMode='text',authSession=null,authMode='login',currentConversationHasMessages=false,pendingAction=null,spokenReplies=localStorage.getItem('ari.spokenReplies')==='true',listening=false,recognition=null;
-const SpeechRecognition=window.SpeechRecognition||window.webkitSpeechRecognition;
+let activeMode='text',authSession=null,authMode='login',currentConversationHasMessages=false,pendingAction=null,spokenReplies=localStorage.getItem('ari.spokenReplies')==='true',listening=false,mediaRecorder=null,voiceChunks=[];
 let userPrefs=loadUserPreferences();
 let toolCatalog={};
 const invoke=window.__TAURI__?.core?.invoke;
@@ -678,8 +677,8 @@ function syncVoiceControls(){
   if(voiceMode)voiceMode.classList.toggle('active',spokenReplies);
   if(voiceBtn){
     voiceBtn.classList.toggle('active',spokenReplies);
-    voiceBtn.disabled=!SpeechRecognition;
-    voiceBtn.title=SpeechRecognition?'Speak to ARI':'Voice input is not supported in this desktop webview';
+    voiceBtn.disabled=!window.MediaRecorder;
+    voiceBtn.title=window.MediaRecorder?'Speak to ARI':'Voice input is not supported in this desktop webview';
   }
 }
 function toggleVoiceMode(){
@@ -687,20 +686,67 @@ function toggleVoiceMode(){
   document.getElementById('chat-meta').textContent=spokenReplies?'ARI · voice replies on':'ARI · voice replies off';
   if(spokenReplies)speakText('Voice replies are on.');
 }
-function startVoiceInput(){
+async function startVoiceInput(){
   if(!authSession){showScreen('screen-login');setAuthStatus('— log in before using voice —','error');return}
-  if(!SpeechRecognition){addMessage('Voice input is not supported in this desktop webview yet. Try ARI in Chrome for voice input.','ai');return}
-  if(listening&&recognition){recognition.stop();return}
-  recognition=new SpeechRecognition();recognition.lang=navigator.language||'es-ES';recognition.interimResults=false;recognition.continuous=false;recognition.maxAlternatives=1;
-  listening=true;document.getElementById('voice-btn').classList.add('listening');document.getElementById('chat-meta').textContent='ARI · listening';
-  recognition.onresult=event=>{
-    const transcript=Array.from(event.results).map(result=>result[0]?.transcript||'').join(' ').trim();
-    if(!transcript)return;
-    const input=document.getElementById('chat-input');input.value=transcript;autoResize(input);sendMessage();
-  };
-  recognition.onerror=event=>addMessage(`Voice input stopped: ${event.error||'unknown error'}.`,'ai');
-  recognition.onend=()=>{listening=false;document.getElementById('voice-btn').classList.remove('listening');document.getElementById('chat-meta').textContent=spokenReplies?'ARI · voice replies on':'ARI · memory active'};
-  recognition.start();
+  if(!window.MediaRecorder){addMessage('Voice input is not supported in this desktop webview yet.','ai');return}
+  if(listening&&mediaRecorder){mediaRecorder.stop();return}
+  try{
+    const stream=await navigator.mediaDevices.getUserMedia({audio:true});
+    voiceChunks=[];
+    mediaRecorder=new MediaRecorder(stream);
+    mediaRecorder.ondataavailable=event=>{if(event.data&&event.data.size>0)voiceChunks.push(event.data)};
+    mediaRecorder.onstop=async()=>{
+      stream.getTracks().forEach(track=>track.stop());
+      listening=false;document.getElementById('voice-btn').classList.remove('listening');document.getElementById('chat-meta').textContent='ARI · transcribing';
+      await sendVoiceAudio(new Blob(voiceChunks,{type:mediaRecorder.mimeType||'audio/webm'}));
+      document.getElementById('chat-meta').textContent=spokenReplies?'ARI · voice replies on':'ARI · memory active';
+    };
+    listening=true;document.getElementById('voice-btn').classList.add('listening');document.getElementById('chat-meta').textContent='ARI · listening';
+    mediaRecorder.start();
+  }catch(error){
+    listening=false;document.getElementById('voice-btn').classList.remove('listening');
+    addMessage(`Voice input stopped: ${error.message||'microphone unavailable'}.`,'ai');
+  }
+}
+async function sendVoiceAudio(blob){
+  if(!blob.size||!authSession)return;
+  const token=authSession.access_token||authSession.accessToken||authSession.token;
+  const workspaceId=authSession.default_workspace_id||authSession.defaultWorkspaceId;
+  if(!token||!workspaceId){addMessage('Voice session is missing authentication. Please log in again.','ai');return}
+  const form=new FormData();
+  form.append('audio',blob,'ari-voice.webm');
+  form.append('language',(navigator.language||'es').slice(0,2));
+  form.append('tts','true');
+  form.append('use_memory','true');
+  form.append('memory_limit','8');
+  showTyping();document.getElementById('voice-btn').disabled=true;
+  try{
+    const response=await fetch(`${backendUrl}/api/v1/messages/${workspaceId}/voice`,{
+      method:'POST',
+      headers:{Authorization:`Bearer ${token}`},
+      body:form
+    });
+    if(!response.ok)throw new Error(await readFetchError(response));
+    const data=await response.json();
+    removeTyping();addMessage(data.transcript,'user');
+    const wasSpoken=spokenReplies;
+    if(data.audio_base64)spokenReplies=false;
+    addMessage(data.reply||'ARI did not return a response.','ai');
+    spokenReplies=wasSpoken;
+    if(data.audio_base64)playAudioBase64(data.audio_base64,data.audio_content_type||'audio/mpeg');
+    addRecentQuery(data.transcript);setTimeout(loadRecentQueries,400);
+  }catch(error){
+    removeTyping();addMessage(error.message,'ai');
+  }finally{
+    document.getElementById('voice-btn').disabled=false;
+  }
+}
+async function readFetchError(response){
+  try{const data=await response.json();return data.detail||JSON.stringify(data)}catch(_error){return response.statusText||'Request failed'}
+}
+function playAudioBase64(audioBase64,contentType){
+  const audio=new Audio(`data:${contentType};base64,${audioBase64}`);
+  audio.play().catch(()=>{});
 }
 function speakText(text){
   if(!('speechSynthesis' in window))return;

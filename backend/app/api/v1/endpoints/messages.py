@@ -2,17 +2,21 @@ from __future__ import annotations
 
 import json
 import uuid
+from base64 import b64encode
 from datetime import date
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
 from pydantic import BaseModel, Field
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.ai.clients.openai_client import complete, complete_text
+from app.ai.clients.openai_client import complete, complete_text, synthesize_speech, transcribe_audio
 from app.ai.prompts.ari_system_prompt import ARI_SYSTEM_PROMPT, build_ari_chat_prompt
 from app.api.deps import require_workspace_access
 from app.core.config import settings
+from app.core.database import get_db
 from app.memory import JournalEntry, JournalStore
 from app.memory.recall import RecallSource, build_memory_context
+from app.models.usage import AiUsageLog
 from app.services.tool_registry import get_tool
 from app.tools.catalog import load_tool_catalog
 
@@ -56,6 +60,17 @@ class ChatResponse(BaseModel):
     memory_results: list[ChatMemoryResult]
     stored: bool
     stored_actions: list[str] = []
+
+
+class VoiceResponse(BaseModel):
+    transcript: str
+    reply: str
+    model: str
+    stt_model: str
+    tts_model: str | None = None
+    audio_base64: str | None = None
+    audio_content_type: str | None = None
+    stored: bool
 
 
 class RecallRequest(BaseModel):
@@ -136,6 +151,97 @@ async def chat(
             detail="OPENAI_API_KEY is not configured. Add it to backend/.env.local and restart the backend.",
         )
 
+    return await _run_chat_pipeline(body, workspace_id)
+
+
+@router.post("/{workspace_id}/voice", response_model=VoiceResponse)
+async def voice(
+    workspace_id: uuid.UUID = Depends(require_workspace_access),
+    db: AsyncSession = Depends(get_db),
+    audio: UploadFile = File(...),
+    language: str | None = Form(None),
+    tts: bool = Form(True),
+    use_memory: bool = Form(True),
+    memory_limit: int = Form(8),
+):
+    if not settings.OPENAI_API_KEY.strip():
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="OPENAI_API_KEY is not configured. Add it to backend/.env.local and restart the backend.",
+        )
+
+    audio_bytes = await audio.read()
+    if not audio_bytes:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Voice request did not include audio.")
+    if len(audio_bytes) > settings.VOICE_MAX_AUDIO_BYTES:
+        raise HTTPException(
+            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            detail=f"Audio exceeds the {settings.VOICE_MAX_AUDIO_BYTES} byte voice limit.",
+        )
+
+    try:
+        transcript = await transcribe_audio(
+            audio_bytes,
+            filename=audio.filename or "voice.webm",
+            content_type=audio.content_type or "audio/webm",
+            language=language,
+        )
+    except Exception as exc:
+        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=f"OpenAI STT failed: {exc}") from exc
+
+    await _log_ai_usage(
+        db,
+        workspace_id=workspace_id,
+        operation="stt",
+        model=settings.VOICE_STT_MODEL,
+        input_units=len(audio_bytes),
+        usage_metadata={"content_type": audio.content_type, "audio_stored": False},
+    )
+
+    if not transcript:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="No speech was transcribed.")
+
+    chat_response = await _run_chat_pipeline(
+        ChatRequest(
+            message=transcript,
+            use_memory=use_memory,
+            memory_limit=max(0, min(memory_limit, 20)),
+        ),
+        workspace_id,
+    )
+
+    audio_base64 = None
+    audio_content_type = None
+    if tts:
+        try:
+            spoken_audio = await synthesize_speech(chat_response.reply[:4000])
+        except Exception as exc:
+            raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=f"OpenAI TTS failed: {exc}") from exc
+        await _log_ai_usage(
+            db,
+            workspace_id=workspace_id,
+            operation="tts",
+            model=settings.VOICE_TTS_MODEL,
+            input_units=len(chat_response.reply),
+            output_units=len(spoken_audio),
+            usage_metadata={"format": settings.VOICE_TTS_RESPONSE_FORMAT, "audio_stored": False},
+        )
+        audio_base64 = b64encode(spoken_audio).decode("ascii")
+        audio_content_type = _audio_content_type(settings.VOICE_TTS_RESPONSE_FORMAT)
+
+    return VoiceResponse(
+        transcript=transcript,
+        reply=chat_response.reply,
+        model=chat_response.model,
+        stt_model=settings.VOICE_STT_MODEL,
+        tts_model=settings.VOICE_TTS_MODEL if tts else None,
+        audio_base64=audio_base64,
+        audio_content_type=audio_content_type,
+        stored=chat_response.stored,
+    )
+
+
+async def _run_chat_pipeline(body: ChatRequest, workspace_id: uuid.UUID) -> ChatResponse:
     user_message = body.message.strip()
     store = get_store()
     memory_results = []
@@ -337,6 +443,44 @@ def _recent_chat_context(store: JournalStore, workspace_id: str, limit: int = 8)
         _, _, content = line.partition(" ")
         cleaned.append(content.strip() if content else line.strip())
     return "\n".join(cleaned)
+
+
+def _audio_content_type(response_format: str) -> str:
+    return {
+        "mp3": "audio/mpeg",
+        "wav": "audio/wav",
+        "opus": "audio/ogg",
+        "aac": "audio/aac",
+        "flac": "audio/flac",
+        "pcm": "audio/L16",
+    }.get(response_format, f"audio/{response_format}")
+
+
+async def _log_ai_usage(
+    db: AsyncSession,
+    *,
+    workspace_id: uuid.UUID,
+    operation: str,
+    model: str,
+    input_units: int = 0,
+    output_units: int = 0,
+    usage_metadata: dict | None = None,
+) -> None:
+    try:
+        db.add(
+            AiUsageLog(
+                workspace_id=workspace_id,
+                provider="openai",
+                operation=operation,
+                model=model,
+                input_units=input_units,
+                output_units=output_units,
+                usage_metadata=usage_metadata or {},
+            )
+        )
+        await db.commit()
+    except Exception:
+        await db.rollback()
 
 
 def _tool_catalog_context() -> str:
