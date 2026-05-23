@@ -687,12 +687,7 @@ async function loginWithGoogle(){
   if(!invoke){setAuthStatus('Tauri IPC unavailable','error');return}
   try{
     setAuthStatus('— opening Google —');
-    const url=`${backendUrl}/api/v1/auth/google/start?client=desktop`;
-    await invoke('open_browser_url',{url});
-    const code=window.prompt('Paste the ARI Google login code from your browser');
-    if(!code){setAuthStatus('— Google login cancelled —');return}
-    setAuthStatus('— verifying Google —');
-    const auth=await invoke('exchange_google_code',{backendUrl,code,localMemoryRoot});
+    const auth=await invoke('login_with_google',{backendUrl,localMemoryRoot});
     hydrateSession(auth);
     showScreen('screen-chat');
   }catch(error){

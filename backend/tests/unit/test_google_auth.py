@@ -26,6 +26,16 @@ class GoogleAuthHelpersTest(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(auth._safe_return_to("/"), "/")
         self.assertEqual(auth._safe_return_to("/welcome"), "/welcome")
 
+    def test_safe_loopback_return_to_allows_local_desktop_callback(self):
+        callback = "http://127.0.0.1:54821/ari/google/callback"
+
+        self.assertEqual(auth._safe_loopback_return_to(callback), callback)
+
+    def test_safe_loopback_return_to_blocks_remote_urls(self):
+        self.assertEqual(auth._safe_loopback_return_to("https://ari.flusscreative.com/"), "")
+        self.assertEqual(auth._safe_loopback_return_to("http://evil.example/callback"), "")
+        self.assertEqual(auth._safe_loopback_return_to("http://127.0.0.1/callback"), "")
+
 
 if __name__ == "__main__":
     unittest.main()

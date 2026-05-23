@@ -13,8 +13,11 @@ use memory::client::{
 use memory::crypto::WorkspaceKey;
 use serde::{Deserialize, Serialize};
 use std::fs;
+use std::io::{Read, Write};
+use std::net::{TcpListener, TcpStream};
 use std::path::PathBuf;
 use std::sync::Arc;
+use std::time::{Duration, Instant};
 use tauri::{Manager, State};
 use tokio::sync::RwLock;
 
@@ -172,6 +175,44 @@ async fn exchange_google_code(
     let normalized_backend_url = normalize_backend_url(&backend_url)?;
     permissions::validate_local_memory_root(local_memory_root.clone())
         .map_err(DesktopError::configuration)?;
+    let client = MemoryClient::for_backend(normalized_backend_url.clone())?;
+    let auth = client.exchange_google_code(&code).await?;
+    persist_auth_state(app, state, normalized_backend_url, local_memory_root, &auth).await?;
+    Ok(auth)
+}
+
+#[tauri::command]
+async fn login_with_google(
+    app: tauri::AppHandle,
+    state: State<'_, AppState>,
+    backend_url: String,
+    local_memory_root: String,
+) -> Result<AuthResponse, DesktopError> {
+    let normalized_backend_url = normalize_backend_url(&backend_url)?;
+    permissions::validate_local_memory_root(local_memory_root.clone())
+        .map_err(DesktopError::configuration)?;
+    let listener = TcpListener::bind("127.0.0.1:0").map_err(|error| {
+        DesktopError::tool(format!("failed to start local Google callback: {error}"))
+    })?;
+    listener
+        .set_nonblocking(false)
+        .map_err(|error| DesktopError::tool(format!("failed to configure callback: {error}")))?;
+    let port = listener
+        .local_addr()
+        .map_err(|error| DesktopError::tool(format!("failed to read callback port: {error}")))?
+        .port();
+    let return_to = format!("http://127.0.0.1:{port}/ari/google/callback");
+    let auth_url = format!(
+        "{}/api/v1/auth/google/start?client=desktop&return_to={}",
+        normalized_backend_url,
+        url_encode(&return_to)
+    );
+
+    tools::browser::open_browser_url(&auth_url).map_err(DesktopError::tool)?;
+    let code = tokio::task::spawn_blocking(move || wait_for_google_callback(listener))
+        .await
+        .map_err(|error| DesktopError::tool(format!("Google callback task failed: {error}")))??;
+
     let client = MemoryClient::for_backend(normalized_backend_url.clone())?;
     let auth = client.exchange_google_code(&code).await?;
     persist_auth_state(app, state, normalized_backend_url, local_memory_root, &auth).await?;
@@ -619,6 +660,77 @@ fn validate_workspace_id(value: String) -> Result<String, DesktopError> {
     Ok(trimmed.to_string())
 }
 
+fn wait_for_google_callback(listener: TcpListener) -> Result<String, DesktopError> {
+    listener
+        .set_nonblocking(true)
+        .map_err(|error| DesktopError::tool(format!("failed to configure callback: {error}")))?;
+    listener
+        .set_ttl(1)
+        .map_err(|error| DesktopError::tool(format!("failed to constrain callback: {error}")))?;
+    let deadline = Instant::now() + Duration::from_secs(120);
+    let mut stream = loop {
+        match listener.accept() {
+            Ok((stream, _)) => break stream,
+            Err(error) if error.kind() == std::io::ErrorKind::WouldBlock => {
+                if Instant::now() >= deadline {
+                    return Err(DesktopError::tool("Google login timed out"));
+                }
+                std::thread::sleep(Duration::from_millis(100));
+            }
+            Err(error) => {
+                return Err(DesktopError::tool(format!(
+                    "Google login callback was not received: {error}"
+                )));
+            }
+        }
+    };
+    stream
+        .set_nonblocking(false)
+        .map_err(|error| DesktopError::tool(format!("failed to read callback stream: {error}")))?;
+    let mut buffer = [0_u8; 8192];
+    let read = stream
+        .read(&mut buffer)
+        .map_err(|error| DesktopError::tool(format!("failed to read Google callback: {error}")))?;
+    let request = String::from_utf8_lossy(&buffer[..read]);
+    let first_line = request.lines().next().unwrap_or_default();
+    let path = first_line
+        .split_whitespace()
+        .nth(1)
+        .ok_or_else(|| DesktopError::tool("Google callback request was malformed"))?;
+    let callback_url = url::Url::parse(&format!("http://127.0.0.1{path}"))
+        .map_err(|_| DesktopError::tool("Google callback URL was malformed"))?;
+    let code = callback_url
+        .query_pairs()
+        .find_map(|(key, value)| (key == "google_auth").then(|| value.into_owned()))
+        .ok_or_else(|| DesktopError::tool("Google callback did not include a login code"))?;
+    write_callback_response(&mut stream)?;
+    Ok(code)
+}
+
+fn write_callback_response(stream: &mut TcpStream) -> Result<(), DesktopError> {
+    let body = "<!doctype html><html><head><meta charset=\"utf-8\"><title>ARI Login</title></head><body style=\"background:#1A1208;color:#F7F2EC;font-family:Georgia,serif;display:grid;place-items:center;min-height:100vh;margin:0\"><main><h1>ARI is connected</h1><p>You can return to the desktop app.</p></main><script>setTimeout(()=>window.close(),900)</script></body></html>";
+    let response = format!(
+        "HTTP/1.1 200 OK\r\nContent-Type: text/html; charset=utf-8\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
+        body.len(),
+        body
+    );
+    stream
+        .write_all(response.as_bytes())
+        .map_err(|error| DesktopError::tool(format!("failed to finish Google callback: {error}")))
+}
+
+fn url_encode(value: &str) -> String {
+    value
+        .bytes()
+        .flat_map(|byte| match byte {
+            b'A'..=b'Z' | b'a'..=b'z' | b'0'..=b'9' | b'-' | b'_' | b'.' | b'~' => {
+                vec![byte as char]
+            }
+            _ => format!("%{byte:02X}").chars().collect(),
+        })
+        .collect()
+}
+
 fn workspace_key_storage_name(workspace_id: &str) -> String {
     format!("workspace_key:{workspace_id}")
 }
@@ -671,6 +783,7 @@ pub fn run() {
             login,
             register,
             exchange_google_code,
+            login_with_google,
             load_desktop_config,
             clear_desktop_config,
             ensure_workspace_key,

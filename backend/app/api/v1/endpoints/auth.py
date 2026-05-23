@@ -1,6 +1,6 @@
 import uuid
 from datetime import datetime, timedelta, timezone
-from urllib.parse import quote, urlencode
+from urllib.parse import quote, urlencode, urlparse
 
 import httpx
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
@@ -122,14 +122,22 @@ async def google_callback(
         email=user.email,
     )
 
+    payload = _encode_google_exchange_code(auth)
+
     if client == "web":
         return_to = _safe_return_to(state_payload.get("return_to") or "/")
-        payload = _encode_google_exchange_code(auth)
         separator = "&" if "#" in return_to else "#"
         return RedirectResponse(f"{return_to}{separator}google_auth={payload}", status_code=302)
 
-    exchange_code = _encode_google_exchange_code(auth)
-    return HTMLResponse(_google_code_page(exchange_code))
+    return_to = _safe_loopback_return_to(state_payload.get("return_to") or "")
+    if return_to:
+        separator = "&" if "?" in return_to else "?"
+        return RedirectResponse(
+            f"{return_to}{separator}google_auth={quote(payload)}",
+            status_code=302,
+        )
+
+    return HTMLResponse(_google_code_page(payload))
 
 @router.post("/google/exchange", response_model=TokenResponse)
 async def google_exchange(body: GoogleExchangeRequest):
@@ -249,6 +257,16 @@ def _safe_return_to(return_to: str) -> str:
     if any(return_to.startswith(origin) for origin in settings.ALLOWED_ORIGINS):
         return return_to
     return "/"
+
+def _safe_loopback_return_to(return_to: str) -> str:
+    parsed = urlparse(return_to)
+    if parsed.scheme != "http":
+        return ""
+    if parsed.hostname not in {"127.0.0.1", "localhost"}:
+        return ""
+    if parsed.port is None:
+        return ""
+    return return_to
 
 def _google_error_response(client: str, detail: str):
     if client == "web":
