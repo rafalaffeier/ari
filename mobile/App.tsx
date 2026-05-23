@@ -279,7 +279,7 @@ export default function App() {
           <View style={styles.authCard}>
             <Text style={styles.sunMark}>☉</Text>
             <Text style={styles.brand}>Ari</Text>
-            <Text style={styles.brandSub}>Solara · private memory</Text>
+            <Text style={styles.brandSub}>Solara · Quantum Intelligent</Text>
             <Text style={styles.authTitle}>Access your light</Text>
             <View style={styles.segment}>
               <SegmentButton active={mode === "login"} label="Login" onPress={() => setMode("login")} />
