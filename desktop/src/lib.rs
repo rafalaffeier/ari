@@ -19,6 +19,7 @@ use tauri::{Manager, State};
 use tokio::sync::RwLock;
 
 const CONFIG_FILE_NAME: &str = "desktop-config.json";
+const PRODUCTION_BACKEND_URL: &str = "https://ari.flusscreative.com";
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DesktopConfig {
@@ -90,6 +91,15 @@ pub struct WorkspaceKeyStatus {
     pub workspace_id: String,
     pub key_id: String,
     pub created: bool,
+}
+
+#[tauri::command]
+fn default_backend_url() -> String {
+    std::env::var("AI_ASSISTANT_BACKEND_URL")
+        .ok()
+        .map(|value| value.trim().trim_end_matches('/').to_string())
+        .filter(|value| !value.is_empty())
+        .unwrap_or_else(|| PRODUCTION_BACKEND_URL.to_string())
 }
 
 #[tauri::command]
@@ -656,6 +666,7 @@ pub fn run() {
     tauri::Builder::default()
         .manage(AppState::default())
         .invoke_handler(tauri::generate_handler![
+            default_backend_url,
             configure_desktop,
             login,
             register,

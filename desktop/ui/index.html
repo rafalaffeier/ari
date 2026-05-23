@@ -415,11 +415,28 @@ let activeMode='text',authSession=null,authMode='login',currentConversationHasMe
 let userPrefs=loadUserPreferences();
 let toolCatalog={};
 const invoke=window.__TAURI__?.core?.invoke;
-const backendUrl='http://127.0.0.1:8000';
+const productionBackendUrl='https://ari.flusscreative.com';
+let backendUrl=productionBackendUrl;
 const localMemoryRoot='/tmp/ai-assistant-memory';
 
 function loadUserPreferences(){try{return JSON.parse(localStorage.getItem('ari.preferences')||'{}')}catch(_error){return {}}}
 function saveUserPreferences(){localStorage.setItem('ari.preferences',JSON.stringify(userPrefs))}
+function isLocalBackendUrl(url){
+  try{
+    const parsed=new URL(url);
+    return ['localhost','127.0.0.1','0.0.0.0','::1'].includes(parsed.hostname);
+  }catch(_error){
+    return false;
+  }
+}
+async function loadDefaultBackendUrl(){
+  if(!invoke)return;
+  try{
+    backendUrl=await invoke('default_backend_url')||productionBackendUrl;
+  }catch(_error){
+    backendUrl=productionBackendUrl;
+  }
+}
 async function loadToolCatalog(){
   try{
     const response=await fetch(`${backendUrl}/api/v1/tools/`);
@@ -663,7 +680,24 @@ async function loginWithGoogle(){
   }
 }
 async function logoutUser(){authSession=null;document.getElementById('connection-label').textContent='LOGIN';document.getElementById('sidebar-user-name').textContent='Signed out';document.getElementById('sidebar-user-email').textContent='Log in to use ARI';document.getElementById('chat-meta').textContent='ARI · login required';if(invoke){try{await invoke('clear_desktop_config')}catch(_error){}}setAuthMode('login');setAuthStatus('— session closed —');showScreen('screen-login')}
-async function loadDesktopSession(){if(!invoke)return;try{const config=await invoke('load_desktop_config');if(config){document.getElementById('connection-label').textContent='LOGIN';setAuthStatus('— log in to use ARI —')}}catch(_error){document.getElementById('connection-label').textContent='LOCAL'}}
+async function loadDesktopSession(){
+  if(!invoke)return;
+  try{
+    const config=await invoke('load_desktop_config');
+    if(!config)return;
+    if(config.backend_url&&isLocalBackendUrl(config.backend_url)&&!isLocalBackendUrl(backendUrl)){
+      await invoke('clear_desktop_config');
+      document.getElementById('connection-label').textContent='LOGIN';
+      setAuthStatus('— local session cleared, log in to final server —','ok');
+      return;
+    }
+    if(config.backend_url)backendUrl=config.backend_url;
+    document.getElementById('connection-label').textContent='LOGIN';
+    setAuthStatus('— log in to use ARI —');
+  }catch(_error){
+    document.getElementById('connection-label').textContent='LOCAL';
+  }
+}
 
 function autoResize(el){el.style.height='auto';el.style.height=Math.min(el.scrollHeight,110)+'px'}
 function handleKey(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMessage()}}
@@ -1517,8 +1551,12 @@ async function openConversation(el){
   try{const conversation=await invoke('read_conversation',{date,lineNumber});renderConversation(conversation);document.querySelectorAll('#recent-queries .recent-item').forEach(item=>item.classList.remove('active'));el.classList.add('active')}catch(error){addMessage(commandError(error),'ai')}
 }
 function renderConversation(conversation){const msgs=document.getElementById('messages');msgs.innerHTML='';currentConversationHasMessages=false;conversation.messages.forEach(message=>addMessage(message.content,message.role==='assistant'?'ai':'user'));currentConversationHasMessages=true;document.getElementById('chat-meta').textContent=`ARI · ${conversation.date} · line ${conversation.line_number}`;showScreen('screen-chat')}
-loadDesktopSession();
-syncVoiceControls();
+async function initializeApp(){
+  await loadDefaultBackendUrl();
+  await loadDesktopSession();
+  syncVoiceControls();
+}
+initializeApp();
 </script>
 </body>
 </html>
