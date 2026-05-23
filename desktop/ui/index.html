@@ -454,7 +454,13 @@ const APP_I18N={
   ,pt:{align:'Entrar ->',authCreate:'— crie primeiro sua conta ARI —',authLogin:'— entre para usar ARI —',begin:'Comece sua expansão',create:'Criar conta ->',email:'Email',forgot:'Esqueceu sua chave?',heading:'Acesse sua luz',login:'Entrar',newQuery:'Nova consulta ->',recent:'Consultas recentes',memory:'Memória',searchMemory:'Buscar memória',activityLog:'Registro de atividade',returnChat:'Voltar ao chat',signedOut:'Sessão encerrada',loginUse:'Entre para usar ARI',activeQuery:'Consulta ativa',connected:'CONECTADO',loginRequired:'ARI · login necessário',privateUser:'Usuário local',text:'Texto',activity:'Atividade',voice:'Voz',file:'Arquivo',ask:'Pergunte ao sol...',voiceOn:'ARI · respostas de voz ativas',voiceOff:'ARI · respostas de voz desligadas',voiceSpeech:'As respostas de voz estão ativas.',voiceTitle:'Falar com ARI',voiceUnsupported:'Entrada de voz não suportada nesta desktop webview',welcomeTitle:'ARI está desperta',welcomeCopy:'Um assistente caloroso de execução para pensamento, memória e ação.',priorities:'Prioridades',prioritiesCopy:'Transforme o dia em ações',writing:'Escrita',writingCopy:'Rascunho com tom limpo',product:'Produto',productCopy:'Transforme ideias em estrutura',memoryCopy:'Recupere contexto útil',promptPriorities:'Ajude-me a organizar minhas próximas três prioridades',promptWriting:'Escreva um email profissional conciso',promptProduct:'Resuma esta ideia em um plano de produto',promptMemory:'Busque na minha memória o plano de lançamento',noQueries:'Ainda sem consultas'}
 };
 function normalizeAppLanguage(value){return String(value||'en').toLowerCase().replace('_','-').split('-')[0]||'en'}
-userPrefs.appLanguage=normalizeAppLanguage(userPrefs.appLanguage||navigator.language||'en');
+function detectDeviceLanguage(){
+  const languages=(navigator.languages&&navigator.languages.length?navigator.languages:[navigator.language]).filter(Boolean);
+  const normalized=languages.map(normalizeAppLanguage);
+  return normalized.find(code=>APP_I18N[code])||normalized[0]||'en';
+}
+userPrefs.appLanguage=detectDeviceLanguage();
+if(!userPrefs.replyLanguage)userPrefs.replyLanguage=userPrefs.appLanguage;
 function appTranslationLanguage(){return APP_I18N[userPrefs.appLanguage]?userPrefs.appLanguage:'en'}
 function appText(key){const language=appTranslationLanguage();return APP_I18N[language]?.[key]||APP_I18N.en[key]||key}
 function appLocale(){return {de:'de-DE',en:'en-US',es:'es-ES',it:'it-IT',pt:'pt-PT',ru:'ru-RU',uk:'uk-UA'}[userPrefs.appLanguage]||userPrefs.appLanguage||'en-US'}
@@ -483,7 +489,7 @@ function desktopText(key){
   return texts[key]?.[userPrefs.appLanguage]||texts[key]?.en||key;
 }
 function buildLanguageSelects(){
-  ['auth-language','app-language'].forEach(id=>{
+  ['app-language'].forEach(id=>{
     const select=document.getElementById(id);if(!select)return;
     const options=SUPPORTED_APP_LANGUAGES.some(([code])=>code===userPrefs.appLanguage)?SUPPORTED_APP_LANGUAGES:[[userPrefs.appLanguage,userPrefs.appLanguage.toUpperCase()],...SUPPORTED_APP_LANGUAGES];
     select.innerHTML=options.map(([code,label])=>`<option value="${code}">${label}</option>`).join('')+'<option value="__custom">Other...</option>';
@@ -506,7 +512,7 @@ function setAppLanguage(language){
 }
 function applyAppLanguage(){
   document.documentElement.lang=userPrefs.appLanguage;
-  ['auth-language','app-language'].forEach(id=>{const el=document.getElementById(id);if(el)el.value=userPrefs.appLanguage});
+  ['app-language'].forEach(id=>{const el=document.getElementById(id);if(el)el.value=userPrefs.appLanguage});
   document.getElementById('auth-heading').textContent=appText('heading');
   document.querySelector('label[for="auth-email"], .fg label')?.replaceChildren(document.createTextNode(appText('email')));
   document.querySelector('#forgot-row .link').textContent=appText('forgot');
