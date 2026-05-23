@@ -291,6 +291,7 @@ Evidence:
 - Do not add semantic search before Phase 6.
 - Do not add cloud sync before Phase 3.
 - Do not store memory content in PostgreSQL.
+- Do not store chat/thread content in PostgreSQL; chat threads are Markdown files under `{MEMORY_ROOT}/{workspace_id}/threads/YYYY/MM/DD/`.
 - Do not build mobile screens before auth and workspace safety are in place.
 - Keep Markdown files as the source of truth.
 - Treat indexes, embeddings, and caches as rebuildable derived data.

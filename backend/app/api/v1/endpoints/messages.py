@@ -17,6 +17,7 @@ from app.core.config import settings
 from app.core.database import get_db
 from app.memory import JournalEntry, JournalStore
 from app.memory.recall import RecallSource, build_memory_context
+from app.memory.threads import ThreadStore
 from app.models.usage import AiUsageLog
 from app.services.tool_registry import get_tool
 from app.tools.catalog import load_tool_catalog
@@ -58,6 +59,7 @@ async def list_messages():
 
 class ChatRequest(BaseModel):
     message: str = Field(..., min_length=1, max_length=12000)
+    thread_id: str | None = None
     use_memory: bool = True
     memory_limit: int = Field(8, ge=0, le=20)
 
@@ -77,6 +79,7 @@ class ChatResponse(BaseModel):
     memory_results: list[ChatMemoryResult]
     stored: bool
     stored_actions: list[str] = []
+    thread_id: str | None = None
 
 
 class VoiceResponse(BaseModel):
@@ -88,6 +91,7 @@ class VoiceResponse(BaseModel):
     audio_base64: str | None = None
     audio_content_type: str | None = None
     stored: bool
+    thread_id: str | None = None
 
 
 class RecallRequest(BaseModel):
@@ -102,6 +106,7 @@ class RecallResponse(BaseModel):
 
 class OrchestrateRequest(BaseModel):
     message: str = Field(..., min_length=1, max_length=12000)
+    thread_id: str | None = None
     pending_action: dict | None = None
     use_memory: bool = True
     memory_limit: int = Field(8, ge=0, le=20)
@@ -118,6 +123,30 @@ class OrchestrateResponse(BaseModel):
     language: str = "en"
     model: str
     memory_results: list[ChatMemoryResult] = []
+    thread_id: str | None = None
+
+
+class ThreadCreateRequest(BaseModel):
+    title: str | None = Field(None, max_length=120)
+
+
+class ThreadSummaryResponse(BaseModel):
+    id: str
+    title: str
+    date: date
+    path: str
+    updated_at: str
+    message_count: int
+
+
+class ThreadResponse(BaseModel):
+    id: str
+    title: str
+    date: date
+    path: str
+    created_at: str
+    updated_at: str
+    messages: list[ConversationMessageResponse]
 
 
 class RecentMessageResponse(BaseModel):
@@ -142,6 +171,10 @@ def get_store() -> JournalStore:
     return JournalStore(settings.MEMORY_ROOT)
 
 
+def get_thread_store() -> ThreadStore:
+    return ThreadStore(settings.MEMORY_ROOT)
+
+
 @router.post("/{workspace_id}/recall", response_model=RecallResponse)
 async def recall_memory(
     body: RecallRequest,
@@ -155,6 +188,46 @@ async def recall_memory(
         current_date=date.today(),
     )
     return RecallResponse(memory_results=_memory_result_responses(context.sources), context=context.prompt)
+
+
+@router.get("/{workspace_id}/threads", response_model=list[ThreadSummaryResponse])
+async def list_threads(
+    limit: int = 30,
+    workspace_id: uuid.UUID = Depends(require_workspace_access),
+):
+    summaries = get_thread_store().list_threads(str(workspace_id), limit=limit)
+    return [
+        ThreadSummaryResponse(
+            id=item.id,
+            title=item.title,
+            date=item.date,
+            path=item.path,
+            updated_at=item.updated_at.isoformat(),
+            message_count=item.message_count,
+        )
+        for item in summaries
+    ]
+
+
+@router.post("/{workspace_id}/threads", response_model=ThreadResponse, status_code=201)
+async def create_thread(
+    body: ThreadCreateRequest,
+    workspace_id: uuid.UUID = Depends(require_workspace_access),
+):
+    thread = get_thread_store().create_thread(str(workspace_id), title=body.title)
+    return _thread_response(thread)
+
+
+@router.get("/{workspace_id}/threads/{thread_id}", response_model=ThreadResponse)
+async def read_thread(
+    thread_id: str,
+    workspace_id: uuid.UUID = Depends(require_workspace_access),
+):
+    try:
+        thread = get_thread_store().read_thread(str(workspace_id), thread_id)
+    except (FileNotFoundError, ValueError):
+        raise HTTPException(status_code=404, detail="thread not found")
+    return _thread_response(thread)
 
 
 @router.post("/{workspace_id}/chat", response_model=ChatResponse)
@@ -180,6 +253,7 @@ async def voice(
     tts: bool = Form(True),
     use_memory: bool = Form(True),
     memory_limit: int = Form(8),
+    thread_id: str | None = Form(None),
 ):
     if not settings.OPENAI_API_KEY.strip():
         raise HTTPException(
@@ -221,6 +295,7 @@ async def voice(
     chat_response = await _run_chat_pipeline(
         ChatRequest(
             message=transcript,
+            thread_id=thread_id,
             use_memory=use_memory,
             memory_limit=max(0, min(memory_limit, 20)),
         ),
@@ -255,12 +330,15 @@ async def voice(
         audio_base64=audio_base64,
         audio_content_type=audio_content_type,
         stored=chat_response.stored,
+        thread_id=chat_response.thread_id,
     )
 
 
 async def _run_chat_pipeline(body: ChatRequest, workspace_id: uuid.UUID) -> ChatResponse:
     user_message = body.message.strip()
     store = get_store()
+    thread_store = get_thread_store()
+    thread_id = _ensure_thread(thread_store, str(workspace_id), body.thread_id, user_message)
     memory_results = []
     memory_context = ""
     if body.use_memory and body.memory_limit > 0:
@@ -273,7 +351,11 @@ async def _run_chat_pipeline(body: ChatRequest, workspace_id: uuid.UUID) -> Chat
         )
         memory_results = recall.sources
         memory_context = recall.prompt
-    recent_context = _recent_chat_context(store, str(workspace_id), limit=8)
+    recent_context = (
+        thread_store.context(str(workspace_id), thread_id, limit=8)
+        if thread_id
+        else _recent_chat_context(store, str(workspace_id), limit=8)
+    )
     prompt = build_ari_chat_prompt(
         user_message,
         memory_context,
@@ -290,16 +372,20 @@ async def _run_chat_pipeline(body: ChatRequest, workspace_id: uuid.UUID) -> Chat
             detail=f"OpenAI request failed: {exc}",
         ) from exc
 
-    store.append_entry(
-        str(workspace_id),
-        date.today(),
-        JournalEntry(section="chat", text=f"User: {user_message}"),
-    )
-    store.append_entry(
-        str(workspace_id),
-        date.today(),
-        JournalEntry(section="chat", text=f"ARI: {reply}"),
-    )
+    if thread_id:
+        thread_store.append_message(str(workspace_id), thread_id, "user", user_message, title_hint=user_message)
+        thread_store.append_message(str(workspace_id), thread_id, "assistant", reply)
+    else:
+        store.append_entry(
+            str(workspace_id),
+            date.today(),
+            JournalEntry(section="chat", text=f"User: {user_message}"),
+        )
+        store.append_entry(
+            str(workspace_id),
+            date.today(),
+            JournalEntry(section="chat", text=f"ARI: {reply}"),
+        )
     stored_actions = _store_detected_actions(store, str(workspace_id), user_message)
 
     return ChatResponse(
@@ -308,6 +394,7 @@ async def _run_chat_pipeline(body: ChatRequest, workspace_id: uuid.UUID) -> Chat
         memory_results=_memory_result_responses(memory_results),
         stored=True,
         stored_actions=stored_actions,
+        thread_id=thread_id,
     )
 
 
@@ -324,6 +411,8 @@ async def orchestrate(
 
     user_message = body.message.strip()
     store = get_store()
+    thread_store = get_thread_store()
+    thread_id = _ensure_thread(thread_store, str(workspace_id), body.thread_id, user_message)
     memory_results = []
     memory_context = ""
     if body.use_memory and body.memory_limit > 0:
@@ -336,7 +425,11 @@ async def orchestrate(
         )
         memory_results = recall.sources
         memory_context = recall.prompt
-    recent_context = _recent_chat_context(store, str(workspace_id), limit=8)
+    recent_context = (
+        thread_store.context(str(workspace_id), thread_id, limit=8)
+        if thread_id
+        else _recent_chat_context(store, str(workspace_id), limit=8)
+    )
     prompt = _build_orchestrator_prompt(
         user_message,
         body.pending_action,
@@ -354,17 +447,22 @@ async def orchestrate(
         ) from exc
 
     response = _normalize_orchestration(data, memory_results)
+    response.thread_id = thread_id
 
-    store.append_entry(
-        str(workspace_id),
-        date.today(),
-        JournalEntry(section="chat", text=f"User: {user_message}"),
-    )
-    store.append_entry(
-        str(workspace_id),
-        date.today(),
-        JournalEntry(section="chat", text=f"ARI: {response.reply}"),
-    )
+    if thread_id:
+        thread_store.append_message(str(workspace_id), thread_id, "user", user_message, title_hint=user_message)
+        thread_store.append_message(str(workspace_id), thread_id, "assistant", response.reply)
+    else:
+        store.append_entry(
+            str(workspace_id),
+            date.today(),
+            JournalEntry(section="chat", text=f"User: {user_message}"),
+        )
+        store.append_entry(
+            str(workspace_id),
+            date.today(),
+            JournalEntry(section="chat", text=f"ARI: {response.reply}"),
+        )
     _store_detected_actions(store, str(workspace_id), user_message)
     return response
 
@@ -435,6 +533,31 @@ def _extract_chat_content(line: str, marker: str) -> str | None:
     if not found:
         return None
     return content.strip()
+
+
+def _ensure_thread(thread_store: ThreadStore, workspace_id: str, thread_id: str | None, title_hint: str) -> str | None:
+    if thread_id:
+        try:
+            thread_store.read_thread(workspace_id, thread_id)
+        except (FileNotFoundError, ValueError):
+            raise HTTPException(status_code=404, detail="thread not found")
+        return thread_id
+    return None
+
+
+def _thread_response(thread) -> ThreadResponse:
+    return ThreadResponse(
+        id=thread.id,
+        title=thread.title,
+        date=thread.date,
+        path=thread.path,
+        created_at=thread.created_at.isoformat(),
+        updated_at=thread.updated_at.isoformat(),
+        messages=[
+            ConversationMessageResponse(role=message.role, content=message.content)
+            for message in thread.messages
+        ],
+    )
 
 
 def _memory_result_responses(sources: list[RecallSource]) -> list[ChatMemoryResult]:

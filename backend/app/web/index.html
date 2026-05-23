@@ -304,18 +304,417 @@
     .voice-btn:hover, .voice-btn.active { border-color: rgba(201,169,110,.55); color: var(--cream); box-shadow: 0 0 22px rgba(201,169,110,.1); }
     .voice-btn.listening { color: var(--danger); border-color: rgba(232,161,142,.58); box-shadow: 0 0 24px rgba(232,161,142,.16); }
 
+    .app {
+      grid-template-columns: minmax(340px, 410px) minmax(0,1fr);
+      background:
+        radial-gradient(circle at 92% 2%, rgba(245,142,37,.16), transparent 28%),
+        radial-gradient(circle at 18% 100%, rgba(201,169,110,.08), transparent 34%),
+        linear-gradient(135deg, rgba(5,5,5,.97), rgba(24,16,9,.94));
+      border: 1px solid rgba(255,248,240,.11);
+      border-radius: 38px;
+      box-shadow: 0 30px 90px rgba(0,0,0,.62), inset 0 1px 0 rgba(255,248,240,.05);
+      overflow: hidden;
+    }
+    .sidebar {
+      padding: 30px 24px;
+      background: linear-gradient(180deg, rgba(8,8,8,.95), rgba(17,12,8,.94));
+      border-right: 1px solid rgba(255,248,240,.11);
+      gap: 26px;
+    }
+    .side-brand {
+      border-bottom: 0;
+      padding: 0;
+      align-items: center;
+      gap: 18px;
+    }
+    .brand-icon {
+      width: 72px;
+      height: 72px;
+      border: 1px solid rgba(245,171,67,.44);
+      border-radius: 20px;
+      background: linear-gradient(145deg, rgba(249,166,45,.16), rgba(255,248,240,.02));
+      box-shadow: 0 0 28px rgba(245,151,35,.1), inset 0 1px 0 rgba(255,248,240,.08);
+      color: #F4AA45;
+      display: grid;
+      place-items: center;
+      flex: 0 0 auto;
+    }
+    .brand-icon svg { width: 34px; height: 34px; stroke: currentColor; }
+    .side-brand .brand-name {
+      font-family: "Jost", system-ui, sans-serif;
+      font-size: 28px;
+      font-style: normal;
+      letter-spacing: .5px;
+      line-height: 1.05;
+    }
+    .side-brand .brand-sub {
+      color: rgba(255,248,240,.62);
+      font-size: 14px;
+      letter-spacing: .4px;
+      margin-top: 5px;
+      text-transform: none;
+    }
+    .side-nav {
+      display: grid;
+      gap: 12px;
+    }
+    .side-nav-item {
+      min-height: 72px;
+      border: 1px solid rgba(201,169,110,.16);
+      border-radius: 22px;
+      background: linear-gradient(90deg, rgba(249,154,39,.18), rgba(201,169,110,.05));
+      color: #F3AA45;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 22px;
+      box-shadow: inset 0 1px 0 rgba(255,248,240,.04);
+    }
+    .side-nav-main { display: flex; align-items: center; gap: 14px; font-size: 18px; font-weight: 400; }
+    .nav-icon, .query-icon {
+      width: 46px;
+      height: 46px;
+      border: 1px solid rgba(249,166,45,.24);
+      border-radius: 14px;
+      display: grid;
+      place-items: center;
+      color: #F4AA45;
+      background: rgba(249,166,45,.08);
+      flex: 0 0 auto;
+    }
+    .nav-dot { width: 10px; height: 10px; border-radius: 50%; background: #F4AA45; box-shadow: 0 0 16px rgba(244,170,69,.8); }
+    .side-section { padding: 0; overflow: visible; }
+    .side-label {
+      color: rgba(255,248,240,.56);
+      font-size: 12px;
+      letter-spacing: .8px;
+      margin-bottom: 14px;
+    }
+    .search-shell {
+      height: 52px;
+      border: 1px solid rgba(255,248,240,.13);
+      border-radius: 18px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 0 18px;
+      color: rgba(255,248,240,.55);
+      background: rgba(0,0,0,.18);
+      margin-bottom: 18px;
+    }
+    .search-shell input {
+      min-width: 0;
+      flex: 1;
+      border: 0;
+      outline: 0;
+      background: transparent;
+      color: var(--cream);
+      font-size: 14px;
+    }
+    .search-shell input::placeholder { color: rgba(255,248,240,.42); }
+    .recent-list { gap: 10px; overflow: auto; padding-right: 2px; }
+    .recent-item {
+      min-height: 84px;
+      display: grid;
+      grid-template-columns: 48px minmax(0,1fr) auto;
+      align-items: center;
+      gap: 14px;
+      border: 1px solid rgba(255,248,240,.08);
+      border-radius: 22px;
+      background: rgba(255,248,240,.025);
+      color: rgba(255,248,240,.82);
+      font-family: "Jost", system-ui, sans-serif;
+      font-size: 15px;
+      font-style: normal;
+      padding: 12px 14px;
+      text-align: left;
+      width: 100%;
+    }
+    .recent-item:hover, .recent-item.active {
+      border-color: rgba(244,170,69,.42);
+      background: linear-gradient(90deg, rgba(244,142,32,.26), rgba(244,142,32,.08));
+      box-shadow: 0 16px 34px rgba(0,0,0,.2), inset 4px 0 0 #F4AA45;
+    }
+    .recent-title, .recent-sub { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .recent-title { color: var(--cream); font-weight: 400; }
+    .recent-sub { color: rgba(255,248,240,.48); font-size: 12px; margin-top: 5px; }
+    .recent-time { color: rgba(255,248,240,.52); font-size: 12px; white-space: nowrap; }
+    .glyph { margin: 0; }
+    .side-footer {
+      border-top: 1px solid rgba(255,248,240,.1);
+      display: grid;
+      gap: 10px;
+      margin-top: auto;
+      padding: 22px 0 0;
+    }
+    .side-control {
+      min-height: 56px;
+      border: 1px solid rgba(255,248,240,.1);
+      border-radius: 16px;
+      background: rgba(255,248,240,.025);
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 0 18px;
+      color: rgba(255,248,240,.82);
+    }
+    .language-select.side-control-select {
+      width: 100%;
+      height: 56px;
+      border-radius: 16px;
+      padding: 0 18px 0 50px;
+      background: rgba(255,248,240,.025);
+      font-size: 14px;
+      letter-spacing: .2px;
+      text-transform: none;
+    }
+    .main {
+      position: relative;
+      background:
+        radial-gradient(circle at 96% 4%, rgba(244,142,32,.12), transparent 24%),
+        radial-gradient(circle at 78% 94%, rgba(244,142,32,.12), transparent 26%),
+        linear-gradient(145deg, rgba(5,5,5,.9), rgba(24,16,9,.72));
+    }
+    .main::before, .main::after {
+      content: "";
+      position: absolute;
+      pointer-events: none;
+      border: 1px solid rgba(244,142,32,.12);
+      border-left-color: transparent;
+      border-bottom-color: transparent;
+      opacity: .6;
+    }
+    .main::before { width: 360px; height: 360px; right: -120px; top: -150px; border-radius: 50%; }
+    .main::after { width: 520px; height: 260px; right: -120px; bottom: -70px; border-radius: 50%; transform: rotate(-18deg); }
+    .topbar {
+      position: relative;
+      z-index: 1;
+      height: 148px;
+      align-items: flex-start;
+      border-bottom: 0;
+      padding: 44px 48px 0;
+      background: transparent;
+    }
+    .chat-title {
+      font-family: "Jost", system-ui, sans-serif;
+      font-size: 34px;
+      font-style: normal;
+      letter-spacing: .2px;
+      line-height: 1.1;
+    }
+    .chat-meta {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      min-height: 34px;
+      margin-top: 14px;
+      border: 1px solid rgba(255,248,240,.11);
+      border-radius: 999px;
+      background: rgba(255,248,240,.035);
+      color: rgba(255,248,240,.64);
+      font-size: 13px;
+      letter-spacing: .2px;
+      padding: 0 16px;
+      text-transform: none;
+    }
+    .actions { gap: 10px; }
+    .actions .language-select { display: none; }
+    .badge {
+      border-radius: 999px;
+      height: 36px;
+      letter-spacing: .6px;
+      text-transform: none;
+      background: rgba(255,248,240,.035);
+    }
+    .icon-btn {
+      width: 46px;
+      height: 46px;
+      border-radius: 14px;
+      background: rgba(255,248,240,.035);
+      color: rgba(255,248,240,.72);
+    }
+    .messages {
+      position: relative;
+      z-index: 1;
+      padding: 28px 72px 34px 108px;
+      gap: 40px;
+    }
+    .welcome { margin: 36px auto auto; }
+    .quick { border-radius: 16px; background: rgba(255,248,240,.03); }
+    .message {
+      position: relative;
+      display: block;
+      max-width: min(640px, 82%);
+      margin-left: 68px;
+    }
+    .message:not(.user)::before {
+      content: "";
+      position: absolute;
+      left: -70px;
+      top: 17px;
+      width: 46px;
+      height: 46px;
+      border-radius: 50%;
+      border: 1px solid rgba(244,170,69,.5);
+      background: radial-gradient(circle, #F4AA45 0 5px, rgba(244,170,69,.22) 6px 14px, rgba(0,0,0,.42) 15px);
+      box-shadow: 0 0 24px rgba(244,170,69,.14);
+    }
+    .message:not(.user)::after {
+      content: "";
+      position: absolute;
+      left: -48px;
+      top: 63px;
+      width: 1px;
+      height: calc(100% + 32px);
+      background: linear-gradient(rgba(244,170,69,.42), rgba(244,170,69,.08));
+    }
+    .message.user { align-self: flex-end; margin-left: 0; max-width: min(620px, 86%); }
+    .msg-avatar { display: none; }
+    .bubble {
+      border-color: rgba(244,170,69,.26);
+      border-radius: 18px;
+      background: linear-gradient(145deg, rgba(255,248,240,.075), rgba(20,12,4,.62));
+      box-shadow: 0 24px 54px rgba(0,0,0,.28), inset 0 1px 0 rgba(255,248,240,.05);
+      font-size: 25px;
+      line-height: 1.6;
+      padding: 28px 34px;
+    }
+    .msg-time {
+      color: rgba(244,170,69,.72);
+      font-size: 14px;
+      letter-spacing: 3px;
+      margin: 16px 0 0 4px;
+    }
+    .composer-wrap {
+      position: relative;
+      z-index: 2;
+      border: 1px solid rgba(255,248,240,.11);
+      border-radius: 30px;
+      background: linear-gradient(180deg, rgba(20,12,4,.78), rgba(10,10,10,.78));
+      box-shadow: 0 -18px 60px rgba(0,0,0,.28), inset 0 1px 0 rgba(255,248,240,.05);
+      margin: 0 28px 28px;
+      padding: 20px 20px 22px;
+    }
+    .modes {
+      justify-content: center;
+      background: rgba(255,248,240,.03);
+      border: 1px solid rgba(255,248,240,.09);
+      border-radius: 18px;
+      margin: 0 auto 18px;
+      max-width: 540px;
+      padding: 5px;
+    }
+    .mode {
+      border-radius: 14px;
+      border-color: transparent;
+      font-size: 13px;
+      letter-spacing: .2px;
+      min-height: 42px;
+      text-transform: none;
+    }
+    .mode.active, .mode:hover {
+      background: linear-gradient(135deg, rgba(244,142,32,.28), rgba(244,142,32,.08));
+      border-color: rgba(244,170,69,.24);
+      color: var(--cream);
+      box-shadow: 0 12px 28px rgba(244,142,32,.12);
+    }
+    .composer {
+      border-color: rgba(244,170,69,.2);
+      border-radius: 18px;
+      background: rgba(255,248,240,.035);
+      grid-template-columns: 1fr 62px 62px;
+      padding: 14px 16px 14px 22px;
+    }
+    .composer textarea {
+      font-family: "Jost", system-ui, sans-serif;
+      font-size: 18px;
+      font-style: normal;
+      line-height: 1.5;
+    }
+    .send, .voice-btn {
+      height: 62px;
+      border-radius: 50%;
+      font-size: 24px;
+    }
+    .send {
+      background: linear-gradient(135deg, #F8B24B, #D28322);
+      color: #1A1208;
+      border-color: transparent;
+      box-shadow: 0 12px 32px rgba(244,142,32,.28);
+    }
+    .voice-btn { background: rgba(0,0,0,.22); border-color: rgba(255,248,240,.12); }
+
     @media (max-width: 900px) {
-      body { overflow: auto; }
-      .screen { position: relative; min-height: 100vh; }
-      .app { grid-template-columns: 1fr; min-height: 100vh; }
-      .sidebar { display: none; }
-      .main { min-height: 100vh; }
-      .topbar { height: auto; min-height: 80px; padding: 18px 20px; }
+      body { overflow: hidden; }
+      .screen { position: fixed; min-height: 100vh; }
+      .app {
+        grid-template-columns: 86px minmax(0,1fr);
+        min-height: 100vh;
+        border-radius: 0;
+        border: 0;
+      }
+      .sidebar {
+        display: flex;
+        padding: 24px 12px;
+        align-items: center;
+      }
+      .side-brand { justify-content: center; }
+      .brand-icon { width: 56px; height: 56px; border-radius: 16px; }
+      .side-brand > div:last-child, .side-nav-main span, .nav-dot, .side-label, .search-shell, .recent-item .recent-copy, .recent-time, .user-card > div:not(.avatar) { display: none; }
+      .side-nav-item { width: 56px; min-height: 56px; padding: 0; justify-content: center; border-radius: 16px; }
+      .nav-icon, .query-icon { width: 44px; height: 44px; border-radius: 14px; }
+      .side-section { width: 100%; }
+      .recent-list { align-items: center; max-height: 48vh; }
+      .recent-item {
+        width: 56px;
+        min-height: 56px;
+        display: grid;
+        grid-template-columns: 1fr;
+        place-items: center;
+        padding: 0;
+        border-radius: 16px;
+      }
+      .side-footer { width: 100%; padding-top: 18px; align-items: center; }
+      .side-control, .language-select.side-control-select { display: none; }
+      .avatar { width: 48px; height: 48px; border-radius: 14px; }
+      .main { min-height: 100vh; grid-template-rows: auto minmax(0,1fr) auto; }
+      .topbar { height: auto; min-height: 132px; padding: 38px 18px 0; }
+      .chat-title { font-size: 28px; }
+      .chat-meta { font-size: 12px; max-width: 100%; }
+      .actions { align-items: flex-start; }
       .actions .badge { display: none; }
-      .messages { padding: 28px 20px; }
-      .composer-wrap { padding: 16px 20px 22px; }
+      .icon-btn { width: 42px; height: 42px; border-radius: 13px; }
+      .messages { padding: 22px 18px 22px 54px; gap: 34px; }
+      .welcome { margin-top: 12px; }
       .quick-row { grid-template-columns: repeat(2,minmax(0,1fr)); }
-      .message { max-width: 94%; }
+      .message { max-width: 94%; margin-left: 38px; }
+      .message:not(.user)::before { left: -48px; width: 38px; height: 38px; }
+      .message:not(.user)::after { left: -30px; top: 55px; }
+      .bubble { font-size: 21px; padding: 22px 24px; }
+      .composer-wrap { margin: 0 12px 16px; border-radius: 24px; padding: 14px; }
+      .modes { justify-content: flex-start; overflow-x: auto; flex-wrap: nowrap; }
+      .mode { white-space: nowrap; }
+      .composer { grid-template-columns: 1fr 54px 54px; gap: 10px; padding: 12px; }
+      .send, .voice-btn { height: 54px; }
+    }
+
+    @media (max-width: 560px) {
+      .app { grid-template-columns: 68px minmax(0,1fr); }
+      .sidebar { padding: 18px 8px; }
+      .brand-icon, .side-nav-item, .recent-item { width: 48px; min-height: 48px; }
+      .brand-icon { height: 48px; }
+      .topbar { padding: 28px 14px 0; min-height: 118px; }
+      .chat-title { font-size: 25px; }
+      .chat-meta { padding: 0 12px; min-height: 30px; }
+      .messages { padding: 18px 12px 18px 44px; }
+      .quick-row { display: none; }
+      .bubble { font-size: 19px; padding: 20px; }
+      .msg-time { font-size: 11px; letter-spacing: 2px; }
+      .composer-wrap { margin: 0 8px 10px; }
+      .modes { display: none; }
+      .composer { grid-template-columns: 1fr 50px 50px; }
+      .composer textarea { font-size: 16px; }
+      .send, .voice-btn { height: 50px; }
     }
   </style>
 </head>
@@ -391,24 +790,48 @@
     <div class="app">
       <aside class="sidebar">
         <div class="side-brand">
-          <div class="brand-name"><span>A</span>ri</div>
-          <div class="brand-sub">Solara</div>
+          <div class="brand-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none">
+              <path d="M4 13v-2M7 17V7M10 20V4M13 17V7M16 15V9M20 13v-2" stroke-width="1.8" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <div>
+            <div class="brand-name">ARI</div>
+            <div class="brand-sub">Asistente</div>
+          </div>
         </div>
-        <div class="side-section">
-          <div class="side-label">Recent queries</div>
-          <div class="recent-list" id="recentQueries">
-            <div class="recent-item active"><span class="glyph">☉</span>No queries yet</div>
+        <div class="side-nav" aria-label="Primary">
+          <div class="side-nav-item">
+            <div class="side-nav-main">
+              <span class="nav-icon" aria-hidden="true">◌</span>
+              <span>Conversaciones</span>
+            </div>
+            <span class="nav-dot" aria-hidden="true"></span>
           </div>
         </div>
         <div class="side-section">
-          <div class="side-label">Memory</div>
-          <div class="recent-list">
-            <div class="recent-item"><span class="glyph">⊹</span>Markdown source of truth</div>
-            <div class="recent-item"><span class="glyph">◎</span>Encrypted sync ready</div>
-            <div class="recent-item"><span class="glyph">✦</span>Private final server</div>
+          <div class="side-label">Todas las conversaciones</div>
+          <label class="search-shell" for="conversationSearch">
+            <span aria-hidden="true">⌕</span>
+            <input id="conversationSearch" type="search" placeholder="Buscar conversación">
+          </label>
+          <div class="recent-list" id="recentQueries">
+            <div class="recent-item active">
+              <span class="query-icon">◌</span>
+              <span class="recent-copy"><span class="recent-title">No queries yet</span><span class="recent-sub">ARI</span></span>
+              <span class="recent-time">Ahora</span>
+            </div>
           </div>
         </div>
         <div class="side-footer">
+          <div class="side-control">
+            <span aria-hidden="true">◎</span>
+            <span id="sideVoiceStatus">Voz desactivada</span>
+          </div>
+          <div style="position:relative">
+            <span aria-hidden="true" style="position:absolute;left:18px;top:18px;color:#F4AA45;z-index:1">◎</span>
+            <select class="language-select side-control-select" id="appLanguage" aria-label="Language"></select>
+          </div>
           <div class="user-card">
             <div class="avatar">☉</div>
             <div style="min-width:0">
@@ -426,7 +849,6 @@
             <div class="chat-meta" id="chatMeta">ARI · login required</div>
           </div>
           <div class="actions">
-            <select class="language-select" id="appLanguage" aria-label="Language"></select>
             <div class="badge"><span class="badge-dot"></span><span id="connectionLabel">LOGIN</span></div>
             <button class="icon-btn" id="clearBtn" type="button" title="Clear chat">◎</button>
             <button class="icon-btn" id="logoutBtn" type="button" title="Logout">⎋</button>
@@ -484,7 +906,8 @@
       workspaceId: localStorage.getItem("ari.workspaceId") || "",
       userId: localStorage.getItem("ari.userId") || "",
       email: localStorage.getItem("ari.email") || "",
-      recent: JSON.parse(localStorage.getItem("ari.recent") || "[]"),
+      threads: [],
+      currentThreadId: localStorage.getItem("ari.currentThreadId") || "",
       spokenReplies: localStorage.getItem("ari.spokenReplies") === "true",
       language: localStorage.getItem("ari.appLanguage") || "",
       listening: false,
@@ -942,6 +1365,7 @@
     const connectionLabel = document.getElementById("connectionLabel");
     const sidebarUserName = document.getElementById("sidebarUserName");
     const sidebarUserEmail = document.getElementById("sidebarUserEmail");
+    const sideVoiceStatus = document.getElementById("sideVoiceStatus");
     const messagesEl = document.getElementById("messages");
     const welcomeState = document.getElementById("welcomeState");
     const messageInput = document.getElementById("messageInput");
@@ -987,14 +1411,15 @@
       forgotBtn.textContent = tr("forgotPassword");
       updatePasswordToggle();
       document.querySelector(".chat-title").textContent = tr("activeQuery");
-      document.querySelector(".side-label").textContent = tr("recent");
+      document.querySelector(".side-label").textContent = state.language === "es" ? "Todas las conversaciones" : tr("recent");
       document.querySelectorAll(".mode")[0].textContent = tr("text");
       document.querySelectorAll(".mode")[1].textContent = tr("memory");
       document.querySelectorAll(".mode")[2].textContent = tr("activity");
       voiceModeBtn.textContent = tr("voice");
+      sideVoiceStatus.textContent = state.spokenReplies ? tr("voiceOn").replace(/^ARI ·\s*/i, "") : tr("voiceOff").replace(/^ARI ·\s*/i, "");
       messageInput.placeholder = tr("askPlaceholder");
       voiceBtn.title = window.MediaRecorder ? tr("voiceTitle") : tr("voiceUnsupported");
-      renderRecent();
+      renderThreads();
       clearChat();
       syncSession();
       setAuthMode(state.mode);
@@ -1072,6 +1497,7 @@
         sidebarUserName.textContent = tr("privateSession");
         sidebarUserEmail.textContent = state.email || state.userId || "ARI web";
         showScreen("chat");
+        loadThreads();
       } else {
         connectionLabel.textContent = "LOGIN";
         showScreen("login");
@@ -1082,7 +1508,8 @@
       voiceBtn.title = window.MediaRecorder ? tr("voiceTitle") : tr("voiceUnsupported");
       voiceModeBtn.classList.toggle("active", state.spokenReplies);
       voiceBtn.classList.toggle("active", state.spokenReplies);
-      renderRecent();
+      sideVoiceStatus.textContent = state.spokenReplies ? tr("voiceOn").replace(/^ARI ·\s*/i, "") : tr("voiceOff").replace(/^ARI ·\s*/i, "");
+      renderThreads();
     }
 
     function saveSession(payload, email) {
@@ -1101,9 +1528,12 @@
       state.token = "";
       state.workspaceId = "";
       state.userId = "";
+      state.currentThreadId = "";
+      state.threads = [];
       localStorage.removeItem("ari.token");
       localStorage.removeItem("ari.workspaceId");
       localStorage.removeItem("ari.userId");
+      localStorage.removeItem("ari.currentThreadId");
       syncSession();
     }
 
@@ -1225,36 +1655,61 @@
       el.style.height = Math.min(el.scrollHeight, 120) + "px";
     }
 
-    function addRecent(text) {
-      state.recent = [text, ...state.recent.filter((item) => item !== text)].slice(0, 8);
-      localStorage.setItem("ari.recent", JSON.stringify(state.recent));
-      renderRecent();
-    }
-
-    function renderRecent() {
-      if (!state.recent.length) {
-        recentQueries.innerHTML = `<div class="recent-item active"><span class="glyph">☉</span>${tr("noQueries")}</div>`;
+    async function loadThreads() {
+      if (!state.token || !state.workspaceId) {
+        state.threads = [];
+        renderThreads();
         return;
       }
+      try {
+        const response = await fetch(`/api/v1/messages/${state.workspaceId}/threads?limit=30`, {
+          headers: { "Authorization": `Bearer ${state.token}` },
+        });
+        if (!response.ok) throw new Error(await readError(response));
+        state.threads = await response.json();
+        if (state.currentThreadId && !state.threads.some((thread) => thread.id === state.currentThreadId)) {
+          state.currentThreadId = "";
+          localStorage.removeItem("ari.currentThreadId");
+        }
+        renderThreads();
+      } catch {
+        state.threads = [];
+        renderThreads();
+      }
+    }
+
+    function renderThreads() {
+      if (!state.threads.length) {
+        recentQueries.innerHTML = `<div class="recent-item active"><span class="query-icon">◌</span><span class="recent-copy"><span class="recent-title">${tr("noQueries")}</span><span class="recent-sub">ARI</span></span><span class="recent-time">--</span></div>`;
+        return;
+      }
+      const glyphs = ["◌", "□", "▱", "⌁", "◇"];
       recentQueries.innerHTML = "";
-      state.recent.forEach((item) => {
+      state.threads.forEach((item, index) => {
         const row = document.createElement("button");
         row.type = "button";
-        row.className = "recent-item";
-        row.innerHTML = '<span class="glyph">☉</span>' + escapeHtml(item);
+        row.className = `recent-item ${item.id === state.currentThreadId ? "active" : ""}`;
+        const title = escapeHtml(item.title || tr("activeQuery"));
+        const dateText = item.date ? escapeHtml(item.date) : "ARI";
+        const timeText = item.updated_at
+          ? new Intl.DateTimeFormat(languageLocale(), { hour: "2-digit", minute: "2-digit" }).format(new Date(item.updated_at))
+          : index === 0 ? "Ahora" : "";
+        row.innerHTML = `<span class="query-icon">${glyphs[index % glyphs.length]}</span><span class="recent-copy"><span class="recent-title">${title}</span><span class="recent-sub">${dateText} · ARI</span></span><span class="recent-time">${escapeHtml(timeText)}</span>`;
         row.addEventListener("click", () => {
-          messageInput.value = item;
-          messageInput.focus();
+          openThread(item.id);
         });
         recentQueries.appendChild(row);
       });
     }
 
     function clearChat() {
+      state.currentThreadId = "";
+      localStorage.removeItem("ari.currentThreadId");
       messagesEl.innerHTML = "";
       messagesEl.appendChild(welcomeState);
       welcomeState.style.display = "block";
       chatMeta.textContent = state.workspaceId ? activeQueryMeta() : tr("loginRequired");
+      renderThreads();
       document.querySelector(".welcome-title").textContent = tr("welcomeTitle");
       document.querySelector(".welcome-copy").textContent = tr("welcomeCopy");
       const quicks = document.querySelectorAll(".quick");
@@ -1270,6 +1725,56 @@
         button.querySelector("b").textContent = tr(titleKey);
         button.querySelector("span").textContent = tr(copyKey);
       });
+    }
+
+    async function ensureActiveThread(title) {
+      if (state.currentThreadId) return state.currentThreadId;
+      const response = await fetch(`/api/v1/messages/${state.workspaceId}/threads`, {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${state.token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ title }),
+      });
+      if (!response.ok) throw new Error(await readError(response));
+      const thread = await response.json();
+      state.currentThreadId = thread.id;
+      localStorage.setItem("ari.currentThreadId", state.currentThreadId);
+      state.threads = [thread, ...state.threads.filter((item) => item.id !== thread.id)];
+      renderThreads();
+      chatMeta.textContent = activeQueryMeta();
+      return state.currentThreadId;
+    }
+
+    async function openThread(threadId) {
+      if (!state.token || !state.workspaceId || !threadId) return;
+      const response = await fetch(`/api/v1/messages/${state.workspaceId}/threads/${encodeURIComponent(threadId)}`, {
+        headers: { "Authorization": `Bearer ${state.token}` },
+      });
+      if (!response.ok) {
+        addMessage(await readError(response), "ai");
+        return;
+      }
+      const thread = await response.json();
+      state.currentThreadId = thread.id;
+      localStorage.setItem("ari.currentThreadId", state.currentThreadId);
+      renderConversation(thread);
+      renderThreads();
+    }
+
+    function renderConversation(thread) {
+      messagesEl.innerHTML = "";
+      welcomeState.style.display = "none";
+      if (!thread.messages.length) {
+        messagesEl.appendChild(welcomeState);
+        welcomeState.style.display = "block";
+      }
+      thread.messages.forEach((message) => addMessage(message.content, message.role === "user" ? "user" : "ai"));
+      document.querySelector(".chat-title").textContent = thread.title || tr("activeQuery");
+      chatMeta.textContent = activeQueryMeta();
+      messagesEl.scrollTop = messagesEl.scrollHeight;
+      messageInput.focus();
     }
 
     function addMessage(text, from = "ai") {
@@ -1313,10 +1818,10 @@
     async function sendMessage(options = {}) {
       const text = messageInput.value.trim();
       if (!text || !state.token || !state.workspaceId) return;
+      await ensureActiveThread(text);
       messageInput.value = "";
       autoResize(messageInput);
       addMessage(text, "user");
-      addRecent(text);
       showTyping();
       sendBtn.disabled = true;
 
@@ -1332,6 +1837,7 @@
         chatMeta.textContent = "ARI · attention required";
       } finally {
         sendBtn.disabled = false;
+        await loadThreads();
         messageInput.focus();
       }
     }
@@ -1347,7 +1853,7 @@
           "Authorization": `Bearer ${state.token}`,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ message: text, use_memory: true, memory_limit: 8 }),
+        body: JSON.stringify({ message: text, thread_id: state.currentThreadId, use_memory: true, memory_limit: 8 }),
       });
       if (!orchestration.ok) throw new Error(await readError(orchestration));
       const intent = await orchestration.json();
@@ -1368,6 +1874,13 @@
         if (options.speak || state.spokenReplies) speakText(intent.reply || "");
         return true;
       }
+      if (intent.mode === "reply") {
+        removeTyping();
+        addMessage(intent.reply || tr("modelFallback"), "ai");
+        if (options.speak || state.spokenReplies) speakText(intent.reply || "");
+        chatMeta.textContent = "ARI · thread";
+        return true;
+      }
       return false;
     }
 
@@ -1378,7 +1891,7 @@
             "Authorization": `Bearer ${state.token}`,
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({ message: text, use_memory: true, memory_limit: 8 }),
+          body: JSON.stringify({ message: text, thread_id: state.currentThreadId, use_memory: true, memory_limit: 8 }),
       });
       if (!response.ok) throw new Error(await readError(response));
       const data = await response.json();
@@ -1489,12 +2002,14 @@
 
     async function sendVoiceAudio(blob) {
       if (!blob.size) return;
+      await ensureActiveThread("Voice thread");
       const form = new FormData();
       form.append("audio", blob, "ari-voice.webm");
       form.append("language", state.language);
       form.append("tts", "true");
       form.append("use_memory", "true");
       form.append("memory_limit", "8");
+      form.append("thread_id", state.currentThreadId);
       showTyping();
       voiceBtn.disabled = true;
       try {
@@ -1506,10 +2021,14 @@
         if (!response.ok) throw new Error(await readError(response));
         const data = await response.json();
         removeTyping();
+        if (data.thread_id) {
+          state.currentThreadId = data.thread_id;
+          localStorage.setItem("ari.currentThreadId", state.currentThreadId);
+        }
         addMessage(data.transcript, "user");
-        addRecent(data.transcript);
         addMessage(data.reply || tr("modelFallback"), "ai");
         if (data.audio_base64) playAudioBase64(data.audio_base64, data.audio_content_type || "audio/mpeg");
+        await loadThreads();
       } catch (error) {
         removeTyping();
         addMessage(error.message, "ai");

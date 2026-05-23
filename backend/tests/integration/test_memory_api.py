@@ -117,6 +117,50 @@ class MemoryApiTest(unittest.TestCase):
         self.assertEqual(conversation.json()["messages"][0], {"role": "user", "content": user_message})
         self.assertEqual(conversation.json()["messages"][1], {"role": "assistant", "content": "Launch plan noted."})
 
+    def test_chat_thread_is_plain_markdown_file(self):
+        original_api_key = settings.OPENAI_API_KEY
+        original_complete_text = messages.complete_text
+        user_message = "Start a lightweight thread"
+
+        async def fake_complete_text(user_prompt: str, system_prompt: str):
+            self.assertIn(user_message, user_prompt)
+            return "Thread saved as Markdown."
+
+        thread_response = self.client.post(
+            f"/api/v1/messages/{WORKSPACE_ID}/threads",
+            json={"title": user_message},
+        )
+        self.assertEqual(thread_response.status_code, 201)
+        thread_id = thread_response.json()["id"]
+
+        settings.OPENAI_API_KEY = "test-key"
+        messages.complete_text = fake_complete_text
+        try:
+            response = self.client.post(
+                f"/api/v1/messages/{WORKSPACE_ID}/chat",
+                json={"message": user_message, "thread_id": thread_id},
+            )
+        finally:
+            settings.OPENAI_API_KEY = original_api_key
+            messages.complete_text = original_complete_text
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["thread_id"], thread_id)
+
+        opened = self.client.get(f"/api/v1/messages/{WORKSPACE_ID}/threads/{thread_id}")
+        self.assertEqual(opened.status_code, 200)
+        self.assertEqual(opened.json()["messages"][0], {"role": "user", "content": user_message})
+        self.assertEqual(opened.json()["messages"][1], {"role": "assistant", "content": "Thread saved as Markdown."})
+        self.assertIn("/threads/", opened.json()["path"])
+
+        thread_file = f"{self.tmp.name}/{opened.json()['path']}"
+        with open(thread_file, encoding="utf-8") as file:
+            content = file.read()
+        self.assertIn("# Start a lightweight thread", content)
+        self.assertIn("### User - ", content)
+        self.assertIn("### ARI - ", content)
+        self.assertIn(user_message, content)
+
     def test_chat_prompt_marks_hotels_as_planned_not_executable(self):
         original_api_key = settings.OPENAI_API_KEY
         original_complete_text = messages.complete_text
