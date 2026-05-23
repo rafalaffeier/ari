@@ -138,6 +138,8 @@ body.booting *{animation:none!important;transition:none!important}
 .badge-dot{width:7px;height:7px;border-radius:50%;background:var(--gold);box-shadow:0 0 12px var(--gold)}
 .icon-btn{width:38px;height:38px;background:rgba(201,169,110,.03);border:1px solid rgba(201,169,110,.18);color:rgba(201,169,110,.58);transition:all .2s}
 .icon-btn:hover{border-color:rgba(201,169,110,.48);color:var(--cream)}
+.language-select{height:34px;border:1px solid rgba(201,169,110,.22);background:rgba(20,12,4,.58);color:var(--soft-2);font-size:9px;letter-spacing:2px;text-transform:uppercase;padding:0 10px;outline:none}
+.auth-language{width:100%;margin-bottom:18px}
 
 .messages{position:relative;min-height:0;overflow:auto;padding:42px;display:flex;flex-direction:column;gap:24px;overscroll-behavior:contain}
 .messages::-webkit-scrollbar{width:6px}.messages::-webkit-scrollbar-thumb{background:rgba(201,169,110,.18)}
@@ -245,6 +247,7 @@ body.booting *{animation:none!important;transition:none!important}
 
       <div class="heading" id="auth-heading">Access your light</div>
       <div class="sub-h" id="auth-status">— log in to use ARI —</div>
+      <select class="language-select auth-language" id="auth-language" aria-label="Language"></select>
 
       <button class="social" id="auth-social" type="button" onclick="loginWithGoogle()">
         <span class="s-pulse"></span>
@@ -316,6 +319,7 @@ body.booting *{animation:none!important;transition:none!important}
           <div class="chat-meta" id="chat-meta">ARI · login required</div>
         </div>
         <div class="actions">
+          <select class="language-select" id="app-language" aria-label="Language"></select>
           <div class="badge"><span class="badge-dot"></span><span id="connection-label">LOGIN</span></div>
           <button class="icon-btn" onclick="clearChat()">◎</button>
           <button class="icon-btn" onclick="logoutUser()">⎋</button>
@@ -426,6 +430,53 @@ function startVisualEffects(){
 
 let activeMode='text',authSession=null,authMode='login',currentConversationHasMessages=false,pendingAction=null,spokenReplies=localStorage.getItem('ari.spokenReplies')==='true',listening=false,mediaRecorder=null,voiceChunks=[];
 let userPrefs=loadUserPreferences();
+const SUPPORTED_APP_LANGUAGES=[['en','English'],['es','Español']];
+const APP_I18N={
+  en:{align:'Align me ->',authCreate:'— create your ARI account first —',authLogin:'— log in to use ARI —',begin:'Begin your expansion',create:'Create account ->',email:'Email',forgot:'Forgot your key?',heading:'Access your light',login:'Login',newQuery:'New query ->',recent:'Recent queries',memory:'Memory',searchMemory:'Search memory',activityLog:'Activity log',returnChat:'Return to chat',signedOut:'Signed out',loginUse:'Log in to use ARI',activeQuery:'Active query',connected:'CONNECTED',loginRequired:'ARI · login required',privateUser:'Local User',text:'Text',activity:'Activity',voice:'Voice',file:'File',ask:'Ask the sun...',voiceOn:'ARI · voice replies on',voiceOff:'ARI · voice replies off',voiceSpeech:'Voice replies are on.',voiceTitle:'Speak to ARI',voiceUnsupported:'Voice input is not supported in this desktop webview',welcomeTitle:'ARI is awake',welcomeCopy:'A warm execution assistant for thought, memory and action.',priorities:'Priorities',prioritiesCopy:'Shape the day into actions',writing:'Writing',writingCopy:'Draft with a clean tone',product:'Product',productCopy:'Turn ideas into structure',memoryCopy:'Recover useful context',promptPriorities:'Help me organize my next three priorities',promptWriting:'Write a concise professional email',promptProduct:'Summarize this idea into a product plan',promptMemory:'Search my memory for launch plan',noQueries:'No queries yet'},
+  es:{align:'Entrar ->',authCreate:'— crea primero tu cuenta ARI —',authLogin:'— inicia sesion para usar ARI —',begin:'Comienza tu expansion',create:'Crear cuenta ->',email:'Email',forgot:'Olvidaste tu clave?',heading:'Accede a tu luz',login:'Entrar',newQuery:'Nueva consulta ->',recent:'Consultas recientes',memory:'Memoria',searchMemory:'Buscar memoria',activityLog:'Registro de actividad',returnChat:'Volver al chat',signedOut:'Sesion cerrada',loginUse:'Inicia sesion para usar ARI',activeQuery:'Consulta activa',connected:'CONECTADO',loginRequired:'ARI · acceso requerido',privateUser:'Usuario local',text:'Texto',activity:'Actividad',voice:'Voz',file:'Archivo',ask:'Pregunta al sol...',voiceOn:'ARI · respuestas de voz activas',voiceOff:'ARI · respuestas de voz apagadas',voiceSpeech:'Las respuestas de voz estan activas.',voiceTitle:'Hablar con ARI',voiceUnsupported:'La entrada de voz no esta soportada en esta vista desktop',welcomeTitle:'ARI esta despierta',welcomeCopy:'Un asistente calido de ejecucion para pensamiento, memoria y accion.',priorities:'Prioridades',prioritiesCopy:'Ordena el dia en acciones',writing:'Escritura',writingCopy:'Redacta con un tono limpio',product:'Producto',productCopy:'Convierte ideas en estructura',memoryCopy:'Recupera contexto util',promptPriorities:'Ayudame a organizar mis tres proximas prioridades',promptWriting:'Escribe un email profesional conciso',promptProduct:'Resume esta idea en un plan de producto',promptMemory:'Busca en mi memoria el plan de lanzamiento',noQueries:'Sin consultas todavia'}
+};
+function normalizeAppLanguage(value){return String(value||'').toLowerCase().startsWith('es')?'es':'en'}
+userPrefs.appLanguage=normalizeAppLanguage(userPrefs.appLanguage||navigator.language||'en');
+function appText(key){return APP_I18N[userPrefs.appLanguage]?.[key]||APP_I18N.en[key]||key}
+function appLocale(){return userPrefs.appLanguage==='es'?'es-ES':'en-US'}
+function buildLanguageSelects(){
+  ['auth-language','app-language'].forEach(id=>{
+    const select=document.getElementById(id);if(!select)return;
+    select.innerHTML=SUPPORTED_APP_LANGUAGES.map(([code,label])=>`<option value="${code}">${label}</option>`).join('');
+    select.value=userPrefs.appLanguage;
+    select.onchange=()=>setAppLanguage(select.value);
+  });
+}
+function setAppLanguage(language){
+  userPrefs.appLanguage=normalizeAppLanguage(language);
+  if(!userPrefs.replyLanguage)userPrefs.replyLanguage=userPrefs.appLanguage;
+  saveUserPreferences();
+  applyAppLanguage();
+}
+function applyAppLanguage(){
+  document.documentElement.lang=userPrefs.appLanguage;
+  ['auth-language','app-language'].forEach(id=>{const el=document.getElementById(id);if(el)el.value=userPrefs.appLanguage});
+  document.getElementById('auth-heading').textContent=appText('heading');
+  document.querySelector('label[for="auth-email"], .fg label')?.replaceChildren(document.createTextNode(appText('email')));
+  document.querySelector('#forgot-row .link').textContent=appText('forgot');
+  document.querySelector('.new-query').textContent=appText('newQuery');
+  document.querySelectorAll('.side-label')[0].textContent=appText('recent');
+  document.querySelectorAll('.side-label')[1].textContent=appText('memory');
+  const nav=document.querySelectorAll('.side-section .recent-item');
+  if(nav[1])nav[1].innerHTML='<span class="glyph">⊹</span>'+appText('searchMemory');
+  if(nav[2])nav[2].innerHTML='<span class="glyph">◎</span>'+appText('activityLog');
+  if(nav[3])nav[3].innerHTML='<span class="glyph">✦</span>'+appText('returnChat');
+  document.querySelector('.chat-title').textContent=appText('activeQuery');
+  document.getElementById('mode-text').textContent=appText('text');
+  document.getElementById('mode-memory').textContent=appText('memory');
+  document.getElementById('mode-activity').textContent=appText('activity');
+  document.getElementById('mode-voice').textContent=appText('voice');
+  document.querySelector('.modes .mode:last-child').textContent=appText('file');
+  setAuthMode(authMode);
+  syncVoiceControls();
+  clearChat();
+  if(authSession)hydrateSession(authSession);else logoutLabels();
+}
 let toolCatalog={};
 const invoke=window.__TAURI__?.core?.invoke;
 const productionBackendUrl='https://ari.flusscreative.com';

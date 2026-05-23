@@ -531,6 +531,9 @@ If the user asks for an available tool, extract params from natural language and
 If a required field is missing, mode is ask and missing lists only those fields.
 If all required fields are present and the tool requires confirmation, mode is tool_confirmation.
 If all required fields are present and the tool does not require confirmation, mode is tool_ready.
+For search_flights, Duffel requires fixed IATA airport or city codes for both origin and destination.
+Convert clear city/airport names to IATA codes when unambiguous, such as Barcelona -> BCN, Lisbon/Lisboa -> LIS, Berlin -> BER, Tokyo -> NRT or TYO when the user is flexible.
+If the user says "anywhere", "cualquier parte", "anywhere in the world", or leaves origin/destination flexible, ask for one fixed origin and one fixed destination before searching.
 For map or directions requests, prepare open_browser_url when the place or route is clear:
 - Place/search URL: https://www.google.com/maps/search/?api=1&query={url_encoded_query}
 - Route URL: https://www.google.com/maps/dir/?api=1&origin={url_encoded_origin}&destination={url_encoded_destination}

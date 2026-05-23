@@ -4,6 +4,7 @@ import {
   Alert,
   KeyboardAvoidingView,
   Linking,
+  NativeModules,
   Platform,
   Pressable,
   SafeAreaView,
@@ -13,6 +14,7 @@ import {
   TextInput,
   View,
 } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import { api, JournalOverview, JournalSection, SearchResult, TimelineDay } from "./src/services/api";
 import { useAuthStore } from "./src/store/auth";
@@ -28,6 +30,138 @@ const SECTIONS: { key: JournalSection; label: string }[] = [
 ];
 
 type Tab = "timeline" | "day" | "add" | "search";
+type AppLanguage = "en" | "es";
+
+const LANGUAGE_KEY = "ari.appLanguage";
+
+const STRINGS = {
+  en: {
+    accessLight: "Access your light",
+    add: "Add",
+    addEntry: "Add entry",
+    alignMe: "Align me ->",
+    create: "Create",
+    createAccount: "Creating account",
+    createLight: "Create light ->",
+    day: "Day",
+    emailPasswordRequired: "Email and password are required.",
+    entries: "entries",
+    exit: "Exit",
+    googleActive: "Google session active",
+    googleCodePlaceholder: "Paste ARI Google code",
+    googleMissingCode: "Paste the ARI Google login code first.",
+    googleMissingTitle: "Missing code",
+    googleOpen: "Opening Google",
+    googleOpenError: "Unable to open Google",
+    googlePaste: "Paste the ARI code from your browser",
+    googleVerify: "Verify Google",
+    googleVerifying: "Verifying Google",
+    language: "Language",
+    load: "Load",
+    login: "Login",
+    missingLogin: "Missing login",
+    noCache: "No cached copy for this day",
+    noDays: "No days yet.",
+    noResults: "No results.",
+    offlineCache: "Offline cache",
+    password: "password",
+    query: "query",
+    queued: "Queued",
+    ready: "Ready",
+    saveEntry: "Save entry",
+    search: "Search",
+    searchSynced: "Search synced",
+    selectLanguage: "Language",
+    signedOut: "Signed out",
+    signingIn: "Signing in",
+    sync: "Sync",
+    synced: "Synced",
+    timeline: "Timeline",
+    timelineSynced: "Timeline synced",
+    unableSignIn: "Unable to sign in",
+    unableVerifyGoogle: "Unable to verify Google",
+    working: "Working...",
+    writeMemory: "Write a memory entry",
+  },
+  es: {
+    accessLight: "Accede a tu luz",
+    add: "Agregar",
+    addEntry: "Agregar entrada",
+    alignMe: "Entrar ->",
+    create: "Crear",
+    createAccount: "Creando cuenta",
+    createLight: "Crear luz ->",
+    day: "Dia",
+    emailPasswordRequired: "El email y la contrasena son obligatorios.",
+    entries: "entradas",
+    exit: "Salir",
+    googleActive: "Sesion de Google activa",
+    googleCodePlaceholder: "Pega el codigo de Google de ARI",
+    googleMissingCode: "Pega primero el codigo de inicio de Google de ARI.",
+    googleMissingTitle: "Falta el codigo",
+    googleOpen: "Abriendo Google",
+    googleOpenError: "No se pudo abrir Google",
+    googlePaste: "Pega el codigo de ARI desde tu navegador",
+    googleVerify: "Verificar Google",
+    googleVerifying: "Verificando Google",
+    language: "Idioma",
+    load: "Cargar",
+    login: "Entrar",
+    missingLogin: "Falta el acceso",
+    noCache: "No hay copia cacheada de este dia",
+    noDays: "Todavia no hay dias.",
+    noResults: "Sin resultados.",
+    offlineCache: "Cache sin conexion",
+    password: "contrasena",
+    query: "consulta",
+    queued: "En cola",
+    ready: "Listo",
+    saveEntry: "Guardar entrada",
+    search: "Buscar",
+    searchSynced: "Busqueda sincronizada",
+    selectLanguage: "Idioma",
+    signedOut: "Sesion cerrada",
+    signingIn: "Entrando",
+    sync: "Sincronizar",
+    synced: "Sincronizado",
+    timeline: "Linea temporal",
+    timelineSynced: "Linea temporal sincronizada",
+    unableSignIn: "No se pudo iniciar sesion",
+    unableVerifyGoogle: "No se pudo verificar Google",
+    working: "Trabajando...",
+    writeMemory: "Escribe una entrada de memoria",
+  },
+} as const;
+
+const SECTION_LABELS: Record<AppLanguage, Record<JournalSection, string>> = {
+  en: {
+    tasks: "Tasks",
+    decisions: "Decisions",
+    pending: "Pending",
+    facts: "Facts",
+    chat: "Chat",
+    technical_events: "Tech",
+  },
+  es: {
+    tasks: "Tareas",
+    decisions: "Decisiones",
+    pending: "Pendiente",
+    facts: "Datos",
+    chat: "Chat",
+    technical_events: "Tecnico",
+  },
+};
+
+function normalizeLanguage(value?: string | null): AppLanguage {
+  return value?.toLowerCase().startsWith("es") ? "es" : "en";
+}
+
+function deviceLanguage(): AppLanguage {
+  const settings = NativeModules.SettingsManager?.settings;
+  const iosLocale = settings?.AppleLocale || settings?.AppleLanguages?.[0];
+  const androidLocale = NativeModules.I18nManager?.localeIdentifier;
+  return normalizeLanguage(iosLocale || androidLocale);
+}
 
 function todayString() {
   const now = new Date();
@@ -37,6 +171,7 @@ function todayString() {
 
 export default function App() {
   const { token, userId, workspaceId, setSession, logout } = useAuthStore();
+  const [language, setLanguage] = useState<AppLanguage>(deviceLanguage());
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [googleCode, setGoogleCode] = useState("");
@@ -53,16 +188,29 @@ export default function App() {
   const [pendingEntries, setPendingEntries] = useState<PendingEntry[]>([]);
   const [isOffline, setIsOffline] = useState(false);
   const [isBusy, setIsBusy] = useState(false);
-  const [status, setStatus] = useState("Ready");
+  const [status, setStatus] = useState(STRINGS[deviceLanguage()].ready);
+  const t = STRINGS[language];
+  const sections = useMemo(
+    () => SECTIONS.map((item) => ({ ...item, label: SECTION_LABELS[language][item.key] })),
+    [language],
+  );
 
   const signedIn = Boolean(token && workspaceId);
 
   useEffect(() => {
+    AsyncStorage.getItem(LANGUAGE_KEY).then((stored) => {
+      if (stored) setLanguage(normalizeLanguage(stored));
+    });
     memoryCache.loadSession().then((session) => {
       if (session) setSession(session.token, session.userId, session.workspaceId);
     });
     memoryCache.loadPendingEntries().then(setPendingEntries);
   }, [setSession]);
+
+  function changeLanguage(nextLanguage: AppLanguage) {
+    setLanguage(nextLanguage);
+    AsyncStorage.setItem(LANGUAGE_KEY, nextLanguage);
+  }
 
   useEffect(() => {
     if (!workspaceId) return;
@@ -84,11 +232,11 @@ export default function App() {
 
   async function authenticate() {
     if (!email.trim() || !password) {
-      Alert.alert("Missing login", "Email and password are required.");
+      Alert.alert(t.missingLogin, t.emailPasswordRequired);
       return;
     }
     setIsBusy(true);
-    setStatus(mode === "login" ? "Signing in" : "Creating account");
+    setStatus(mode === "login" ? t.signingIn : t.createAccount);
     try {
       const auth = mode === "login" ? await api.login(email.trim(), password) : await api.register(email.trim(), password);
       setSession(auth.access_token, auth.user_id, auth.default_workspace_id);
@@ -98,33 +246,33 @@ export default function App() {
         workspaceId: auth.default_workspace_id,
       });
       setIsOffline(false);
-      setStatus("Synced");
+      setStatus(t.synced);
     } catch (error) {
       setIsOffline(true);
-      setStatus(error instanceof Error ? error.message : "Unable to sign in");
+      setStatus(error instanceof Error ? error.message : t.unableSignIn);
     } finally {
       setIsBusy(false);
     }
   }
 
   async function openGoogleLogin() {
-    setStatus("Opening Google");
+    setStatus(t.googleOpen);
     try {
       await Linking.openURL(api.googleAuthUrl("mobile"));
-      setStatus("Paste the ARI code from your browser");
+      setStatus(t.googlePaste);
     } catch (error) {
       setIsOffline(true);
-      setStatus("Unable to open Google");
+      setStatus(t.googleOpenError);
     }
   }
 
   async function exchangeGoogleCode() {
     if (!googleCode.trim()) {
-      Alert.alert("Missing code", "Paste the ARI Google login code first.");
+      Alert.alert(t.googleMissingTitle, t.googleMissingCode);
       return;
     }
     setIsBusy(true);
-    setStatus("Verifying Google");
+    setStatus(t.googleVerifying);
     try {
       const auth = await api.exchangeGoogleCode(googleCode.trim());
       setSession(auth.access_token, auth.user_id, auth.default_workspace_id);
@@ -135,10 +283,10 @@ export default function App() {
       });
       setGoogleCode("");
       setIsOffline(false);
-      setStatus("Google session active");
+      setStatus(t.googleActive);
     } catch (error) {
       setIsOffline(true);
-      setStatus(error instanceof Error ? error.message : "Unable to verify Google");
+      setStatus(error instanceof Error ? error.message : t.unableVerifyGoogle);
     } finally {
       setIsBusy(false);
     }
@@ -150,7 +298,7 @@ export default function App() {
     setTimeline([]);
     setOverview(null);
     setDayContent("");
-    setStatus("Signed out");
+    setStatus(t.signedOut);
   }
 
   async function refreshTimeline() {
@@ -161,7 +309,7 @@ export default function App() {
       setTimeline(fresh);
       await memoryCache.saveTimeline(workspaceId, fresh);
       setIsOffline(false);
-      setStatus("Timeline synced");
+      setStatus(t.timelineSynced);
       await flushPendingEntries();
     } catch (error) {
       setIsOffline(true);
@@ -195,7 +343,7 @@ export default function App() {
       if (cachedDay) setDayContent(cachedDay.content);
       if (cachedOverview) setOverview(cachedOverview);
       setIsOffline(true);
-      setStatus(cachedDay || cachedOverview ? "Showing cached day" : "No cached copy for this day");
+      setStatus(cachedDay || cachedOverview ? "Showing cached day" : t.noCache);
     } finally {
       setIsBusy(false);
     }
@@ -209,7 +357,7 @@ export default function App() {
     try {
       await api.addJournalEntry(token, workspaceId, selectedDay, section, text);
       setIsOffline(false);
-      setStatus("Entry saved");
+      setStatus(language === "es" ? "Entrada guardada" : "Entry saved");
       await loadDay(selectedDay);
       await refreshTimeline();
     } catch (error) {
@@ -227,7 +375,7 @@ export default function App() {
       setPendingEntries(pending);
       await memoryCache.savePendingEntries(pending);
       setIsOffline(true);
-      setStatus("Entry queued offline");
+      setStatus(language === "es" ? "Entrada en cola sin conexion" : "Entry queued offline");
     } finally {
       setIsBusy(false);
     }
@@ -261,12 +409,12 @@ export default function App() {
       setResults(fresh);
       await memoryCache.saveSearch(workspaceId, query, fresh);
       setIsOffline(false);
-      setStatus("Search synced");
+      setStatus(t.searchSynced);
     } catch {
       const cached = await memoryCache.loadSearch(workspaceId, query);
       setResults(cached);
       setIsOffline(true);
-      setStatus(cached.length ? "Showing cached search" : "No cached results");
+      setStatus(cached.length ? "Showing cached search" : t.noResults);
     } finally {
       setIsBusy(false);
     }
@@ -280,10 +428,17 @@ export default function App() {
             <Text style={styles.sunMark}>☉</Text>
             <Text style={styles.brand}>Ari</Text>
             <Text style={styles.brandSub}>Solara · Quantum Intelligent</Text>
-            <Text style={styles.authTitle}>Access your light</Text>
+            <Text style={styles.authTitle}>{t.accessLight}</Text>
+            <View style={styles.languageRow}>
+              <Text style={styles.languageLabel}>{t.language}</Text>
+              <View style={styles.languageButtons}>
+                <SegmentButton active={language === "en"} label="EN" onPress={() => changeLanguage("en")} />
+                <SegmentButton active={language === "es"} label="ES" onPress={() => changeLanguage("es")} />
+              </View>
+            </View>
             <View style={styles.segment}>
-              <SegmentButton active={mode === "login"} label="Login" onPress={() => setMode("login")} />
-              <SegmentButton active={mode === "register"} label="Create" onPress={() => setMode("register")} />
+              <SegmentButton active={mode === "login"} label={t.login} onPress={() => setMode("login")} />
+              <SegmentButton active={mode === "register"} label={t.create} onPress={() => setMode("register")} />
             </View>
             {mode === "login" && (
               <>
@@ -293,13 +448,13 @@ export default function App() {
                 <TextInput
                   autoCapitalize="none"
                   onChangeText={setGoogleCode}
-                  placeholder="Paste ARI Google code"
+                  placeholder={t.googleCodePlaceholder}
                   placeholderTextColor="rgba(201,169,110,0.34)"
                   style={styles.input}
                   value={googleCode}
                 />
                 <Pressable disabled={isBusy || !googleCode.trim()} onPress={exchangeGoogleCode} style={styles.ghostButton}>
-                  <Text style={styles.ghostButtonText}>Verify Google</Text>
+                  <Text style={styles.ghostButtonText}>{t.googleVerify}</Text>
                 </Pressable>
               </>
             )}
@@ -314,16 +469,16 @@ export default function App() {
             />
             <TextInput
               onChangeText={setPassword}
-              placeholder="password"
+              placeholder={t.password}
               placeholderTextColor="rgba(201,169,110,0.34)"
               secureTextEntry
               style={styles.input}
               value={password}
             />
             <Pressable disabled={isBusy} onPress={authenticate} style={styles.primaryButton}>
-              <Text style={styles.primaryButtonText}>{isBusy ? "Working..." : mode === "login" ? "Align me →" : "Create light →"}</Text>
+              <Text style={styles.primaryButtonText}>{isBusy ? t.working : mode === "login" ? t.alignMe : t.createLight}</Text>
             </Pressable>
-            <StatusLine isBusy={isBusy} isOffline={isOffline} status={status} />
+            <StatusLine isBusy={isBusy} isOffline={isOffline} offlineLabel={t.offlineCache} status={status} />
           </View>
         </KeyboardAvoidingView>
       </SafeAreaView>
@@ -338,36 +493,44 @@ export default function App() {
           <Text style={styles.meta}>Solara · {userId?.slice(0, 8)} · {workspaceId?.slice(0, 8)}</Text>
         </View>
         <Pressable onPress={signOut} style={styles.ghostButton}>
-          <Text style={styles.ghostButtonText}>Exit</Text>
+          <Text style={styles.ghostButtonText}>{t.exit}</Text>
         </Pressable>
       </View>
 
-      <View style={styles.segment}>
-        <SegmentButton active={tab === "timeline"} label="Timeline" onPress={() => setTab("timeline")} />
-        <SegmentButton active={tab === "day"} label="Day" onPress={() => setTab("day")} />
-        <SegmentButton active={tab === "add"} label="Add" onPress={() => setTab("add")} />
-        <SegmentButton active={tab === "search"} label="Search" onPress={() => setTab("search")} />
+      <View style={styles.languageStrip}>
+        <Text style={styles.languageLabel}>{t.selectLanguage}</Text>
+        <View style={styles.languageButtons}>
+          <SegmentButton active={language === "en"} label="EN" onPress={() => changeLanguage("en")} />
+          <SegmentButton active={language === "es"} label="ES" onPress={() => changeLanguage("es")} />
+        </View>
       </View>
 
-      <StatusLine isBusy={isBusy} isOffline={isOffline || visiblePending.length > 0} status={status} />
+      <View style={styles.segment}>
+        <SegmentButton active={tab === "timeline"} label={t.timeline} onPress={() => setTab("timeline")} />
+        <SegmentButton active={tab === "day"} label={t.day} onPress={() => setTab("day")} />
+        <SegmentButton active={tab === "add"} label={t.add} onPress={() => setTab("add")} />
+        <SegmentButton active={tab === "search"} label={t.search} onPress={() => setTab("search")} />
+      </View>
+
+      <StatusLine isBusy={isBusy} isOffline={isOffline || visiblePending.length > 0} offlineLabel={t.offlineCache} status={status} />
 
       <ScrollView contentContainerStyle={styles.content}>
         {tab === "timeline" && (
           <View style={styles.panel}>
             <View style={styles.rowBetween}>
-              <Text style={styles.title}>Timeline</Text>
+              <Text style={styles.title}>{t.timeline}</Text>
               <Pressable onPress={refreshTimeline} style={styles.ghostButton}>
-                <Text style={styles.ghostButtonText}>Sync</Text>
+                <Text style={styles.ghostButtonText}>{t.sync}</Text>
               </Pressable>
             </View>
             {timeline.map((item) => (
               <Pressable key={item.date} onPress={() => loadDay(item.date)} style={styles.listItem}>
                 <Text style={styles.listDate}>{item.date}</Text>
-                <Text style={styles.listMeta}>{item.entry_count} entries</Text>
+                <Text style={styles.listMeta}>{item.entry_count} {t.entries}</Text>
                 <Text style={styles.chips}>{sectionSummary(item.sections)}</Text>
               </Pressable>
             ))}
-            {!timeline.length && <Text style={styles.empty}>No days yet.</Text>}
+            {!timeline.length && <Text style={styles.empty}>{t.noDays}</Text>}
           </View>
         )}
 
@@ -376,20 +539,20 @@ export default function App() {
             <View style={styles.rowBetween}>
               <TextInput onChangeText={setSelectedDay} style={[styles.input, styles.dateInput]} value={selectedDay} />
               <Pressable onPress={() => loadDay(selectedDay)} style={styles.ghostButton}>
-                <Text style={styles.ghostButtonText}>Load</Text>
+                <Text style={styles.ghostButtonText}>{t.load}</Text>
               </Pressable>
             </View>
-            <Overview overview={overview} />
+            <Overview overview={overview} sections={sections} />
             <Text style={styles.markdown}>{dayContent}</Text>
           </View>
         )}
 
         {tab === "add" && (
           <View style={styles.panel}>
-            <Text style={styles.title}>Add entry</Text>
+            <Text style={styles.title}>{t.addEntry}</Text>
             <TextInput onChangeText={setSelectedDay} style={styles.input} value={selectedDay} />
             <View style={styles.sectionGrid}>
-              {SECTIONS.map((item) => (
+              {sections.map((item) => (
                 <SegmentButton
                   key={item.key}
                   active={section === item.key}
@@ -401,24 +564,24 @@ export default function App() {
             <TextInput
               multiline
               onChangeText={setEntryText}
-              placeholder="Write a memory entry"
+              placeholder={t.writeMemory}
               style={[styles.input, styles.textarea]}
               value={entryText}
             />
             <Pressable disabled={isBusy || !entryText.trim()} onPress={addEntry} style={styles.primaryButton}>
-              <Text style={styles.primaryButtonText}>Save entry</Text>
+              <Text style={styles.primaryButtonText}>{t.saveEntry}</Text>
             </Pressable>
             {visiblePending.map((entry) => (
-              <Text key={entry.id} style={styles.pending}>Queued: {entry.day} / {entry.section}</Text>
+              <Text key={entry.id} style={styles.pending}>{t.queued}: {entry.day} / {entry.section}</Text>
             ))}
           </View>
         )}
 
         {tab === "search" && (
           <View style={styles.panel}>
-            <Text style={styles.title}>Search</Text>
+            <Text style={styles.title}>{t.search}</Text>
             <View style={styles.rowBetween}>
-              <TextInput onChangeText={setQuery} placeholder="query" style={[styles.input, styles.searchInput]} value={query} />
+              <TextInput onChangeText={setQuery} placeholder={t.query} style={[styles.input, styles.searchInput]} value={query} />
               <Pressable onPress={search} style={styles.ghostButton}>
                 <Text style={styles.ghostButtonText}>Go</Text>
               </Pressable>
@@ -429,7 +592,7 @@ export default function App() {
                 <Text style={styles.resultLine}>{item.line}</Text>
               </Pressable>
             ))}
-            {!results.length && <Text style={styles.empty}>No results.</Text>}
+            {!results.length && <Text style={styles.empty}>{t.noResults}</Text>}
           </View>
         )}
       </ScrollView>
@@ -445,21 +608,37 @@ function SegmentButton({ active, label, onPress }: { active: boolean; label: str
   );
 }
 
-function StatusLine({ isBusy, isOffline, status }: { isBusy: boolean; isOffline: boolean; status: string }) {
+function StatusLine({
+  isBusy,
+  isOffline,
+  offlineLabel,
+  status,
+}: {
+  isBusy: boolean;
+  isOffline: boolean;
+  offlineLabel: string;
+  status: string;
+}) {
   return (
     <View style={styles.status}>
       {isBusy && <ActivityIndicator size="small" color="#C9A96E" />}
       <View style={[styles.statusDot, isOffline ? styles.statusDotOffline : styles.statusDotOnline]} />
-      <Text style={styles.statusText}>{isOffline ? "Offline cache" : status}</Text>
+      <Text style={styles.statusText}>{isOffline ? offlineLabel : status}</Text>
     </View>
   );
 }
 
-function Overview({ overview }: { overview: JournalOverview | null }) {
+function Overview({
+  overview,
+  sections,
+}: {
+  overview: JournalOverview | null;
+  sections: { key: JournalSection; label: string }[];
+}) {
   if (!overview) return null;
   return (
     <View style={styles.overview}>
-      {SECTIONS.map((section) => {
+      {sections.map((section) => {
         const entries = overview.sections[section.key] ?? [];
         return (
           <View key={section.key} style={styles.overviewSection}>
@@ -609,6 +788,32 @@ const styles = StyleSheet.create({
     color: "rgba(247, 242, 236, 0.68)",
     fontSize: 11,
     letterSpacing: 1,
+  },
+  languageRow: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: 10,
+    justifyContent: "space-between",
+  },
+  languageStrip: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: 10,
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+    paddingTop: 10,
+  },
+  languageLabel: {
+    color: "rgba(201, 169, 110, 0.58)",
+    fontSize: 10,
+    fontWeight: "500",
+    letterSpacing: 2,
+    textTransform: "uppercase",
+  },
+  languageButtons: {
+    flexDirection: "row",
+    gap: 8,
+    minWidth: 130,
   },
   content: {
     padding: 16,

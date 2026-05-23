@@ -225,6 +225,18 @@
     .badge-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--gold); box-shadow: 0 0 12px var(--gold); }
     .icon-btn { width: 38px; height: 38px; border: 1px solid rgba(201,169,110,.18); background: rgba(201,169,110,.03); color: rgba(201,169,110,.62); }
     .icon-btn:hover { border-color: rgba(201,169,110,.48); color: var(--cream); }
+    .language-select {
+      height: 34px;
+      border: 1px solid rgba(201,169,110,.22);
+      background: rgba(20,12,4,.58);
+      color: var(--soft-2);
+      font-size: 9px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      padding: 0 10px;
+      outline: none;
+    }
+    .auth-language { width: 100%; margin-bottom: 18px; }
 
     .messages { min-height: 0; overflow: auto; padding: 42px; display: flex; flex-direction: column; gap: 24px; }
     .messages::-webkit-scrollbar { width: 6px; }
@@ -247,6 +259,20 @@
     .bubble { border: 1px solid rgba(201,169,110,.16); background: rgba(20,12,4,.68); padding: 16px 18px; color: var(--soft); font-family: "Cormorant Garamond", serif; font-size: 18px; font-style: italic; line-height: 1.5; white-space: pre-wrap; overflow-wrap: anywhere; box-shadow: 0 18px 40px rgba(0,0,0,.22); }
     .message.user .bubble { background: rgba(201,169,110,.08); border-color: rgba(201,169,110,.28); color: var(--cream); }
     .msg-time { margin-top: 8px; color: rgba(201,169,110,.3); font-size: 8px; letter-spacing: 3px; text-transform: uppercase; }
+    .flight-card { width: min(760px, 100%); border: 1px solid rgba(201,169,110,.18); background: rgba(20,12,4,.7); padding: 18px; box-shadow: 0 18px 40px rgba(0,0,0,.22); }
+    .flight-head { display: flex; justify-content: space-between; gap: 16px; align-items: flex-start; border-bottom: 1px solid rgba(201,169,110,.12); padding-bottom: 12px; margin-bottom: 12px; }
+    .flight-kicker { color: rgba(201,169,110,.42); font-size: 8px; letter-spacing: 3px; text-transform: uppercase; }
+    .flight-title { margin-top: 5px; font-family: "Cormorant Garamond", serif; font-size: 24px; font-style: italic; color: var(--cream); }
+    .flight-count { color: rgba(201,169,110,.5); font-size: 10px; letter-spacing: 2px; text-transform: uppercase; white-space: nowrap; }
+    .flight-list { display: grid; gap: 10px; }
+    .flight-offer { border: 1px solid rgba(201,169,110,.14); background: rgba(201,169,110,.035); padding: 14px; }
+    .flight-offer-top { display: flex; justify-content: space-between; gap: 14px; align-items: baseline; margin-bottom: 10px; }
+    .flight-airline { font-family: "Cormorant Garamond", serif; font-size: 19px; font-style: italic; color: var(--soft); }
+    .flight-price { color: var(--gold); font-size: 13px; letter-spacing: 2px; text-transform: uppercase; }
+    .flight-slices { display: grid; gap: 8px; color: rgba(255,248,240,.76); font-size: 12px; line-height: 1.5; }
+    .flight-segment { display: flex; flex-wrap: wrap; gap: 7px; }
+    .flight-segment b { color: var(--cream); font-weight: 400; }
+    .flight-note { color: rgba(201,169,110,.42); font-size: 10px; line-height: 1.5; }
     .typing { display: flex; gap: 6px; border: 1px solid rgba(201,169,110,.16); background: rgba(20,12,4,.58); padding: 15px 18px; width: 86px; }
     .typing span { width: 6px; height: 6px; border-radius: 50%; background: var(--gold); animation: type 1s infinite ease-in-out; }
     .typing span:nth-child(2) { animation-delay: .15s; }
@@ -310,6 +336,7 @@
 
         <div class="heading" id="authHeading">Access your light</div>
         <div class="sub-h" id="status">— log in to use ARI —</div>
+        <select class="language-select auth-language" id="authLanguage" aria-label="Language"></select>
 
         <div class="tabs">
           <button class="tab active" id="loginTab" type="button">Login</button>
@@ -384,6 +411,7 @@
             <div class="chat-meta" id="chatMeta">ARI · login required</div>
           </div>
           <div class="actions">
+            <select class="language-select" id="appLanguage" aria-label="Language"></select>
             <div class="badge"><span class="badge-dot"></span><span id="connectionLabel">LOGIN</span></div>
             <button class="icon-btn" id="clearBtn" type="button" title="New query">◎</button>
             <button class="icon-btn" id="logoutBtn" type="button" title="Logout">⎋</button>
@@ -438,8 +466,123 @@
       email: localStorage.getItem("ari.email") || "",
       recent: JSON.parse(localStorage.getItem("ari.recent") || "[]"),
       spokenReplies: localStorage.getItem("ari.spokenReplies") === "true",
+      language: localStorage.getItem("ari.appLanguage") || "",
       listening: false,
     };
+
+    const LANGUAGES = [
+      ["en", "English"],
+      ["es", "Español"],
+    ];
+    const I18N = {
+      en: {
+        activeQuery: "Active query",
+        alignMe: "Align me ->",
+        activity: "Activity",
+        askPlaceholder: "Ask the sun...",
+        authCreateStatus: "— create your private account —",
+        authLoginStatus: "— log in to use ARI —",
+        begin: "Begin your expansion",
+        connected: "ONLINE",
+        continueGoogle: "Continue with Google",
+        create: "Create",
+        createLight: "Create light ->",
+        divider: "✦ or ✦",
+        firstTime: "First time here?",
+        heading: "Access your light",
+        login: "Login",
+        loginRequired: "ARI · login required",
+        logout: "Logout",
+        memory: "Memory",
+        memoryReady: "ARI · memory active",
+        memorySearch: "Memory search will be expanded here next.",
+        modelFallback: "ARI did not return a response.",
+        newQuery: "New query ->",
+        noQueries: "No queries yet",
+        privateSession: "Private session",
+        product: "Product",
+        productCopy: "Turn ideas into structure",
+        promptMemory: "Search my memory for launch plan",
+        promptPriorities: "Help me organize my next three priorities",
+        promptProduct: "Summarize this idea into a product plan",
+        promptWriting: "Write a concise professional email",
+        priorities: "Priorities",
+        prioritiesCopy: "Shape the day into actions",
+        recent: "Recent queries",
+        returnLogin: "Return to login",
+        sessionActive: "— session active —",
+        text: "Text",
+        voice: "Voice",
+        voiceOff: "ARI · voice replies off",
+        voiceOn: "ARI · voice replies on",
+        voiceOnSpeech: "Voice replies are on.",
+        voiceTitle: "Speak to ARI",
+        voiceUnsupported: "Voice input is not supported in this browser",
+        welcomeCopy: "A warm execution assistant for thought, memory and action.",
+        welcomeTitle: "ARI is awake",
+        writing: "Writing",
+        writingCopy: "Draft with a clean tone",
+      },
+      es: {
+        activeQuery: "Consulta activa",
+        alignMe: "Entrar ->",
+        activity: "Actividad",
+        askPlaceholder: "Pregunta al sol...",
+        authCreateStatus: "— crea tu cuenta privada —",
+        authLoginStatus: "— inicia sesion para usar ARI —",
+        begin: "Comienza tu expansion",
+        connected: "EN LINEA",
+        continueGoogle: "Continuar con Google",
+        create: "Crear",
+        createLight: "Crear luz ->",
+        divider: "✦ o ✦",
+        firstTime: "Primera vez aqui?",
+        heading: "Accede a tu luz",
+        login: "Entrar",
+        loginRequired: "ARI · acceso requerido",
+        logout: "Cerrar sesion",
+        memory: "Memoria",
+        memoryReady: "ARI · memoria activa",
+        memorySearch: "La busqueda de memoria se ampliara aqui pronto.",
+        modelFallback: "ARI no devolvio una respuesta.",
+        newQuery: "Nueva consulta ->",
+        noQueries: "Sin consultas todavia",
+        privateSession: "Sesion privada",
+        product: "Producto",
+        productCopy: "Convierte ideas en estructura",
+        promptMemory: "Busca en mi memoria el plan de lanzamiento",
+        promptPriorities: "Ayudame a organizar mis tres proximas prioridades",
+        promptProduct: "Resume esta idea en un plan de producto",
+        promptWriting: "Escribe un email profesional conciso",
+        priorities: "Prioridades",
+        prioritiesCopy: "Ordena el dia en acciones",
+        recent: "Consultas recientes",
+        returnLogin: "Volver al acceso",
+        sessionActive: "— sesion activa —",
+        text: "Texto",
+        voice: "Voz",
+        voiceOff: "ARI · respuestas de voz apagadas",
+        voiceOn: "ARI · respuestas de voz activas",
+        voiceOnSpeech: "Las respuestas de voz estan activas.",
+        voiceTitle: "Hablar con ARI",
+        voiceUnsupported: "La entrada de voz no esta soportada en este navegador",
+        welcomeCopy: "Un asistente calido de ejecucion para pensamiento, memoria y accion.",
+        welcomeTitle: "ARI esta despierta",
+        writing: "Escritura",
+        writingCopy: "Redacta con un tono limpio",
+      },
+    };
+
+    function normalizeLanguage(value) {
+      return String(value || "").toLowerCase().startsWith("es") ? "es" : "en";
+    }
+    state.language = normalizeLanguage(state.language || navigator.language || "en");
+    function tr(key) {
+      return (I18N[state.language] && I18N[state.language][key]) || I18N.en[key] || key;
+    }
+    function languageLocale() {
+      return state.language === "es" ? "es-ES" : "en-US";
+    }
 
     const loginScreen = document.getElementById("screen-login");
     const chatScreen = document.getElementById("screen-chat");
@@ -463,8 +606,49 @@
     const voiceBtn = document.getElementById("voiceBtn");
     const voiceModeBtn = document.getElementById("voiceModeBtn");
     const recentQueries = document.getElementById("recentQueries");
+    const authLanguage = document.getElementById("authLanguage");
+    const appLanguage = document.getElementById("appLanguage");
     let mediaRecorder = null;
     let voiceChunks = [];
+
+    function buildLanguageSelect(select) {
+      select.innerHTML = LANGUAGES.map(([code, label]) => `<option value="${code}">${label}</option>`).join("");
+      select.value = state.language;
+      select.addEventListener("change", () => setAppLanguage(select.value));
+    }
+
+    function setAppLanguage(language) {
+      state.language = normalizeLanguage(language);
+      localStorage.setItem("ari.appLanguage", state.language);
+      applyTranslations();
+    }
+
+    function applyTranslations() {
+      document.documentElement.lang = state.language;
+      authLanguage.value = state.language;
+      appLanguage.value = state.language;
+      document.getElementById("authHeading").textContent = tr("heading");
+      loginTab.textContent = tr("login");
+      registerTab.textContent = tr("create");
+      googleBtn.lastChild.textContent = ` ${tr("continueGoogle")}`;
+      authDivider.textContent = tr("divider");
+      authBtn.textContent = state.mode === "login" ? tr("alignMe") : tr("createLight");
+      authFooterText.textContent = state.mode === "login" ? tr("firstTime") : "Already aligned?";
+      authToggle.textContent = state.mode === "login" ? tr("begin") : tr("returnLogin");
+      document.querySelector(".chat-title").textContent = tr("activeQuery");
+      document.getElementById("newQueryBtn").textContent = tr("newQuery");
+      document.querySelector(".side-label").textContent = tr("recent");
+      document.querySelectorAll(".mode")[0].textContent = tr("text");
+      document.querySelectorAll(".mode")[1].textContent = tr("memory");
+      document.querySelectorAll(".mode")[2].textContent = tr("activity");
+      voiceModeBtn.textContent = tr("voice");
+      messageInput.placeholder = tr("askPlaceholder");
+      voiceBtn.title = window.MediaRecorder ? tr("voiceTitle") : tr("voiceUnsupported");
+      renderRecent();
+      clearChat();
+      syncSession();
+      setAuthMode(state.mode);
+    }
 
     function setStatus(text, tone = "muted") {
       statusEl.textContent = text;
@@ -475,12 +659,12 @@
       state.mode = mode;
       loginTab.classList.toggle("active", mode === "login");
       registerTab.classList.toggle("active", mode === "register");
-      authBtn.textContent = mode === "login" ? "Align me →" : "Create light →";
-      authFooterText.textContent = mode === "login" ? "First time here?" : "Already aligned?";
-      authToggle.textContent = mode === "login" ? "Begin your expansion" : "Return to login";
+      authBtn.textContent = mode === "login" ? tr("alignMe") : tr("createLight");
+      authFooterText.textContent = mode === "login" ? tr("firstTime") : "Already aligned?";
+      authToggle.textContent = mode === "login" ? tr("begin") : tr("returnLogin");
       googleBtn.style.display = mode === "login" ? "flex" : "none";
       authDivider.style.display = mode === "login" ? "flex" : "none";
-      setStatus(mode === "login" ? "— log in to use ARI —" : "— create your private account —");
+      setStatus(mode === "login" ? tr("authLoginStatus") : tr("authCreateStatus"));
     }
 
     function showScreen(name) {
@@ -491,9 +675,9 @@
     function syncSession() {
       const active = Boolean(state.token && state.workspaceId);
       if (active) {
-        chatMeta.textContent = `ARI · workspace ${state.workspaceId.slice(0, 8)} · ${new Date().toLocaleDateString("en-GB")}`;
-        connectionLabel.textContent = "ONLINE";
-        sidebarUserName.textContent = "Private session";
+        chatMeta.textContent = `ARI · workspace ${state.workspaceId.slice(0, 8)} · ${new Date().toLocaleDateString(languageLocale())}`;
+        connectionLabel.textContent = tr("connected");
+        sidebarUserName.textContent = tr("privateSession");
         sidebarUserEmail.textContent = state.email || state.userId || "ARI web";
         showScreen("chat");
       } else {
@@ -503,7 +687,7 @@
       messageInput.disabled = !active;
       sendBtn.disabled = !active;
       voiceBtn.disabled = !active || !window.MediaRecorder;
-      voiceBtn.title = window.MediaRecorder ? "Speak to ARI" : "Voice input is not supported in this browser";
+      voiceBtn.title = window.MediaRecorder ? tr("voiceTitle") : tr("voiceUnsupported");
       voiceModeBtn.classList.toggle("active", state.spokenReplies);
       voiceBtn.classList.toggle("active", state.spokenReplies);
       renderRecent();
@@ -567,7 +751,7 @@
         }
         if (!response.ok) throw new Error(await readError(response));
         saveSession(await response.json(), email);
-        setStatus("— session active —", "ok");
+        setStatus(tr("sessionActive"), "ok");
       } catch (error) {
         setStatus(error.message, "error");
       } finally {
@@ -625,7 +809,7 @@
 
     function renderRecent() {
       if (!state.recent.length) {
-        recentQueries.innerHTML = '<div class="recent-item active"><span class="glyph">☉</span>No queries yet</div>';
+        recentQueries.innerHTML = `<div class="recent-item active"><span class="glyph">☉</span>${tr("noQueries")}</div>`;
         return;
       }
       recentQueries.innerHTML = "";
@@ -646,7 +830,22 @@
       messagesEl.innerHTML = "";
       messagesEl.appendChild(welcomeState);
       welcomeState.style.display = "block";
-      chatMeta.textContent = state.workspaceId ? `ARI · workspace ${state.workspaceId.slice(0, 8)} · ${new Date().toLocaleDateString("en-GB")}` : "ARI · login required";
+      chatMeta.textContent = state.workspaceId ? `ARI · workspace ${state.workspaceId.slice(0, 8)} · ${new Date().toLocaleDateString(languageLocale())}` : tr("loginRequired");
+      document.querySelector(".welcome-title").textContent = tr("welcomeTitle");
+      document.querySelector(".welcome-copy").textContent = tr("welcomeCopy");
+      const quicks = document.querySelectorAll(".quick");
+      const quickData = [
+        ["promptPriorities", "priorities", "prioritiesCopy"],
+        ["promptWriting", "writing", "writingCopy"],
+        ["promptProduct", "product", "productCopy"],
+        ["promptMemory", "memory", "memorySearch"],
+      ];
+      quicks.forEach((button, index) => {
+        const [promptKey, titleKey, copyKey] = quickData[index];
+        button.dataset.prompt = tr(promptKey);
+        button.querySelector("b").textContent = tr(titleKey);
+        button.querySelector("span").textContent = tr(copyKey);
+      });
     }
 
     function addMessage(text, from = "ai") {
@@ -697,7 +896,7 @@
         if (!response.ok) throw new Error(await readError(response));
         const data = await response.json();
         removeTyping();
-        const reply = data.reply || "ARI did not return a response.";
+        const reply = data.reply || tr("modelFallback");
         addMessage(reply, "ai");
         if (options.speak || state.spokenReplies) speakText(reply);
         chatMeta.textContent = `ARI · ${data.model || "model"} · memory active`;
@@ -716,14 +915,14 @@
       localStorage.setItem("ari.spokenReplies", String(state.spokenReplies));
       voiceModeBtn.classList.toggle("active", state.spokenReplies);
       voiceBtn.classList.toggle("active", state.spokenReplies);
-      chatMeta.textContent = state.spokenReplies ? "ARI · voice replies on" : "ARI · voice replies off";
-      if (state.spokenReplies) speakText("Voice replies are on.");
+      chatMeta.textContent = state.spokenReplies ? tr("voiceOn") : tr("voiceOff");
+      if (state.spokenReplies) speakText(tr("voiceOnSpeech"));
     }
 
     async function startVoiceInput() {
       if (!state.token || !state.workspaceId) return;
       if (!window.MediaRecorder) {
-        addMessage("Voice input is not supported in this browser yet.", "ai");
+        addMessage(tr("voiceUnsupported"), "ai");
         return;
       }
       if (state.listening && mediaRecorder) {
@@ -742,13 +941,13 @@
           stream.getTracks().forEach((track) => track.stop());
           state.listening = false;
           voiceBtn.classList.remove("listening");
-          chatMeta.textContent = "ARI · transcribing";
+          chatMeta.textContent = state.language === "es" ? "ARI · transcribiendo" : "ARI · transcribing";
           await sendVoiceAudio(new Blob(voiceChunks, { type: mediaRecorder.mimeType || "audio/webm" }));
-          chatMeta.textContent = state.spokenReplies ? "ARI · voice replies on" : "ARI · memory active";
+          chatMeta.textContent = state.spokenReplies ? tr("voiceOn") : tr("memoryReady");
         };
         state.listening = true;
         voiceBtn.classList.add("listening");
-        chatMeta.textContent = "ARI · listening";
+        chatMeta.textContent = state.language === "es" ? "ARI · escuchando" : "ARI · listening";
         mediaRecorder.start();
       } catch (error) {
         state.listening = false;
@@ -761,7 +960,7 @@
       if (!blob.size) return;
       const form = new FormData();
       form.append("audio", blob, "ari-voice.webm");
-      form.append("language", (navigator.language || "es").slice(0, 2));
+      form.append("language", state.language);
       form.append("tts", "true");
       form.append("use_memory", "true");
       form.append("memory_limit", "8");
@@ -778,7 +977,7 @@
         removeTyping();
         addMessage(data.transcript, "user");
         addRecent(data.transcript);
-        addMessage(data.reply || "ARI did not return a response.", "ai");
+        addMessage(data.reply || tr("modelFallback"), "ai");
         if (data.audio_base64) playAudioBase64(data.audio_base64, data.audio_content_type || "audio/mpeg");
       } catch (error) {
         removeTyping();
@@ -799,7 +998,7 @@
       if (!cleaned) return;
       window.speechSynthesis.cancel();
       const utterance = new SpeechSynthesisUtterance(cleaned.slice(0, 1200));
-      utterance.lang = navigator.language || "es-ES";
+      utterance.lang = languageLocale();
       utterance.rate = 0.96;
       utterance.pitch = 0.92;
       window.speechSynthesis.speak(utterance);
@@ -847,7 +1046,10 @@
     window.addEventListener("resize", resizeCanvas);
     resizeCanvas();
     drawSky();
+    buildLanguageSelect(authLanguage);
+    buildLanguageSelect(appLanguage);
     setAuthMode("login");
+    applyTranslations();
     syncSession();
     hydrateGoogleCallback();
 
@@ -868,7 +1070,7 @@
         if (!response.ok) throw new Error(await readError(response));
         const auth = await response.json();
         saveSession(auth, auth.email || "google");
-        setStatus("— Google session active —", "ok");
+        setStatus(state.language === "es" ? "— sesion de Google activa —" : "— Google session active —", "ok");
         history.replaceState(null, "", window.location.pathname + window.location.search);
       } catch (error) {
         setStatus(error.message, "error");
