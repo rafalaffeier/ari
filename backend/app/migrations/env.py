@@ -42,7 +42,11 @@ async def run_async_migrations():
 def run_migrations_online():
     import asyncio
 
-    asyncio.run(run_async_migrations())
+    loop = asyncio.new_event_loop()
+    try:
+        loop.run_until_complete(run_async_migrations())
+    finally:
+        loop.close()
 
 if context.is_offline_mode():
     run_migrations_offline()
