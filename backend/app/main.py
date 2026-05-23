@@ -1,4 +1,7 @@
+from pathlib import Path
+
 from fastapi import FastAPI
+from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 from app.core.config import settings
@@ -23,6 +26,12 @@ app.add_middleware(
 app.add_middleware(FixedWindowRateLimitMiddleware)
 
 app.include_router(api_router, prefix=settings.API_V1_PREFIX)
+
+WEB_ROOT = Path(__file__).resolve().parent / "web"
+
+@app.get("/", include_in_schema=False)
+async def web_app():
+    return FileResponse(WEB_ROOT / "index.html")
 
 @app.get("/health")
 async def health():
