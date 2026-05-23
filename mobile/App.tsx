@@ -761,104 +761,110 @@ export default function App() {
   if (!signedIn) {
     return (
       <SafeAreaView style={styles.screen}>
-        <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={styles.auth}>
-          <View style={styles.authCard}>
-            <Text style={styles.sunMark}>☉</Text>
-            <Text style={styles.brand}>Ari</Text>
-            <Text style={styles.brandSub}>Solara · Quantum Intelligent</Text>
-            <Text style={styles.authTitle}>{t.accessLight}</Text>
-            <View style={styles.segment}>
-              <SegmentButton active={mode === "login"} label={t.login} onPress={() => setMode("login")} />
-              <SegmentButton active={mode === "register"} label={t.create} onPress={() => setMode("register")} />
-            </View>
-            {mode !== "reset" && (
-              <TextInput
-                autoCapitalize="none"
-                keyboardType="email-address"
-                onChangeText={setEmail}
-                placeholder="soul@ari.ai"
-                placeholderTextColor="rgba(201,169,110,0.34)"
-                style={styles.input}
-                value={email}
-              />
-            )}
-            {mode === "reset" && (
-              <TextInput
-                autoCapitalize="none"
-                onChangeText={setResetToken}
-                placeholder={authText.pasteRecovery}
-                placeholderTextColor="rgba(201,169,110,0.34)"
-                style={styles.input}
-                value={resetToken}
-              />
-            )}
-            {mode !== "forgot" && (
-              <View style={styles.passwordRow}>
-                <TextInput
-                  onChangeText={setPassword}
-                  placeholder={t.password}
-                  placeholderTextColor="rgba(201,169,110,0.34)"
-                  secureTextEntry={!passwordVisible}
-                  style={styles.passwordInput}
-                  value={password}
-                />
-                <Pressable
-                  accessibilityLabel={passwordVisible ? authText.hidePassword : authText.showPassword}
-                  accessibilityRole="button"
-                  onPress={() => setPasswordVisible((visible) => !visible)}
-                  style={styles.passwordToggle}
-                >
-                  <Text style={styles.passwordToggleText}>{passwordVisible ? "◌" : "◉"}</Text>
-                </Pressable>
+        <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={styles.authKeyboard}>
+          <ScrollView
+            contentContainerStyle={styles.authScroll}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+          >
+            <View style={styles.authCard}>
+              <Text style={styles.sunMark}>☉</Text>
+              <Text style={styles.brand}>Ari</Text>
+              <Text style={styles.brandSub}>Solara · Quantum Intelligent</Text>
+              <Text style={styles.authTitle}>{t.accessLight}</Text>
+              <View style={[styles.segment, styles.authSegment]}>
+                <SegmentButton active={mode === "login"} label={t.login} onPress={() => setMode("login")} />
+                <SegmentButton active={mode === "register"} label={t.create} onPress={() => setMode("register")} />
               </View>
-            )}
-            {mode === "login" && (
-              <>
-                <Pressable disabled={isBusy} onPress={openGoogleLogin} style={styles.googleButton}>
-                  <Text style={styles.googleButtonText}>{t.continueGoogle}</Text>
-                </Pressable>
+              {mode !== "reset" && (
                 <TextInput
                   autoCapitalize="none"
-                  onChangeText={setGoogleCode}
-                  placeholder={t.googleCodePlaceholder}
+                  keyboardType="email-address"
+                  onChangeText={setEmail}
+                  placeholder="soul@ari.ai"
                   placeholderTextColor="rgba(201,169,110,0.34)"
                   style={styles.input}
-                  value={googleCode}
+                  value={email}
                 />
-                <Pressable disabled={isBusy || !googleCode.trim()} onPress={exchangeGoogleCode} style={styles.ghostButton}>
-                  <Text style={styles.ghostButtonText}>{t.googleVerify}</Text>
+              )}
+              {mode === "reset" && (
+                <TextInput
+                  autoCapitalize="none"
+                  onChangeText={setResetToken}
+                  placeholder={authText.pasteRecovery}
+                  placeholderTextColor="rgba(201,169,110,0.34)"
+                  style={styles.input}
+                  value={resetToken}
+                />
+              )}
+              {mode !== "forgot" && (
+                <View style={styles.passwordRow}>
+                  <TextInput
+                    onChangeText={setPassword}
+                    placeholder={t.password}
+                    placeholderTextColor="rgba(201,169,110,0.34)"
+                    secureTextEntry={!passwordVisible}
+                    style={styles.passwordInput}
+                    value={password}
+                  />
+                  <Pressable
+                    accessibilityLabel={passwordVisible ? authText.hidePassword : authText.showPassword}
+                    accessibilityRole="button"
+                    onPress={() => setPasswordVisible((visible) => !visible)}
+                    style={styles.passwordToggle}
+                  >
+                    <Text style={styles.passwordToggleText}>{passwordVisible ? "◌" : "◉"}</Text>
+                  </Pressable>
+                </View>
+              )}
+              {mode === "login" && (
+                <>
+                  <Pressable disabled={isBusy} onPress={openGoogleLogin} style={styles.googleButton}>
+                    <Text style={styles.googleButtonText}>{t.continueGoogle}</Text>
+                  </Pressable>
+                  <TextInput
+                    autoCapitalize="none"
+                    onChangeText={setGoogleCode}
+                    placeholder={t.googleCodePlaceholder}
+                    placeholderTextColor="rgba(201,169,110,0.34)"
+                    style={styles.input}
+                    value={googleCode}
+                  />
+                  <Pressable disabled={isBusy || !googleCode.trim()} onPress={exchangeGoogleCode} style={styles.ghostButton}>
+                    <Text style={styles.ghostButtonText}>{t.googleVerify}</Text>
+                  </Pressable>
+                </>
+              )}
+              <Pressable
+                disabled={isBusy}
+                onPress={mode === "forgot" ? requestPasswordRecovery : mode === "reset" ? submitPasswordReset : authenticate}
+                style={styles.primaryButton}
+              >
+                <Text style={styles.primaryButtonText}>
+                  {isBusy
+                    ? t.working
+                    : mode === "login"
+                      ? t.alignMe
+                      : mode === "register"
+                        ? t.createLight
+                        : mode === "forgot"
+                          ? authText.sendRecovery
+                          : authText.resetPassword}
+                </Text>
+              </Pressable>
+              {mode === "login" && (
+                <Pressable disabled={isBusy} onPress={() => setMode("forgot")} style={styles.textButton}>
+                  <Text style={styles.textButtonText}>{authText.forgotPassword}</Text>
                 </Pressable>
-              </>
-            )}
-            <Pressable
-              disabled={isBusy}
-              onPress={mode === "forgot" ? requestPasswordRecovery : mode === "reset" ? submitPasswordReset : authenticate}
-              style={styles.primaryButton}
-            >
-              <Text style={styles.primaryButtonText}>
-                {isBusy
-                  ? t.working
-                  : mode === "login"
-                    ? t.alignMe
-                    : mode === "register"
-                      ? t.createLight
-                      : mode === "forgot"
-                        ? authText.sendRecovery
-                        : authText.resetPassword}
-              </Text>
-            </Pressable>
-            {mode === "login" && (
-              <Pressable disabled={isBusy} onPress={() => setMode("forgot")} style={styles.textButton}>
-                <Text style={styles.textButtonText}>{authText.forgotPassword}</Text>
-              </Pressable>
-            )}
-            {(mode === "forgot" || mode === "reset") && (
-              <Pressable disabled={isBusy} onPress={() => setMode("login")} style={styles.textButton}>
-                <Text style={styles.textButtonText}>{t.login}</Text>
-              </Pressable>
-            )}
-            <StatusLine isBusy={isBusy} isOffline={isOffline} offlineLabel={t.offlineCache} status={status} />
-          </View>
+              )}
+              {(mode === "forgot" || mode === "reset") && (
+                <Pressable disabled={isBusy} onPress={() => setMode("login")} style={styles.textButton}>
+                  <Text style={styles.textButtonText}>{t.login}</Text>
+                </Pressable>
+              )}
+              <StatusLine isBusy={isBusy} isOffline={isOffline} offlineLabel={t.offlineCache} status={status} />
+            </View>
+          </ScrollView>
         </KeyboardAvoidingView>
       </SafeAreaView>
     );
@@ -867,21 +873,16 @@ export default function App() {
   return (
     <SafeAreaView style={styles.screen}>
       <View style={styles.header}>
-        <View>
+        <View style={styles.headerIdentity}>
           <Text style={styles.brandSmall}>Ari</Text>
           <Text style={styles.meta}>Solara · {userId?.slice(0, 8)} · {workspaceId?.slice(0, 8)}</Text>
         </View>
-        <Pressable onPress={signOut} style={styles.ghostButton}>
+        <Pressable onPress={signOut} style={styles.headerButton}>
           <Text style={styles.ghostButtonText}>{t.exit}</Text>
         </Pressable>
       </View>
 
-      <View style={styles.languageStrip}>
-        <Text style={styles.languageLabel}>{t.selectLanguage}</Text>
-        <LanguagePicker language={language} onChange={changeLanguage} />
-      </View>
-
-      <View style={styles.segment}>
+      <View style={[styles.segment, styles.mainSegment]}>
         <SegmentButton active={tab === "timeline"} label={t.timeline} onPress={() => setTab("timeline")} />
         <SegmentButton active={tab === "day"} label={t.day} onPress={() => setTab("day")} />
         <SegmentButton active={tab === "add"} label={t.add} onPress={() => setTab("add")} />
@@ -1072,13 +1073,23 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     padding: 22,
   },
+  authKeyboard: {
+    flex: 1,
+  },
+  authScroll: {
+    flexGrow: 1,
+    justifyContent: "center",
+    paddingHorizontal: 18,
+    paddingVertical: 22,
+  },
   authCard: {
     backgroundColor: "rgba(20, 12, 4, 0.84)",
     borderColor: "rgba(201, 169, 110, 0.18)",
     borderRadius: 2,
     borderWidth: 1,
-    gap: 18,
-    padding: 38,
+    gap: 14,
+    paddingHorizontal: 28,
+    paddingVertical: 34,
   },
   sunMark: {
     color: "#C9A96E",
@@ -1092,7 +1103,23 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     flexDirection: "row",
     justifyContent: "space-between",
-    padding: 18,
+    gap: 14,
+    paddingHorizontal: 18,
+    paddingVertical: 14,
+  },
+  headerIdentity: {
+    flex: 1,
+    minWidth: 0,
+  },
+  headerButton: {
+    alignItems: "center",
+    backgroundColor: "rgba(201, 169, 110, 0.04)",
+    borderColor: "rgba(201, 169, 110, 0.22)",
+    borderRadius: 1,
+    borderWidth: 1,
+    justifyContent: "center",
+    minHeight: 38,
+    paddingHorizontal: 14,
   },
   brand: {
     color: "#F7F2EC",
@@ -1146,6 +1173,13 @@ const styles = StyleSheet.create({
     marginBottom: 6,
     padding: 0,
   },
+  authSegment: {
+    marginBottom: 4,
+  },
+  mainSegment: {
+    marginHorizontal: 14,
+    marginTop: 12,
+  },
   segmentButton: {
     alignItems: "center",
     borderColor: "transparent",
@@ -1175,7 +1209,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: 8,
     minHeight: 30,
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
     paddingTop: 8,
   },
   statusDot: {
@@ -1258,11 +1292,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
   },
   content: {
-    padding: 16,
-    paddingBottom: 40,
+    flexGrow: 1,
+    padding: 14,
+    paddingBottom: 34,
   },
   panel: {
+    backgroundColor: "rgba(20, 12, 4, 0.54)",
+    borderColor: "rgba(201, 169, 110, 0.14)",
+    borderRadius: 2,
+    borderWidth: 1,
     gap: 12,
+    padding: 14,
   },
   title: {
     color: "#F7F2EC",
@@ -1293,25 +1333,29 @@ const styles = StyleSheet.create({
   },
   passwordRow: {
     alignItems: "center",
-    backgroundColor: "rgba(20, 12, 4, 0.64)",
-    borderColor: "rgba(201, 169, 110, 0.2)",
-    borderRadius: 2,
-    borderWidth: 1,
+    backgroundColor: "transparent",
+    borderBottomColor: "rgba(201, 169, 110, 0.16)",
+    borderBottomWidth: 1,
+    borderColor: "transparent",
+    borderRadius: 0,
+    borderWidth: 0,
     flexDirection: "row",
-    minHeight: 48,
+    minHeight: 44,
   },
   passwordInput: {
     color: "#F7F2EC",
     flex: 1,
-    fontSize: 16,
-    minHeight: 48,
-    paddingHorizontal: 14,
+    fontFamily: Platform.select({ ios: "Georgia", android: "serif", default: "serif" }),
+    fontSize: 18,
+    fontStyle: "italic",
+    minHeight: 44,
+    paddingHorizontal: 0,
   },
   passwordToggle: {
     alignItems: "center",
     justifyContent: "center",
-    minHeight: 48,
-    width: 48,
+    minHeight: 44,
+    width: 40,
   },
   passwordToggleText: {
     color: "#C9A96E",
