@@ -472,7 +472,12 @@
 
     const LANGUAGES = [
       ["en", "English"],
+      ["ru", "Русский"],
+      ["uk", "Українська"],
       ["es", "Español"],
+      ["de", "Deutsch"],
+      ["it", "Italiano"],
+      ["pt", "Português"],
     ];
     const I18N = {
       en: {
@@ -574,14 +579,35 @@
     };
 
     function normalizeLanguage(value) {
-      return String(value || "").toLowerCase().startsWith("es") ? "es" : "en";
+      return String(value || "en").toLowerCase().replace("_", "-").split("-")[0] || "en";
     }
     state.language = normalizeLanguage(state.language || navigator.language || "en");
+    function translationLanguage() {
+      return state.language === "es" ? "es" : "en";
+    }
     function tr(key) {
-      return (I18N[state.language] && I18N[state.language][key]) || I18N.en[key] || key;
+      const uiLanguage = translationLanguage();
+      return (I18N[uiLanguage] && I18N[uiLanguage][key]) || I18N.en[key] || key;
     }
     function languageLocale() {
-      return state.language === "es" ? "es-ES" : "en-US";
+      const localeByLanguage = {
+        ar: "ar-SA",
+        de: "de-DE",
+        en: "en-US",
+        es: "es-ES",
+        hi: "hi-IN",
+        it: "it-IT",
+        ja: "ja-JP",
+        ko: "ko-KR",
+        nl: "nl-NL",
+        pl: "pl-PL",
+        pt: "pt-PT",
+        ru: "ru-RU",
+        tr: "tr-TR",
+        uk: "uk-UA",
+        zh: "zh-CN",
+      };
+      return localeByLanguage[state.language] || state.language || "en-US";
     }
 
     const loginScreen = document.getElementById("screen-login");
@@ -612,9 +638,19 @@
     let voiceChunks = [];
 
     function buildLanguageSelect(select) {
-      select.innerHTML = LANGUAGES.map(([code, label]) => `<option value="${code}">${label}</option>`).join("");
+      const options = LANGUAGES.some(([code]) => code === state.language)
+        ? LANGUAGES
+        : [[state.language, state.language.toUpperCase()], ...LANGUAGES];
+      select.innerHTML = options.map(([code, label]) => `<option value="${code}">${label}</option>`).join("") + '<option value="__custom">Other...</option>';
       select.value = state.language;
-      select.addEventListener("change", () => setAppLanguage(select.value));
+      select.addEventListener("change", () => {
+        if (select.value === "__custom") {
+          const custom = prompt("Language code, for example sv, ro, id, ca");
+          setAppLanguage(custom || state.language);
+          return;
+        }
+        setAppLanguage(select.value);
+      });
     }
 
     function setAppLanguage(language) {

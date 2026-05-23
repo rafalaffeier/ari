@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import uuid
+import re
 from base64 import b64encode
 from datetime import date
 
@@ -37,6 +38,18 @@ EXECUTABLE_TOOL_NAMES = {
     "search_memory",
     "search_flights",
 }
+
+_FLEXIBLE_TRAVEL_MARKERS = (
+    "anywhere",
+    "anywhere in the world",
+    "cualquier parte",
+    "cualquier lugar",
+    "donde sea",
+    "a donde sea",
+    "any destination",
+    "open destination",
+)
+_IATA_RE = re.compile(r"^[A-Z]{3}$")
 
 @router.get("/")
 async def list_messages():
@@ -622,6 +635,8 @@ def _normalize_orchestration(data: dict, memory_results: list[RecallSource]) -> 
         for key in model_missing:
             if isinstance(key, str) and key not in missing:
                 missing.append(key)
+        if tool_name == "search_flights":
+            missing = _flight_search_missing_fields(params, missing)
         requires_confirmation = bool(tool.get("requires_confirmation", False))
         if missing:
             mode = "ask"
@@ -651,6 +666,18 @@ def _normalize_orchestration(data: dict, memory_results: list[RecallSource]) -> 
         model=settings.AI_MODEL,
         memory_results=_memory_result_responses(memory_results),
     )
+
+
+def _flight_search_missing_fields(params: dict, missing: list[str]) -> list[str]:
+    normalized_missing = list(missing)
+    for field in ("origin", "destination"):
+        value = str(params.get(field) or "").strip()
+        lower = value.lower()
+        is_flexible = any(marker in lower for marker in _FLEXIBLE_TRAVEL_MARKERS)
+        is_iata = bool(_IATA_RE.match(value.upper()))
+        if (not value or is_flexible or not is_iata) and field not in normalized_missing:
+            normalized_missing.append(field)
+    return normalized_missing
 
 
 def _executable_tool_catalog() -> list[dict]:

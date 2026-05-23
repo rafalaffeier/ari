@@ -30,9 +30,19 @@ const SECTIONS: { key: JournalSection; label: string }[] = [
 ];
 
 type Tab = "timeline" | "day" | "add" | "search";
-type AppLanguage = "en" | "es";
+type TranslationLanguage = "en" | "es";
+type AppLanguage = string;
 
 const LANGUAGE_KEY = "ari.appLanguage";
+const LANGUAGE_OPTIONS = [
+  ["en", "English"],
+  ["ru", "Русский"],
+  ["uk", "Українська"],
+  ["es", "Español"],
+  ["de", "Deutsch"],
+  ["it", "Italiano"],
+  ["pt", "Português"],
+] as const;
 
 const STRINGS = {
   en: {
@@ -133,7 +143,7 @@ const STRINGS = {
   },
 } as const;
 
-const SECTION_LABELS: Record<AppLanguage, Record<JournalSection, string>> = {
+const SECTION_LABELS: Record<TranslationLanguage, Record<JournalSection, string>> = {
   en: {
     tasks: "Tasks",
     decisions: "Decisions",
@@ -153,7 +163,11 @@ const SECTION_LABELS: Record<AppLanguage, Record<JournalSection, string>> = {
 };
 
 function normalizeLanguage(value?: string | null): AppLanguage {
-  return value?.toLowerCase().startsWith("es") ? "es" : "en";
+  return (value || "en").toLowerCase().replace("_", "-").split("-")[0] || "en";
+}
+
+function translationLanguage(value?: string | null): TranslationLanguage {
+  return normalizeLanguage(value) === "es" ? "es" : "en";
 }
 
 function deviceLanguage(): AppLanguage {
@@ -188,11 +202,12 @@ export default function App() {
   const [pendingEntries, setPendingEntries] = useState<PendingEntry[]>([]);
   const [isOffline, setIsOffline] = useState(false);
   const [isBusy, setIsBusy] = useState(false);
-  const [status, setStatus] = useState<string>(STRINGS[deviceLanguage()].ready);
-  const t = STRINGS[language];
+  const [status, setStatus] = useState<string>(STRINGS[translationLanguage(deviceLanguage())].ready);
+  const uiLanguage = translationLanguage(language);
+  const t = STRINGS[uiLanguage];
   const sections = useMemo(
-    () => SECTIONS.map((item) => ({ ...item, label: SECTION_LABELS[language][item.key] })),
-    [language],
+    () => SECTIONS.map((item) => ({ ...item, label: SECTION_LABELS[uiLanguage][item.key] })),
+    [uiLanguage],
   );
 
   const signedIn = Boolean(token && workspaceId);
@@ -357,7 +372,7 @@ export default function App() {
     try {
       await api.addJournalEntry(token, workspaceId, selectedDay, section, text);
       setIsOffline(false);
-      setStatus(language === "es" ? "Entrada guardada" : "Entry saved");
+      setStatus(uiLanguage === "es" ? "Entrada guardada" : "Entry saved");
       await loadDay(selectedDay);
       await refreshTimeline();
     } catch (error) {
@@ -375,7 +390,7 @@ export default function App() {
       setPendingEntries(pending);
       await memoryCache.savePendingEntries(pending);
       setIsOffline(true);
-      setStatus(language === "es" ? "Entrada en cola sin conexion" : "Entry queued offline");
+      setStatus(uiLanguage === "es" ? "Entrada en cola sin conexion" : "Entry queued offline");
     } finally {
       setIsBusy(false);
     }
@@ -431,10 +446,7 @@ export default function App() {
             <Text style={styles.authTitle}>{t.accessLight}</Text>
             <View style={styles.languageRow}>
               <Text style={styles.languageLabel}>{t.language}</Text>
-              <View style={styles.languageButtons}>
-                <SegmentButton active={language === "en"} label="EN" onPress={() => changeLanguage("en")} />
-                <SegmentButton active={language === "es"} label="ES" onPress={() => changeLanguage("es")} />
-              </View>
+              <LanguagePicker language={language} onChange={changeLanguage} />
             </View>
             <View style={styles.segment}>
               <SegmentButton active={mode === "login"} label={t.login} onPress={() => setMode("login")} />
@@ -499,10 +511,7 @@ export default function App() {
 
       <View style={styles.languageStrip}>
         <Text style={styles.languageLabel}>{t.selectLanguage}</Text>
-        <View style={styles.languageButtons}>
-          <SegmentButton active={language === "en"} label="EN" onPress={() => changeLanguage("en")} />
-          <SegmentButton active={language === "es"} label="ES" onPress={() => changeLanguage("es")} />
-        </View>
+        <LanguagePicker language={language} onChange={changeLanguage} />
       </View>
 
       <View style={styles.segment}>
@@ -605,6 +614,34 @@ function SegmentButton({ active, label, onPress }: { active: boolean; label: str
     <Pressable onPress={onPress} style={[styles.segmentButton, active && styles.segmentButtonActive]}>
       <Text style={[styles.segmentText, active && styles.segmentTextActive]}>{label}</Text>
     </Pressable>
+  );
+}
+
+function LanguagePicker({ language, onChange }: { language: string; onChange: (language: string) => void }) {
+  const options = LANGUAGE_OPTIONS.some(([code]) => code === language)
+    ? LANGUAGE_OPTIONS
+    : ([[language, language.toUpperCase()], ...LANGUAGE_OPTIONS] as const);
+  return (
+    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.languagePicker}>
+      {options.map(([code, label]) => (
+        <Pressable
+          key={code}
+          onPress={() => onChange(code)}
+          style={[styles.languageOption, language === code && styles.languageOptionActive]}
+        >
+          <Text style={[styles.languageOptionText, language === code && styles.languageOptionTextActive]}>{label}</Text>
+        </Pressable>
+      ))}
+      <TextInput
+        autoCapitalize="none"
+        autoCorrect={false}
+        onChangeText={(value) => onChange(normalizeLanguage(value))}
+        placeholder="code"
+        placeholderTextColor="rgba(201,169,110,0.34)"
+        style={styles.languageCodeInput}
+        value={language}
+      />
+    </ScrollView>
   );
 }
 
@@ -814,6 +851,43 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: 8,
     minWidth: 130,
+  },
+  languagePicker: {
+    flex: 1,
+    maxHeight: 40,
+  },
+  languageOption: {
+    alignItems: "center",
+    borderColor: "rgba(201, 169, 110, 0.18)",
+    borderRadius: 1,
+    borderWidth: 1,
+    justifyContent: "center",
+    marginRight: 8,
+    minHeight: 36,
+    paddingHorizontal: 12,
+  },
+  languageOptionActive: {
+    backgroundColor: "rgba(201, 169, 110, 0.08)",
+    borderColor: "rgba(201, 169, 110, 0.48)",
+  },
+  languageOptionText: {
+    color: "rgba(201, 169, 110, 0.58)",
+    fontSize: 10,
+    fontWeight: "500",
+  },
+  languageOptionTextActive: {
+    color: "#F7F2EC",
+  },
+  languageCodeInput: {
+    borderColor: "rgba(201, 169, 110, 0.18)",
+    borderRadius: 1,
+    borderWidth: 1,
+    color: "#F7F2EC",
+    fontSize: 12,
+    marginRight: 8,
+    minHeight: 36,
+    minWidth: 58,
+    paddingHorizontal: 10,
   },
   content: {
     padding: 16,
