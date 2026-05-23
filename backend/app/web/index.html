@@ -412,6 +412,27 @@
       font-size: 14px;
     }
     .search-shell input::placeholder { color: rgba(255,248,240,.42); }
+    .new-chat-btn {
+      width: 100%;
+      min-height: 52px;
+      display: grid;
+      grid-template-columns: 34px 1fr;
+      align-items: center;
+      gap: 12px;
+      border: 1px solid rgba(244,170,69,.28);
+      border-radius: 18px;
+      background: linear-gradient(90deg, rgba(244,142,32,.18), rgba(244,142,32,.04));
+      color: var(--cream);
+      font-family: "Inter", system-ui, sans-serif;
+      font-size: 12px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      padding: 0 16px;
+      margin-bottom: 14px;
+      text-align: left;
+    }
+    .new-chat-btn:hover { border-color: rgba(244,170,69,.5); box-shadow: 0 14px 28px rgba(0,0,0,.18); }
+    .new-chat-btn .lucide { width: 18px; height: 18px; color: #F0B85A; }
     .recent-list { gap: 10px; overflow: auto; padding-right: 2px; }
     .recent-item {
       min-height: 84px;
@@ -868,6 +889,10 @@
         </div>
         <div class="side-section">
           <div class="side-label">Todas las conversaciones</div>
+          <button class="new-chat-btn" id="newChatBtn" type="button">
+            <span aria-hidden="true"><svg class="lucide" viewBox="0 0 24 24"><path d="M12 5v14"/><path d="M5 12h14"/></svg></span>
+            <span id="newChatLabel">Nuevo chat</span>
+          </button>
           <label class="search-shell" for="conversationSearch">
             <span aria-hidden="true"><svg class="lucide" viewBox="0 0 24 24"><path d="m21 21-4.3-4.3"/><circle cx="11" cy="11" r="8"/></svg></span>
             <input id="conversationSearch" type="search" placeholder="Buscar conversación">
@@ -1006,6 +1031,7 @@
         memoryReady: "ARI · memory active",
         memorySearch: "Memory search will be expanded here next.",
         modelFallback: "ARI did not return a response.",
+        newChat: "New chat",
         newQuery: "New query ->",
         noQueries: "No queries yet",
         privateSession: "Private session",
@@ -1065,6 +1091,7 @@
         memoryReady: "ARI · memoria activa",
         memorySearch: "La busqueda de memoria se ampliara aqui pronto.",
         modelFallback: "ARI no devolvio una respuesta.",
+        newChat: "Nuevo chat",
         newQuery: "Nueva consulta ->",
         noQueries: "Sin consultas todavia",
         privateSession: "Sesion privada",
@@ -1121,6 +1148,7 @@
         memoryReady: "ARI · память активна",
         memorySearch: "Поиск по памяти скоро будет расширен здесь.",
         modelFallback: "ARI не вернула ответ.",
+        newChat: "Новый чат",
         newQuery: "Новый запрос ->",
         noQueries: "Запросов пока нет",
         privateSession: "Приватная сессия",
@@ -1169,6 +1197,7 @@
         memoryReady: "ARI · пам'ять активна",
         memorySearch: "Пошук пам'яті скоро буде розширено тут.",
         modelFallback: "ARI не повернула відповідь.",
+        newChat: "Новий чат",
         newQuery: "Новий запит ->",
         noQueries: "Запитів поки немає",
         privateSession: "Приватна сесія",
@@ -1217,6 +1246,7 @@
         memoryReady: "ARI · Speicher aktiv",
         memorySearch: "Die Speichersuche wird hier bald erweitert.",
         modelFallback: "ARI hat keine Antwort zurückgegeben.",
+        newChat: "Neuer Chat",
         newQuery: "Neue Anfrage ->",
         noQueries: "Noch keine Anfragen",
         privateSession: "Private Sitzung",
@@ -1265,6 +1295,7 @@
         memoryReady: "ARI · memoria attiva",
         memorySearch: "La ricerca nella memoria sarà ampliata qui.",
         modelFallback: "ARI non ha restituito una risposta.",
+        newChat: "Nuova chat",
         newQuery: "Nuova query ->",
         noQueries: "Ancora nessuna query",
         privateSession: "Sessione privata",
@@ -1313,6 +1344,7 @@
         memoryReady: "ARI · memória ativa",
         memorySearch: "A busca na memória será ampliada aqui.",
         modelFallback: "ARI não retornou uma resposta.",
+        newChat: "Novo chat",
         newQuery: "Nova consulta ->",
         noQueries: "Ainda sem consultas",
         privateSession: "Sessão privada",
@@ -1438,6 +1470,8 @@
     const voiceBtn = document.getElementById("voiceBtn");
     const voiceModeBtn = document.getElementById("voiceModeBtn");
     const recentQueries = document.getElementById("recentQueries");
+    const newChatBtn = document.getElementById("newChatBtn");
+    const newChatLabel = document.getElementById("newChatLabel");
     const appLanguage = document.getElementById("appLanguage");
     let mediaRecorder = null;
     let voiceChunks = [];
@@ -1474,6 +1508,7 @@
       authDivider.textContent = tr("divider");
       authBtn.textContent = state.mode === "login" ? tr("alignMe") : tr("createLight");
       forgotBtn.textContent = tr("forgotPassword");
+      newChatLabel.textContent = tr("newChat");
       updatePasswordToggle();
       document.querySelector(".chat-title").textContent = tr("activeQuery");
       document.querySelector(".side-label").textContent = state.language === "es" ? "Todas las conversaciones" : tr("recent");
@@ -1688,6 +1723,7 @@
     });
     document.getElementById("logoutBtn").addEventListener("click", clearSession);
     document.getElementById("clearBtn").addEventListener("click", clearChat);
+    newChatBtn.addEventListener("click", startNewChat);
 
     document.querySelectorAll("[data-note]").forEach((button) => {
       button.addEventListener("click", () => addMessage(button.dataset.note, "ai"));
@@ -1736,6 +1772,8 @@
           state.currentThreadId = "";
           localStorage.removeItem("ari.currentThreadId");
         }
+        const activeThread = state.threads.find((thread) => thread.id === state.currentThreadId);
+        if (activeThread) document.querySelector(".chat-title").textContent = displayThreadTitle(activeThread);
         renderThreads();
       } catch {
         state.threads = [];
@@ -1754,7 +1792,7 @@
         const row = document.createElement("button");
         row.type = "button";
         row.className = `recent-item ${item.id === state.currentThreadId ? "active" : ""}`;
-        const title = escapeHtml(item.title || tr("activeQuery"));
+        const title = escapeHtml(displayThreadTitle(item));
         const dateText = item.date ? escapeHtml(item.date) : "ARI";
         const timeText = item.updated_at
           ? new Intl.DateTimeFormat(languageLocale(), { hour: "2-digit", minute: "2-digit" }).format(new Date(item.updated_at))
@@ -1765,6 +1803,15 @@
         });
         recentQueries.appendChild(row);
       });
+    }
+
+    function displayThreadTitle(thread) {
+      if (!thread) return tr("activeQuery");
+      const messageCount = Number.isFinite(thread.message_count)
+        ? thread.message_count
+        : Array.isArray(thread.messages) ? thread.messages.length : 0;
+      if ((thread.title || "") === "New thread" && !messageCount) return tr("newChat");
+      return thread.title || tr("activeQuery");
     }
 
     function clearChat() {
@@ -1790,6 +1837,32 @@
         button.querySelector("b").textContent = tr(titleKey);
         button.querySelector("span").textContent = tr(copyKey);
       });
+    }
+
+    async function startNewChat() {
+      if (!state.token || !state.workspaceId) return;
+      newChatBtn.disabled = true;
+      try {
+        const response = await fetch(`/api/v1/messages/${state.workspaceId}/threads`, {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${state.token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({}),
+        });
+        if (!response.ok) throw new Error(await readError(response));
+        const thread = await response.json();
+        state.currentThreadId = thread.id;
+        localStorage.setItem("ari.currentThreadId", state.currentThreadId);
+        state.threads = [thread, ...state.threads.filter((item) => item.id !== thread.id)];
+        renderConversation(thread);
+        renderThreads();
+      } catch (error) {
+        addMessage(error.message, "ai");
+      } finally {
+        newChatBtn.disabled = false;
+      }
     }
 
     async function ensureActiveThread(title) {
@@ -1836,7 +1909,7 @@
         welcomeState.style.display = "block";
       }
       thread.messages.forEach((message) => addMessage(message.content, message.role === "user" ? "user" : "ai"));
-      document.querySelector(".chat-title").textContent = thread.title || tr("activeQuery");
+      document.querySelector(".chat-title").textContent = displayThreadTitle(thread);
       chatMeta.textContent = activeQueryMeta();
       messagesEl.scrollTop = messagesEl.scrollHeight;
       messageInput.focus();
