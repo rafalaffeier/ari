@@ -3,349 +3,401 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>ARI</title>
+  <title>ARI - Solara</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Jost:wght@200;300;400;500&display=swap" rel="stylesheet">
   <style>
     :root {
-      color-scheme: light;
-      --bg: #f5f6f1;
-      --panel: #ffffff;
-      --ink: #1d2422;
-      --muted: #68716d;
-      --line: #d9ded8;
-      --accent: #1b6f5f;
-      --accent-dark: #135247;
-      --danger: #a33a2b;
-      --shadow: 0 18px 50px rgba(25, 37, 33, 0.12);
+      --cream: #F7F2EC;
+      --rose: #C4836A;
+      --gold: #C9A96E;
+      --dark: #1A1208;
+      --soft: #FFF8F0;
+      --soft-2: rgba(255,248,240,0.86);
+      --soft-3: rgba(255,248,240,0.72);
+      --border: rgba(201,169,110,0.18);
+      --panel: rgba(20,12,4,0.72);
+      --danger: #E8A18E;
     }
 
-    * { box-sizing: border-box; }
-
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { min-height: 100%; background: var(--dark); }
     body {
-      margin: 0;
       min-height: 100vh;
-      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      background: var(--bg);
-      color: var(--ink);
+      overflow: hidden;
+      color: var(--cream);
+      font-family: "Jost", system-ui, sans-serif;
+      font-weight: 300;
     }
 
-    .app {
-      min-height: 100vh;
-      display: grid;
-      grid-template-rows: auto 1fr;
+    canvas {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      pointer-events: none;
     }
 
-    header {
-      height: 64px;
-      display: flex;
+    button, input, textarea { font: inherit; }
+    button { cursor: pointer; }
+
+    .screen {
+      position: fixed;
+      inset: 0;
+      z-index: 2;
+      display: none;
+    }
+
+    .screen.active { display: flex; }
+
+    .scene {
       align-items: center;
-      justify-content: space-between;
-      padding: 0 22px;
-      border-bottom: 1px solid var(--line);
-      background: rgba(255, 255, 255, 0.88);
-      backdrop-filter: blur(10px);
+      justify-content: center;
+      padding: 22px;
     }
 
-    .brand {
-      display: flex;
-      align-items: baseline;
-      gap: 12px;
-      min-width: 0;
-    }
-
-    .brand strong {
-      font-size: 22px;
-      letter-spacing: 0;
-    }
-
-    .brand span {
-      color: var(--muted);
-      font-size: 14px;
-      white-space: nowrap;
-    }
-
-    .shell {
-      display: grid;
-      grid-template-columns: minmax(290px, 360px) minmax(0, 1fr);
-      gap: 18px;
-      padding: 18px;
-      min-height: 0;
-    }
-
-    aside, main {
-      background: var(--panel);
-      border: 1px solid var(--line);
-      border-radius: 8px;
-      box-shadow: var(--shadow);
-      min-width: 0;
-    }
-
-    aside {
-      padding: 18px;
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
-    }
-
-    main {
-      display: grid;
-      grid-template-rows: 1fr auto;
-      min-height: calc(100vh - 100px);
+    .card {
+      width: min(420px, 100%);
+      background: rgba(20,12,4,0.84);
+      border: 1px solid var(--border);
+      border-radius: 2px;
+      backdrop-filter: blur(30px);
+      box-shadow: 0 0 60px rgba(201,169,110,0.07), 0 40px 80px rgba(0,0,0,0.55), inset 0 1px 0 rgba(201,169,110,0.12);
       overflow: hidden;
     }
 
-    h1, h2 {
-      margin: 0;
-      letter-spacing: 0;
+    .card-top-bar {
+      height: 2px;
+      background: linear-gradient(90deg, transparent 5%, var(--rose) 30%, var(--gold) 60%, transparent 95%);
+      opacity: .75;
     }
 
-    h1 { font-size: 18px; }
-    h2 { font-size: 15px; }
+    .card-inner { padding: 46px 42px 38px; }
+    .card-bottom-rule { height: 1px; background: linear-gradient(90deg, transparent, var(--border), transparent); margin: 0 42px; }
+    .card-footer { padding: 18px 42px 24px; text-align: center; font-size: 10px; color: rgba(201,169,110,0.34); }
 
-    p {
-      margin: 0;
-      color: var(--muted);
-      line-height: 1.45;
+    .brand-block { text-align: center; margin-bottom: 34px; }
+    .sun-wrap { width: 56px; height: 56px; margin: 0 auto 16px; position: relative; display: flex; align-items: center; justify-content: center; }
+    .sun-wrap svg { animation: sunrot 24s linear infinite; }
+    @keyframes sunrot { to { transform: rotate(360deg); } }
+
+    .brand-name {
+      font-family: "Cormorant Garamond", serif;
+      font-size: 42px;
+      font-weight: 300;
+      font-style: italic;
+      letter-spacing: 6px;
+      line-height: 1;
+      color: var(--cream);
     }
 
-    .tabs {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 6px;
-      padding: 4px;
-      border: 1px solid var(--line);
-      border-radius: 8px;
-      background: #f8faf7;
-    }
+    .brand-name span { color: var(--gold); }
+    .brand-sub { margin-top: 7px; font-size: 8px; font-weight: 300; letter-spacing: 4px; color: rgba(201,169,110,0.42); text-transform: uppercase; }
+    .heading { font-family: "Cormorant Garamond", serif; font-size: 21px; font-weight: 300; font-style: italic; text-align: center; margin-bottom: 4px; }
+    .sub-h { min-height: 14px; margin-bottom: 28px; color: rgba(201,169,110,0.36); font-size: 8px; letter-spacing: 3px; text-align: center; text-transform: uppercase; }
+    .sub-h.error { color: var(--danger); }
+    .sub-h.ok { color: var(--gold); }
 
-    .tabs button {
-      height: 36px;
-      border: 0;
-      border-radius: 6px;
+    .tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 24px; }
+    .tab {
+      padding: 10px 12px;
+      border: 1px solid rgba(201,169,110,0.16);
       background: transparent;
-      color: var(--muted);
-      font-weight: 650;
-      cursor: pointer;
+      color: rgba(201,169,110,0.42);
+      font-size: 8px;
+      letter-spacing: 3px;
+      text-transform: uppercase;
     }
+    .tab.active, .tab:hover { border-color: rgba(201,169,110,0.44); color: var(--cream); background: rgba(201,169,110,0.05); }
 
-    .tabs button.active {
-      background: var(--panel);
-      color: var(--ink);
-      box-shadow: 0 1px 7px rgba(20, 31, 27, 0.1);
-    }
-
-    form {
-      display: grid;
-      gap: 10px;
-    }
-
-    label {
-      display: grid;
-      gap: 6px;
-      color: var(--muted);
-      font-size: 13px;
-      font-weight: 600;
-    }
-
-    input, textarea {
+    .fg { margin-bottom: 18px; position: relative; }
+    .fg label { display: block; margin-bottom: 8px; color: rgba(201,169,110,0.42); font-size: 8px; letter-spacing: 3px; text-transform: uppercase; }
+    .fg input, .composer textarea {
       width: 100%;
-      border: 1px solid var(--line);
-      border-radius: 8px;
-      padding: 11px 12px;
-      color: var(--ink);
-      background: #fff;
-      font: inherit;
+      border: 0;
+      border-bottom: 1px solid rgba(201,169,110,0.16);
+      background: transparent;
+      color: var(--cream);
       outline: none;
+      font-family: "Cormorant Garamond", serif;
+      font-size: 18px;
+      font-style: italic;
+      font-weight: 300;
+      letter-spacing: .5px;
     }
+    .fg input { padding: 10px 0; }
+    .fg input:focus, .composer textarea:focus { border-bottom-color: rgba(201,169,110,0.55); }
+    .fg input::placeholder, .composer textarea::placeholder { color: rgba(201,169,110,0.2); }
 
-    textarea {
-      min-height: 48px;
-      max-height: 180px;
-      resize: vertical;
+    .cta {
+      width: 100%;
+      margin-top: 8px;
+      padding: 15px 22px;
+      border: 1px solid rgba(201,169,110,0.32);
+      border-radius: 1px;
+      background: transparent;
+      color: var(--cream);
+      font-family: "Cormorant Garamond", serif;
+      font-size: 17px;
+      font-style: italic;
+      letter-spacing: 3px;
+      transition: all .25s;
     }
+    .cta:hover { border-color: rgba(201,169,110,0.58); box-shadow: 0 0 28px rgba(201,169,110,0.1); background: rgba(201,169,110,0.045); }
+    .cta:disabled { opacity: .45; cursor: not-allowed; }
 
-    input:focus, textarea:focus {
-      border-color: var(--accent);
-      box-shadow: 0 0 0 3px rgba(27, 111, 95, 0.14);
+    .link {
+      border: 0;
+      background: transparent;
+      color: rgba(201,169,110,0.58);
+      text-decoration: underline;
+      text-underline-offset: 4px;
     }
+    .link:hover { color: var(--gold); }
 
-    button.primary, button.secondary {
-      height: 42px;
-      border-radius: 8px;
-      border: 1px solid transparent;
-      padding: 0 14px;
-      font-weight: 700;
-      cursor: pointer;
-    }
-
-    button.primary {
-      background: var(--accent);
-      color: #fff;
-    }
-
-    button.primary:hover { background: var(--accent-dark); }
-
-    button.secondary {
-      background: #fff;
-      color: var(--ink);
-      border-color: var(--line);
-    }
-
-    button:disabled {
-      cursor: not-allowed;
-      opacity: 0.62;
-    }
-
-    .session {
+    .app {
+      width: 100%;
+      height: 100%;
       display: grid;
-      gap: 8px;
-      padding-top: 14px;
-      border-top: 1px solid var(--line);
+      grid-template-columns: 310px minmax(0,1fr);
+      background: rgba(20,12,4,.34);
+      backdrop-filter: blur(14px);
     }
 
-    .status {
-      min-height: 22px;
-      color: var(--muted);
-      font-size: 13px;
-      overflow-wrap: anywhere;
-    }
-
-    .status.error { color: var(--danger); }
-    .status.ok { color: var(--accent); }
-
-    .messages {
-      padding: 20px;
-      overflow: auto;
+    .sidebar {
+      min-height: 0;
+      border-right: 1px solid var(--border);
+      background: rgba(20,12,4,.64);
       display: flex;
       flex-direction: column;
-      gap: 12px;
+      overflow: hidden;
     }
 
-    .empty {
-      margin: auto;
-      max-width: 560px;
-      text-align: center;
-      display: grid;
-      gap: 10px;
+    .side-brand { padding: 38px 34px 30px; border-bottom: 1px solid var(--border); }
+    .side-brand .brand-name { font-size: 36px; }
+    .side-section { padding: 28px 26px 0; min-height: 0; }
+    .side-label { margin-bottom: 14px; color: rgba(201,169,110,.35); font-size: 8px; letter-spacing: 5px; text-transform: uppercase; }
+    .recent-list { display: flex; flex-direction: column; gap: 8px; }
+    .recent-item {
+      min-height: 42px;
+      padding: 11px 12px;
+      border: 1px solid transparent;
+      color: var(--soft-3);
+      font-family: "Cormorant Garamond", serif;
+      font-size: 16px;
+      font-style: italic;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
+    .recent-item:hover, .recent-item.active { border-color: var(--border); background: rgba(201,169,110,.05); color: var(--cream); }
+    .glyph { color: rgba(201,169,110,.55); font-family: "Jost", sans-serif; font-size: 11px; margin-right: 10px; }
+    .new-query { width: calc(100% - 52px); margin: 24px 26px 0; }
+    .side-footer { margin-top: auto; padding: 22px 26px; border-top: 1px solid var(--border); }
+    .user-card { display: flex; align-items: center; gap: 12px; min-width: 0; }
+    .avatar { width: 38px; height: 38px; border: 1px solid rgba(201,169,110,.28); display: flex; align-items: center; justify-content: center; color: var(--gold); flex: 0 0 auto; }
+    .user-name { font-family: "Cormorant Garamond", serif; font-size: 17px; font-style: italic; color: var(--cream); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .user-email { font-size: 9px; letter-spacing: 1px; color: rgba(201,169,110,.38); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-    .bubble {
-      width: min(760px, 88%);
-      padding: 13px 15px;
-      border: 1px solid var(--line);
-      border-radius: 8px;
-      line-height: 1.5;
-      white-space: pre-wrap;
-      overflow-wrap: anywhere;
-    }
+    .main { height: 100vh; min-width: 0; display: grid; grid-template-rows: auto minmax(0,1fr) auto; overflow: hidden; }
+    .topbar { height: 92px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 0 42px; background: rgba(20,12,4,.44); }
+    .chat-title { font-family: "Cormorant Garamond", serif; font-size: 26px; font-style: italic; font-weight: 300; letter-spacing: 3px; }
+    .chat-meta { margin-top: 5px; color: rgba(201,169,110,.38); font-size: 9px; letter-spacing: 3px; text-transform: uppercase; }
+    .actions { display: flex; align-items: center; gap: 12px; }
+    .badge { height: 34px; padding: 0 16px; border: 1px solid rgba(201,169,110,.22); display: flex; align-items: center; gap: 10px; color: var(--soft-2); font-size: 9px; letter-spacing: 3px; text-transform: uppercase; white-space: nowrap; }
+    .badge-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--gold); box-shadow: 0 0 12px var(--gold); }
+    .icon-btn { width: 38px; height: 38px; border: 1px solid rgba(201,169,110,.18); background: rgba(201,169,110,.03); color: rgba(201,169,110,.62); }
+    .icon-btn:hover { border-color: rgba(201,169,110,.48); color: var(--cream); }
 
-    .bubble.user {
-      align-self: flex-end;
-      background: #e9f3ef;
-      border-color: #c4dbd2;
-    }
+    .messages { min-height: 0; overflow: auto; padding: 42px; display: flex; flex-direction: column; gap: 24px; }
+    .messages::-webkit-scrollbar { width: 6px; }
+    .messages::-webkit-scrollbar-thumb { background: rgba(201,169,110,.18); }
+    .welcome { margin: auto; max-width: 560px; text-align: center; color: var(--soft-3); }
+    .welcome .sun-wrap { margin-bottom: 24px; }
+    .welcome-title { margin-bottom: 8px; font-family: "Cormorant Garamond", serif; font-size: 34px; font-style: italic; font-weight: 300; letter-spacing: 2px; color: var(--cream); }
+    .welcome-copy { font-family: "Cormorant Garamond", serif; font-size: 19px; font-style: italic; line-height: 1.55; color: var(--soft-3); }
 
-    .bubble.ari {
-      align-self: flex-start;
-      background: #fff;
-    }
+    .quick-row { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 12px; margin-top: 34px; }
+    .quick { min-height: 84px; border: 1px solid rgba(201,169,110,.14); background: rgba(201,169,110,.035); padding: 14px 12px; text-align: left; color: var(--soft-3); }
+    .quick:hover { border-color: rgba(201,169,110,.4); color: var(--cream); }
+    .quick b { display: block; margin: 6px 0; font-family: "Cormorant Garamond", serif; font-size: 16px; font-style: italic; font-weight: 300; color: var(--cream); }
+    .quick span { font-size: 9px; line-height: 1.4; color: rgba(201,169,110,.42); }
 
-    .composer {
-      border-top: 1px solid var(--line);
-      padding: 14px;
-      display: grid;
-      grid-template-columns: 1fr auto;
-      gap: 10px;
-      align-items: end;
-      background: #fbfcfa;
-    }
+    .message { display: flex; gap: 14px; max-width: 78%; animation: msgin .25s ease; }
+    .message.user { align-self: flex-end; flex-direction: row-reverse; }
+    @keyframes msgin { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+    .msg-avatar { width: 34px; height: 34px; border: 1px solid rgba(201,169,110,.24); display: flex; align-items: center; justify-content: center; color: var(--gold); flex: 0 0 auto; }
+    .bubble { border: 1px solid rgba(201,169,110,.16); background: rgba(20,12,4,.68); padding: 16px 18px; color: var(--soft); font-family: "Cormorant Garamond", serif; font-size: 18px; font-style: italic; line-height: 1.5; white-space: pre-wrap; overflow-wrap: anywhere; box-shadow: 0 18px 40px rgba(0,0,0,.22); }
+    .message.user .bubble { background: rgba(201,169,110,.08); border-color: rgba(201,169,110,.28); color: var(--cream); }
+    .msg-time { margin-top: 8px; color: rgba(201,169,110,.3); font-size: 8px; letter-spacing: 3px; text-transform: uppercase; }
+    .typing { display: flex; gap: 6px; border: 1px solid rgba(201,169,110,.16); background: rgba(20,12,4,.58); padding: 15px 18px; width: 86px; }
+    .typing span { width: 6px; height: 6px; border-radius: 50%; background: var(--gold); animation: type 1s infinite ease-in-out; }
+    .typing span:nth-child(2) { animation-delay: .15s; }
+    .typing span:nth-child(3) { animation-delay: .3s; }
+    @keyframes type { 0%,60%,100% { opacity: .25; transform: translateY(0); } 30% { opacity: 1; transform: translateY(-5px); } }
 
-    .top-actions {
-      display: flex;
-      gap: 8px;
-      align-items: center;
-    }
+    .composer-wrap { border-top: 1px solid var(--border); padding: 20px 42px 28px; background: rgba(20,12,4,.58); }
+    .modes { display: flex; gap: 10px; margin-bottom: 14px; flex-wrap: wrap; }
+    .mode { padding: 9px 16px; border: 1px solid rgba(201,169,110,.16); background: transparent; color: rgba(201,169,110,.42); font-size: 8px; letter-spacing: 3px; text-transform: uppercase; }
+    .mode.active, .mode:hover { border-color: rgba(201,169,110,.42); color: var(--cream); background: rgba(201,169,110,.05); }
+    .composer { display: grid; grid-template-columns: 1fr 46px; gap: 14px; align-items: end; border: 1px solid rgba(201,169,110,.22); padding: 10px 16px; background: rgba(20,12,4,.44); }
+    .composer textarea { min-height: 44px; max-height: 120px; resize: none; border-bottom: 0; padding: 10px 0 6px; }
+    .send { height: 46px; border: 1px solid rgba(201,169,110,.35); background: rgba(201,169,110,.06); color: var(--gold); font-size: 18px; }
 
-    .pill {
-      color: var(--muted);
-      font-size: 13px;
-      border: 1px solid var(--line);
-      padding: 6px 9px;
-      border-radius: 999px;
-      background: #fff;
-    }
-
-    @media (max-width: 800px) {
-      header { padding: 0 14px; }
-      .brand span { display: none; }
-      .shell {
-        grid-template-columns: 1fr;
-        padding: 12px;
-      }
-      main { min-height: 62vh; }
-      .composer { grid-template-columns: 1fr; }
-      .bubble { width: 100%; }
+    @media (max-width: 900px) {
+      body { overflow: auto; }
+      .screen { position: relative; min-height: 100vh; }
+      .app { grid-template-columns: 1fr; min-height: 100vh; }
+      .sidebar { display: none; }
+      .main { min-height: 100vh; }
+      .topbar { height: auto; min-height: 80px; padding: 18px 20px; }
+      .actions .badge { display: none; }
+      .messages { padding: 28px 20px; }
+      .composer-wrap { padding: 16px 20px 22px; }
+      .quick-row { grid-template-columns: repeat(2,minmax(0,1fr)); }
+      .message { max-width: 94%; }
     }
   </style>
 </head>
 <body>
-  <div class="app">
-    <header>
-      <div class="brand">
-        <strong>ARI</strong>
-        <span>private web console</span>
-      </div>
-      <div class="top-actions">
-        <span class="pill" id="envPill">staging</span>
-        <button class="secondary" id="logoutBtn" type="button">Salir</button>
-      </div>
-    </header>
+  <canvas id="cv"></canvas>
 
-    <div class="shell">
-      <aside>
-        <div>
-          <h1>Acceso</h1>
-          <p>Entra con tu usuario privado o crea uno nuevo para este servidor.</p>
+  <section class="screen scene active" id="screen-login">
+    <div class="card">
+      <div class="card-top-bar"></div>
+      <div class="card-inner">
+        <div class="brand-block">
+          <div class="sun-wrap" aria-hidden="true">
+            <svg width="56" height="56" viewBox="0 0 56 56" fill="none">
+              <circle cx="28" cy="28" r="9" stroke="#C9A96E" stroke-width=".7" opacity=".6"/>
+              <circle cx="28" cy="28" r="15" stroke="#C9A96E" stroke-width=".45" opacity=".3"/>
+              <circle cx="28" cy="28" r="21" stroke="#C9A96E" stroke-width=".35" opacity=".18"/>
+              <line x1="28" y1="2" x2="28" y2="8" stroke="#C9A96E" stroke-width=".8" opacity=".5"/>
+              <line x1="28" y1="48" x2="28" y2="54" stroke="#C9A96E" stroke-width=".8" opacity=".5"/>
+              <line x1="2" y1="28" x2="8" y2="28" stroke="#C9A96E" stroke-width=".8" opacity=".5"/>
+              <line x1="48" y1="28" x2="54" y2="28" stroke="#C9A96E" stroke-width=".8" opacity=".5"/>
+              <line x1="8" y1="8" x2="13" y2="13" stroke="#C9A96E" stroke-width=".65" opacity=".4"/>
+              <line x1="48" y1="8" x2="43" y2="13" stroke="#C9A96E" stroke-width=".65" opacity=".4"/>
+              <line x1="8" y1="48" x2="13" y2="43" stroke="#C9A96E" stroke-width=".65" opacity=".4"/>
+              <line x1="48" y1="48" x2="43" y2="43" stroke="#C9A96E" stroke-width=".65" opacity=".4"/>
+              <circle cx="28" cy="28" r="3" fill="#C9A96E" opacity=".22"/>
+              <circle cx="28" cy="28" r="1.5" fill="#C9A96E" opacity=".7"/>
+            </svg>
+          </div>
+          <div class="brand-name"><span>A</span>ri</div>
+          <div class="brand-sub">Solara · private intelligence</div>
         </div>
 
-        <div class="tabs" role="tablist">
-          <button class="active" id="loginTab" type="button">Entrar</button>
-          <button id="registerTab" type="button">Crear</button>
+        <div class="heading" id="authHeading">Access your light</div>
+        <div class="sub-h" id="status">— log in to use ARI —</div>
+
+        <div class="tabs">
+          <button class="tab active" id="loginTab" type="button">Login</button>
+          <button class="tab" id="registerTab" type="button">Create</button>
         </div>
 
         <form id="authForm">
-          <label>
-            Email
-            <input id="email" name="email" type="email" autocomplete="email" required>
-          </label>
-          <label>
-            Password
-            <input id="password" name="password" type="password" autocomplete="current-password" required minlength="8">
-          </label>
-          <button class="primary" id="authBtn" type="submit">Entrar</button>
+          <div class="fg">
+            <label for="email">Email</label>
+            <input id="email" type="email" autocomplete="email" placeholder="soul@ari.ai" required>
+          </div>
+          <div class="fg">
+            <label for="password">Password</label>
+            <input id="password" type="password" autocomplete="current-password" placeholder="••••••••" required minlength="8">
+          </div>
+          <button class="cta" id="authBtn" type="submit">Align me →</button>
         </form>
+      </div>
 
-        <div class="session">
-          <h2>Sesión</h2>
-          <p id="workspaceLabel">Sin sesión activa.</p>
-          <div class="status" id="status"></div>
+      <div class="card-bottom-rule"></div>
+      <div class="card-footer">
+        <span id="authFooterText">First time here?</span>
+        <button class="link" id="authToggle" type="button">Begin your expansion</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="screen" id="screen-chat">
+    <div class="app">
+      <aside class="sidebar">
+        <div class="side-brand">
+          <div class="brand-name"><span>A</span>ri</div>
+          <div class="brand-sub">Solara</div>
+        </div>
+        <button class="cta new-query" type="button" id="newQueryBtn">New query →</button>
+        <div class="side-section">
+          <div class="side-label">Recent queries</div>
+          <div class="recent-list" id="recentQueries">
+            <div class="recent-item active"><span class="glyph">☉</span>No queries yet</div>
+          </div>
+        </div>
+        <div class="side-section">
+          <div class="side-label">Memory</div>
+          <div class="recent-list">
+            <div class="recent-item"><span class="glyph">⊹</span>Markdown source of truth</div>
+            <div class="recent-item"><span class="glyph">◎</span>Encrypted sync ready</div>
+            <div class="recent-item"><span class="glyph">✦</span>Private final server</div>
+          </div>
+        </div>
+        <div class="side-footer">
+          <div class="user-card">
+            <div class="avatar">☉</div>
+            <div style="min-width:0">
+              <div class="user-name" id="sidebarUserName">Signed in</div>
+              <div class="user-email" id="sidebarUserEmail">ARI web</div>
+            </div>
+          </div>
         </div>
       </aside>
 
-      <main>
+      <main class="main">
+        <header class="topbar">
+          <div>
+            <div class="chat-title">Active query</div>
+            <div class="chat-meta" id="chatMeta">ARI · login required</div>
+          </div>
+          <div class="actions">
+            <div class="badge"><span class="badge-dot"></span><span id="connectionLabel">LOGIN</span></div>
+            <button class="icon-btn" id="clearBtn" type="button" title="New query">◎</button>
+            <button class="icon-btn" id="logoutBtn" type="button" title="Logout">⎋</button>
+          </div>
+        </header>
+
         <section class="messages" id="messages">
-          <div class="empty" id="emptyState">
-            <h2>Habla con ARI</h2>
-            <p>Inicia sesión y envía un mensaje. Las conversaciones se guardan en el journal Markdown del workspace.</p>
+          <div class="welcome" id="welcomeState">
+            <div class="sun-wrap" aria-hidden="true">
+              <svg width="56" height="56" viewBox="0 0 56 56" fill="none">
+                <circle cx="28" cy="28" r="9" stroke="#C9A96E" stroke-width=".7" opacity=".6"/>
+                <circle cx="28" cy="28" r="15" stroke="#C9A96E" stroke-width=".45" opacity=".3"/>
+                <circle cx="28" cy="28" r="21" stroke="#C9A96E" stroke-width=".35" opacity=".18"/>
+                <circle cx="28" cy="28" r="3" fill="#C9A96E" opacity=".22"/>
+                <circle cx="28" cy="28" r="1.5" fill="#C9A96E" opacity=".7"/>
+              </svg>
+            </div>
+            <div class="welcome-title">ARI is awake</div>
+            <div class="welcome-copy">A warm execution assistant for thought, memory and action.</div>
+            <div class="quick-row">
+              <button class="quick" type="button" data-prompt="Help me organize my next three priorities">☉<b>Priorities</b><span>Shape the day into actions</span></button>
+              <button class="quick" type="button" data-prompt="Write a concise professional email">✦<b>Writing</b><span>Draft with a clean tone</span></button>
+              <button class="quick" type="button" data-prompt="Summarize this idea into a product plan">⊹<b>Product</b><span>Turn ideas into structure</span></button>
+              <button class="quick" type="button" data-prompt="Search my memory for launch plan">◇<b>Memory</b><span>Recover useful context</span></button>
+            </div>
           </div>
         </section>
 
-        <form class="composer" id="chatForm">
-          <textarea id="messageInput" placeholder="Escribe a ARI..." required></textarea>
-          <button class="primary" id="sendBtn" type="submit">Enviar</button>
-        </form>
+        <footer class="composer-wrap">
+          <div class="modes">
+            <button class="mode active" type="button">Text</button>
+            <button class="mode" type="button" data-note="Memory search will be expanded here next.">Memory</button>
+            <button class="mode" type="button" data-note="Activity view will be expanded here next.">Activity</button>
+            <button class="mode" type="button" data-note="Voice is not connected yet.">Voice</button>
+          </div>
+          <form class="composer" id="chatForm">
+            <textarea id="messageInput" rows="1" placeholder="Ask the sun..." required></textarea>
+            <button class="send" id="sendBtn" type="submit">◇</button>
+          </form>
+        </footer>
       </main>
     </div>
-  </div>
+  </section>
 
   <script>
     const state = {
@@ -353,49 +405,75 @@
       token: localStorage.getItem("ari.token") || "",
       workspaceId: localStorage.getItem("ari.workspaceId") || "",
       userId: localStorage.getItem("ari.userId") || "",
+      email: localStorage.getItem("ari.email") || "",
+      recent: JSON.parse(localStorage.getItem("ari.recent") || "[]"),
     };
 
+    const loginScreen = document.getElementById("screen-login");
+    const chatScreen = document.getElementById("screen-chat");
+    const statusEl = document.getElementById("status");
     const loginTab = document.getElementById("loginTab");
     const registerTab = document.getElementById("registerTab");
-    const authForm = document.getElementById("authForm");
     const authBtn = document.getElementById("authBtn");
-    const logoutBtn = document.getElementById("logoutBtn");
-    const statusEl = document.getElementById("status");
-    const workspaceLabel = document.getElementById("workspaceLabel");
+    const authForm = document.getElementById("authForm");
+    const authFooterText = document.getElementById("authFooterText");
+    const authToggle = document.getElementById("authToggle");
+    const chatMeta = document.getElementById("chatMeta");
+    const connectionLabel = document.getElementById("connectionLabel");
+    const sidebarUserName = document.getElementById("sidebarUserName");
+    const sidebarUserEmail = document.getElementById("sidebarUserEmail");
     const messagesEl = document.getElementById("messages");
-    const emptyState = document.getElementById("emptyState");
-    const chatForm = document.getElementById("chatForm");
+    const welcomeState = document.getElementById("welcomeState");
     const messageInput = document.getElementById("messageInput");
     const sendBtn = document.getElementById("sendBtn");
+    const recentQueries = document.getElementById("recentQueries");
 
-    function setStatus(text, kind = "") {
+    function setStatus(text, tone = "muted") {
       statusEl.textContent = text;
-      statusEl.className = `status ${kind}`;
+      statusEl.className = `sub-h ${tone === "error" ? "error" : tone === "ok" ? "ok" : ""}`;
     }
 
-    function setMode(mode) {
+    function setAuthMode(mode) {
       state.mode = mode;
       loginTab.classList.toggle("active", mode === "login");
       registerTab.classList.toggle("active", mode === "register");
-      authBtn.textContent = mode === "login" ? "Entrar" : "Crear cuenta";
-      setStatus("");
+      authBtn.textContent = mode === "login" ? "Align me →" : "Create light →";
+      authFooterText.textContent = mode === "login" ? "First time here?" : "Already aligned?";
+      authToggle.textContent = mode === "login" ? "Begin your expansion" : "Return to login";
+      setStatus(mode === "login" ? "— log in to use ARI —" : "— create your private account —");
+    }
+
+    function showScreen(name) {
+      loginScreen.classList.toggle("active", name === "login");
+      chatScreen.classList.toggle("active", name === "chat");
     }
 
     function syncSession() {
       const active = Boolean(state.token && state.workspaceId);
-      workspaceLabel.textContent = active ? `Workspace: ${state.workspaceId}` : "Sin sesión activa.";
+      if (active) {
+        chatMeta.textContent = `ARI · workspace ${state.workspaceId.slice(0, 8)} · ${new Date().toLocaleDateString("en-GB")}`;
+        connectionLabel.textContent = "ONLINE";
+        sidebarUserName.textContent = "Private session";
+        sidebarUserEmail.textContent = state.email || state.userId || "ARI web";
+        showScreen("chat");
+      } else {
+        connectionLabel.textContent = "LOGIN";
+        showScreen("login");
+      }
       messageInput.disabled = !active;
       sendBtn.disabled = !active;
-      logoutBtn.disabled = !active;
+      renderRecent();
     }
 
-    function saveSession(payload) {
+    function saveSession(payload, email) {
       state.token = payload.access_token;
       state.workspaceId = payload.default_workspace_id || "";
       state.userId = payload.user_id || "";
+      state.email = email;
       localStorage.setItem("ari.token", state.token);
       localStorage.setItem("ari.workspaceId", state.workspaceId);
       localStorage.setItem("ari.userId", state.userId);
+      localStorage.setItem("ari.email", state.email);
       syncSession();
     }
 
@@ -418,12 +496,12 @@
       }
     }
 
-    async function authenticate(event) {
+    authForm.addEventListener("submit", async (event) => {
       event.preventDefault();
       authBtn.disabled = true;
-      setStatus(state.mode === "login" ? "Entrando..." : "Creando cuenta...");
       const email = document.getElementById("email").value.trim();
       const password = document.getElementById("password").value;
+      setStatus(state.mode === "login" ? "— connecting —" : "— creating account —");
 
       try {
         let response;
@@ -443,34 +521,118 @@
             body: form,
           });
         }
-
         if (!response.ok) throw new Error(await readError(response));
-        saveSession(await response.json());
-        setStatus("Sesión activa.", "ok");
+        saveSession(await response.json(), email);
+        setStatus("— session active —", "ok");
       } catch (error) {
         setStatus(error.message, "error");
       } finally {
         authBtn.disabled = false;
       }
+    });
+
+    authToggle.addEventListener("click", () => setAuthMode(state.mode === "login" ? "register" : "login"));
+    loginTab.addEventListener("click", () => setAuthMode("login"));
+    registerTab.addEventListener("click", () => setAuthMode("register"));
+    document.getElementById("logoutBtn").addEventListener("click", clearSession);
+    document.getElementById("clearBtn").addEventListener("click", clearChat);
+    document.getElementById("newQueryBtn").addEventListener("click", clearChat);
+
+    document.querySelectorAll("[data-note]").forEach((button) => {
+      button.addEventListener("click", () => addMessage(button.dataset.note, "ai"));
+    });
+
+    document.querySelectorAll("[data-prompt]").forEach((button) => {
+      button.addEventListener("click", () => {
+        messageInput.value = button.dataset.prompt;
+        messageInput.focus();
+      });
+    });
+
+    document.getElementById("chatForm").addEventListener("submit", async (event) => {
+      event.preventDefault();
+      await sendMessage();
+    });
+
+    messageInput.addEventListener("input", () => autoResize(messageInput));
+    messageInput.addEventListener("keydown", (event) => {
+      if (event.key === "Enter" && !event.shiftKey) {
+        event.preventDefault();
+        sendMessage();
+      }
+    });
+
+    function autoResize(el) {
+      el.style.height = "auto";
+      el.style.height = Math.min(el.scrollHeight, 120) + "px";
     }
 
-    function addMessage(role, text) {
-      emptyState.style.display = "none";
-      const item = document.createElement("div");
-      item.className = `bubble ${role}`;
-      item.textContent = text;
-      messagesEl.appendChild(item);
+    function addRecent(text) {
+      state.recent = [text, ...state.recent.filter((item) => item !== text)].slice(0, 8);
+      localStorage.setItem("ari.recent", JSON.stringify(state.recent));
+      renderRecent();
+    }
+
+    function renderRecent() {
+      if (!state.recent.length) {
+        recentQueries.innerHTML = '<div class="recent-item active"><span class="glyph">☉</span>No queries yet</div>';
+        return;
+      }
+      recentQueries.innerHTML = "";
+      state.recent.forEach((item) => {
+        const row = document.createElement("button");
+        row.type = "button";
+        row.className = "recent-item";
+        row.innerHTML = '<span class="glyph">☉</span>' + escapeHtml(item);
+        row.addEventListener("click", () => {
+          messageInput.value = item;
+          messageInput.focus();
+        });
+        recentQueries.appendChild(row);
+      });
+    }
+
+    function clearChat() {
+      messagesEl.innerHTML = "";
+      messagesEl.appendChild(welcomeState);
+      welcomeState.style.display = "block";
+      chatMeta.textContent = state.workspaceId ? `ARI · workspace ${state.workspaceId.slice(0, 8)} · ${new Date().toLocaleDateString("en-GB")}` : "ARI · login required";
+    }
+
+    function addMessage(text, from = "ai") {
+      if (welcomeState.parentElement) welcomeState.style.display = "none";
+      const message = document.createElement("div");
+      message.className = `message ${from === "user" ? "user" : ""}`;
+      const label = from === "user" ? "YOU" : "ARI";
+      const mark = from === "user" ? "◇" : "☉";
+      message.innerHTML = `<div class="msg-avatar">${mark}</div><div><div class="bubble">${escapeHtml(text)}</div><div class="msg-time">${label} · ${new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</div></div>`;
+      messagesEl.appendChild(message);
       messagesEl.scrollTop = messagesEl.scrollHeight;
     }
 
-    async function sendMessage(event) {
-      event.preventDefault();
+    function showTyping() {
+      const typing = document.createElement("div");
+      typing.className = "message";
+      typing.id = "typingMsg";
+      typing.innerHTML = '<div class="msg-avatar">☉</div><div class="typing"><span></span><span></span><span></span></div>';
+      messagesEl.appendChild(typing);
+      messagesEl.scrollTop = messagesEl.scrollHeight;
+    }
+
+    function removeTyping() {
+      const typing = document.getElementById("typingMsg");
+      if (typing) typing.remove();
+    }
+
+    async function sendMessage() {
       const text = messageInput.value.trim();
       if (!text || !state.token || !state.workspaceId) return;
-      addMessage("user", text);
       messageInput.value = "";
+      autoResize(messageInput);
+      addMessage(text, "user");
+      addRecent(text);
+      showTyping();
       sendBtn.disabled = true;
-      setStatus("ARI está pensando...");
 
       try {
         const response = await fetch(`/api/v1/messages/${state.workspaceId}/chat`, {
@@ -481,29 +643,64 @@
           },
           body: JSON.stringify({ message: text, use_memory: true, memory_limit: 8 }),
         });
-
         if (!response.ok) throw new Error(await readError(response));
         const data = await response.json();
-        addMessage("ari", data.reply);
-        setStatus(`Modelo: ${data.model}`, "ok");
+        removeTyping();
+        addMessage(data.reply || "ARI did not return a response.", "ai");
+        chatMeta.textContent = `ARI · ${data.model || "model"} · memory active`;
       } catch (error) {
-        addMessage("ari", error.message);
-        setStatus(error.message, "error");
+        removeTyping();
+        addMessage(error.message, "ai");
+        chatMeta.textContent = "ARI · attention required";
       } finally {
         sendBtn.disabled = false;
         messageInput.focus();
       }
     }
 
-    loginTab.addEventListener("click", () => setMode("login"));
-    registerTab.addEventListener("click", () => setMode("register"));
-    authForm.addEventListener("submit", authenticate);
-    chatForm.addEventListener("submit", sendMessage);
-    logoutBtn.addEventListener("click", () => {
-      clearSession();
-      setStatus("Sesión cerrada.");
-    });
+    function escapeHtml(value) {
+      return String(value)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
 
+    const canvas = document.getElementById("cv");
+    const ctx = canvas.getContext("2d");
+    let stars = [];
+    function resizeCanvas() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+      stars = Array.from({ length: Math.min(180, Math.floor(canvas.width * canvas.height / 6500)) }, () => ({
+        x: Math.random() * canvas.width,
+        y: Math.random() * canvas.height,
+        r: Math.random() * 1.4 + .25,
+        p: Math.random() * Math.PI * 2,
+      }));
+    }
+    function drawSky(time = 0) {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      const bg = ctx.createRadialGradient(canvas.width * .66, canvas.height * .2, 0, canvas.width * .5, canvas.height * .5, Math.max(canvas.width, canvas.height));
+      bg.addColorStop(0, "rgba(139,79,58,0.26)");
+      bg.addColorStop(.45, "rgba(26,18,8,0.72)");
+      bg.addColorStop(1, "rgba(10,7,4,1)");
+      ctx.fillStyle = bg;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      stars.forEach((star) => {
+        const alpha = .18 + .48 * (.5 + .5 * Math.sin(time * .001 + star.p));
+        ctx.beginPath();
+        ctx.arc(star.x, star.y, star.r, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(201,169,110,${alpha})`;
+        ctx.fill();
+      });
+      requestAnimationFrame(drawSky);
+    }
+    window.addEventListener("resize", resizeCanvas);
+    resizeCanvas();
+    drawSky();
+    setAuthMode("login");
     syncSession();
   </script>
 </body>
