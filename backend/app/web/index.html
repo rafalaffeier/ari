@@ -1,0 +1,510 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ARI</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f5f6f1;
+      --panel: #ffffff;
+      --ink: #1d2422;
+      --muted: #68716d;
+      --line: #d9ded8;
+      --accent: #1b6f5f;
+      --accent-dark: #135247;
+      --danger: #a33a2b;
+      --shadow: 0 18px 50px rgba(25, 37, 33, 0.12);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+    }
+
+    .app {
+      min-height: 100vh;
+      display: grid;
+      grid-template-rows: auto 1fr;
+    }
+
+    header {
+      height: 64px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 22px;
+      border-bottom: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.88);
+      backdrop-filter: blur(10px);
+    }
+
+    .brand {
+      display: flex;
+      align-items: baseline;
+      gap: 12px;
+      min-width: 0;
+    }
+
+    .brand strong {
+      font-size: 22px;
+      letter-spacing: 0;
+    }
+
+    .brand span {
+      color: var(--muted);
+      font-size: 14px;
+      white-space: nowrap;
+    }
+
+    .shell {
+      display: grid;
+      grid-template-columns: minmax(290px, 360px) minmax(0, 1fr);
+      gap: 18px;
+      padding: 18px;
+      min-height: 0;
+    }
+
+    aside, main {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+      min-width: 0;
+    }
+
+    aside {
+      padding: 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    main {
+      display: grid;
+      grid-template-rows: 1fr auto;
+      min-height: calc(100vh - 100px);
+      overflow: hidden;
+    }
+
+    h1, h2 {
+      margin: 0;
+      letter-spacing: 0;
+    }
+
+    h1 { font-size: 18px; }
+    h2 { font-size: 15px; }
+
+    p {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.45;
+    }
+
+    .tabs {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+      padding: 4px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #f8faf7;
+    }
+
+    .tabs button {
+      height: 36px;
+      border: 0;
+      border-radius: 6px;
+      background: transparent;
+      color: var(--muted);
+      font-weight: 650;
+      cursor: pointer;
+    }
+
+    .tabs button.active {
+      background: var(--panel);
+      color: var(--ink);
+      box-shadow: 0 1px 7px rgba(20, 31, 27, 0.1);
+    }
+
+    form {
+      display: grid;
+      gap: 10px;
+    }
+
+    label {
+      display: grid;
+      gap: 6px;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    input, textarea {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 11px 12px;
+      color: var(--ink);
+      background: #fff;
+      font: inherit;
+      outline: none;
+    }
+
+    textarea {
+      min-height: 48px;
+      max-height: 180px;
+      resize: vertical;
+    }
+
+    input:focus, textarea:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(27, 111, 95, 0.14);
+    }
+
+    button.primary, button.secondary {
+      height: 42px;
+      border-radius: 8px;
+      border: 1px solid transparent;
+      padding: 0 14px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    button.primary {
+      background: var(--accent);
+      color: #fff;
+    }
+
+    button.primary:hover { background: var(--accent-dark); }
+
+    button.secondary {
+      background: #fff;
+      color: var(--ink);
+      border-color: var(--line);
+    }
+
+    button:disabled {
+      cursor: not-allowed;
+      opacity: 0.62;
+    }
+
+    .session {
+      display: grid;
+      gap: 8px;
+      padding-top: 14px;
+      border-top: 1px solid var(--line);
+    }
+
+    .status {
+      min-height: 22px;
+      color: var(--muted);
+      font-size: 13px;
+      overflow-wrap: anywhere;
+    }
+
+    .status.error { color: var(--danger); }
+    .status.ok { color: var(--accent); }
+
+    .messages {
+      padding: 20px;
+      overflow: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .empty {
+      margin: auto;
+      max-width: 560px;
+      text-align: center;
+      display: grid;
+      gap: 10px;
+    }
+
+    .bubble {
+      width: min(760px, 88%);
+      padding: 13px 15px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      line-height: 1.5;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+    }
+
+    .bubble.user {
+      align-self: flex-end;
+      background: #e9f3ef;
+      border-color: #c4dbd2;
+    }
+
+    .bubble.ari {
+      align-self: flex-start;
+      background: #fff;
+    }
+
+    .composer {
+      border-top: 1px solid var(--line);
+      padding: 14px;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 10px;
+      align-items: end;
+      background: #fbfcfa;
+    }
+
+    .top-actions {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .pill {
+      color: var(--muted);
+      font-size: 13px;
+      border: 1px solid var(--line);
+      padding: 6px 9px;
+      border-radius: 999px;
+      background: #fff;
+    }
+
+    @media (max-width: 800px) {
+      header { padding: 0 14px; }
+      .brand span { display: none; }
+      .shell {
+        grid-template-columns: 1fr;
+        padding: 12px;
+      }
+      main { min-height: 62vh; }
+      .composer { grid-template-columns: 1fr; }
+      .bubble { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header>
+      <div class="brand">
+        <strong>ARI</strong>
+        <span>private web console</span>
+      </div>
+      <div class="top-actions">
+        <span class="pill" id="envPill">staging</span>
+        <button class="secondary" id="logoutBtn" type="button">Salir</button>
+      </div>
+    </header>
+
+    <div class="shell">
+      <aside>
+        <div>
+          <h1>Acceso</h1>
+          <p>Entra con tu usuario privado o crea uno nuevo para este servidor.</p>
+        </div>
+
+        <div class="tabs" role="tablist">
+          <button class="active" id="loginTab" type="button">Entrar</button>
+          <button id="registerTab" type="button">Crear</button>
+        </div>
+
+        <form id="authForm">
+          <label>
+            Email
+            <input id="email" name="email" type="email" autocomplete="email" required>
+          </label>
+          <label>
+            Password
+            <input id="password" name="password" type="password" autocomplete="current-password" required minlength="8">
+          </label>
+          <button class="primary" id="authBtn" type="submit">Entrar</button>
+        </form>
+
+        <div class="session">
+          <h2>Sesión</h2>
+          <p id="workspaceLabel">Sin sesión activa.</p>
+          <div class="status" id="status"></div>
+        </div>
+      </aside>
+
+      <main>
+        <section class="messages" id="messages">
+          <div class="empty" id="emptyState">
+            <h2>Habla con ARI</h2>
+            <p>Inicia sesión y envía un mensaje. Las conversaciones se guardan en el journal Markdown del workspace.</p>
+          </div>
+        </section>
+
+        <form class="composer" id="chatForm">
+          <textarea id="messageInput" placeholder="Escribe a ARI..." required></textarea>
+          <button class="primary" id="sendBtn" type="submit">Enviar</button>
+        </form>
+      </main>
+    </div>
+  </div>
+
+  <script>
+    const state = {
+      mode: "login",
+      token: localStorage.getItem("ari.token") || "",
+      workspaceId: localStorage.getItem("ari.workspaceId") || "",
+      userId: localStorage.getItem("ari.userId") || "",
+    };
+
+    const loginTab = document.getElementById("loginTab");
+    const registerTab = document.getElementById("registerTab");
+    const authForm = document.getElementById("authForm");
+    const authBtn = document.getElementById("authBtn");
+    const logoutBtn = document.getElementById("logoutBtn");
+    const statusEl = document.getElementById("status");
+    const workspaceLabel = document.getElementById("workspaceLabel");
+    const messagesEl = document.getElementById("messages");
+    const emptyState = document.getElementById("emptyState");
+    const chatForm = document.getElementById("chatForm");
+    const messageInput = document.getElementById("messageInput");
+    const sendBtn = document.getElementById("sendBtn");
+
+    function setStatus(text, kind = "") {
+      statusEl.textContent = text;
+      statusEl.className = `status ${kind}`;
+    }
+
+    function setMode(mode) {
+      state.mode = mode;
+      loginTab.classList.toggle("active", mode === "login");
+      registerTab.classList.toggle("active", mode === "register");
+      authBtn.textContent = mode === "login" ? "Entrar" : "Crear cuenta";
+      setStatus("");
+    }
+
+    function syncSession() {
+      const active = Boolean(state.token && state.workspaceId);
+      workspaceLabel.textContent = active ? `Workspace: ${state.workspaceId}` : "Sin sesión activa.";
+      messageInput.disabled = !active;
+      sendBtn.disabled = !active;
+      logoutBtn.disabled = !active;
+    }
+
+    function saveSession(payload) {
+      state.token = payload.access_token;
+      state.workspaceId = payload.default_workspace_id || "";
+      state.userId = payload.user_id || "";
+      localStorage.setItem("ari.token", state.token);
+      localStorage.setItem("ari.workspaceId", state.workspaceId);
+      localStorage.setItem("ari.userId", state.userId);
+      syncSession();
+    }
+
+    function clearSession() {
+      state.token = "";
+      state.workspaceId = "";
+      state.userId = "";
+      localStorage.removeItem("ari.token");
+      localStorage.removeItem("ari.workspaceId");
+      localStorage.removeItem("ari.userId");
+      syncSession();
+    }
+
+    async function readError(response) {
+      try {
+        const data = await response.json();
+        return data.detail || JSON.stringify(data);
+      } catch {
+        return response.statusText || "Error";
+      }
+    }
+
+    async function authenticate(event) {
+      event.preventDefault();
+      authBtn.disabled = true;
+      setStatus(state.mode === "login" ? "Entrando..." : "Creando cuenta...");
+      const email = document.getElementById("email").value.trim();
+      const password = document.getElementById("password").value;
+
+      try {
+        let response;
+        if (state.mode === "register") {
+          response = await fetch("/api/v1/auth/register", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email, password }),
+          });
+        } else {
+          const form = new URLSearchParams();
+          form.set("username", email);
+          form.set("password", password);
+          response = await fetch("/api/v1/auth/login", {
+            method: "POST",
+            headers: { "Content-Type": "application/x-www-form-urlencoded" },
+            body: form,
+          });
+        }
+
+        if (!response.ok) throw new Error(await readError(response));
+        saveSession(await response.json());
+        setStatus("Sesión activa.", "ok");
+      } catch (error) {
+        setStatus(error.message, "error");
+      } finally {
+        authBtn.disabled = false;
+      }
+    }
+
+    function addMessage(role, text) {
+      emptyState.style.display = "none";
+      const item = document.createElement("div");
+      item.className = `bubble ${role}`;
+      item.textContent = text;
+      messagesEl.appendChild(item);
+      messagesEl.scrollTop = messagesEl.scrollHeight;
+    }
+
+    async function sendMessage(event) {
+      event.preventDefault();
+      const text = messageInput.value.trim();
+      if (!text || !state.token || !state.workspaceId) return;
+      addMessage("user", text);
+      messageInput.value = "";
+      sendBtn.disabled = true;
+      setStatus("ARI está pensando...");
+
+      try {
+        const response = await fetch(`/api/v1/messages/${state.workspaceId}/chat`, {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${state.token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ message: text, use_memory: true, memory_limit: 8 }),
+        });
+
+        if (!response.ok) throw new Error(await readError(response));
+        const data = await response.json();
+        addMessage("ari", data.reply);
+        setStatus(`Modelo: ${data.model}`, "ok");
+      } catch (error) {
+        addMessage("ari", error.message);
+        setStatus(error.message, "error");
+      } finally {
+        sendBtn.disabled = false;
+        messageInput.focus();
+      }
+    }
+
+    loginTab.addEventListener("click", () => setMode("login"));
+    registerTab.addEventListener("click", () => setMode("register"));
+    authForm.addEventListener("submit", authenticate);
+    chatForm.addEventListener("submit", sendMessage);
+    logoutBtn.addEventListener("click", () => {
+      clearSession();
+      setStatus("Sesión cerrada.");
+    });
+
+    syncSession();
+  </script>
+</body>
+</html>
