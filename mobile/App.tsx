@@ -452,7 +452,9 @@ export default function App() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [googleCode, setGoogleCode] = useState("");
-  const [mode, setMode] = useState<"login" | "register">("login");
+  const [mode, setMode] = useState<"login" | "register" | "forgot" | "reset">("login");
+  const [resetToken, setResetToken] = useState("");
+  const [passwordVisible, setPasswordVisible] = useState(false);
   const [tab, setTab] = useState<Tab>("timeline");
   const [timeline, setTimeline] = useState<TimelineDay[]>([]);
   const [selectedDay, setSelectedDay] = useState(todayString());
@@ -468,6 +470,19 @@ export default function App() {
   const [status, setStatus] = useState<string>(STRINGS[translationLanguage(deviceLanguage())].ready);
   const uiLanguage = translationLanguage(language);
   const t = STRINGS[uiLanguage];
+  const authText = {
+    forgotPassword: uiLanguage === "es" ? "Olvidaste tu contrasena?" : "Forgot password?",
+    sendRecovery: uiLanguage === "es" ? "Enviar recuperacion ->" : "Send recovery ->",
+    resetPassword: uiLanguage === "es" ? "Cambiar contrasena ->" : "Change password ->",
+    recoveryStatus: uiLanguage === "es" ? "Enviando recuperacion" : "Sending recovery",
+    recoveryReady: uiLanguage === "es" ? "Recuperacion lista" : "Recovery ready",
+    pasteRecovery: uiLanguage === "es" ? "Pega el enlace o codigo de recuperacion" : "Paste recovery link or code",
+    recoverySent: uiLanguage === "es" ? "Revisa tu email y pega el enlace" : "Check email and paste the link",
+    changingPassword: uiLanguage === "es" ? "Cambiando contrasena" : "Changing password",
+    passwordUpdated: uiLanguage === "es" ? "Contrasena actualizada" : "Password updated",
+    showPassword: uiLanguage === "es" ? "Mostrar contrasena" : "Show password",
+    hidePassword: uiLanguage === "es" ? "Ocultar contrasena" : "Hide password",
+  };
   const sections = useMemo(
     () => SECTIONS.map((item) => ({ ...item, label: SECTION_LABELS[uiLanguage][item.key] })),
     [uiLanguage],
@@ -521,6 +536,55 @@ export default function App() {
       });
       setIsOffline(false);
       setStatus(t.synced);
+    } catch (error) {
+      setIsOffline(true);
+      setStatus(error instanceof Error ? error.message : t.unableSignIn);
+    } finally {
+      setIsBusy(false);
+    }
+  }
+
+  function recoveryTokenValue(value: string) {
+    const trimmed = value.trim();
+    const marker = "reset_token=";
+    if (trimmed.includes(marker)) return trimmed.split(marker).pop()?.split(/[&#]/)[0] ?? trimmed;
+    return trimmed;
+  }
+
+  async function requestPasswordRecovery() {
+    if (!email.trim()) {
+      Alert.alert(t.missingLogin, "Email is required.");
+      return;
+    }
+    setIsBusy(true);
+    setStatus(authText.recoveryStatus);
+    try {
+      const recovery = await api.forgotPassword(email.trim());
+      if (recovery.reset_url) setResetToken(recovery.reset_url);
+      setMode("reset");
+      setStatus(recovery.reset_url ? authText.recoveryReady : authText.recoverySent);
+    } catch (error) {
+      setIsOffline(true);
+      setStatus(error instanceof Error ? error.message : t.unableSignIn);
+    } finally {
+      setIsBusy(false);
+    }
+  }
+
+  async function submitPasswordReset() {
+    const tokenValue = recoveryTokenValue(resetToken);
+    if (!tokenValue || !password) {
+      Alert.alert(t.missingLogin, "Recovery code and password are required.");
+      return;
+    }
+    setIsBusy(true);
+    setStatus(authText.changingPassword);
+    try {
+      await api.resetPassword(tokenValue, password);
+      setPassword("");
+      setResetToken("");
+      setMode("login");
+      setStatus(authText.passwordUpdated);
     } catch (error) {
       setIsOffline(true);
       setStatus(error instanceof Error ? error.message : t.unableSignIn);
@@ -707,23 +771,47 @@ export default function App() {
               <SegmentButton active={mode === "login"} label={t.login} onPress={() => setMode("login")} />
               <SegmentButton active={mode === "register"} label={t.create} onPress={() => setMode("register")} />
             </View>
-            <TextInput
-              autoCapitalize="none"
-              keyboardType="email-address"
-              onChangeText={setEmail}
-              placeholder="soul@ari.ai"
-              placeholderTextColor="rgba(201,169,110,0.34)"
-              style={styles.input}
-              value={email}
-            />
-            <TextInput
-              onChangeText={setPassword}
-              placeholder={t.password}
-              placeholderTextColor="rgba(201,169,110,0.34)"
-              secureTextEntry
-              style={styles.input}
-              value={password}
-            />
+            {mode !== "reset" && (
+              <TextInput
+                autoCapitalize="none"
+                keyboardType="email-address"
+                onChangeText={setEmail}
+                placeholder="soul@ari.ai"
+                placeholderTextColor="rgba(201,169,110,0.34)"
+                style={styles.input}
+                value={email}
+              />
+            )}
+            {mode === "reset" && (
+              <TextInput
+                autoCapitalize="none"
+                onChangeText={setResetToken}
+                placeholder={authText.pasteRecovery}
+                placeholderTextColor="rgba(201,169,110,0.34)"
+                style={styles.input}
+                value={resetToken}
+              />
+            )}
+            {mode !== "forgot" && (
+              <View style={styles.passwordRow}>
+                <TextInput
+                  onChangeText={setPassword}
+                  placeholder={t.password}
+                  placeholderTextColor="rgba(201,169,110,0.34)"
+                  secureTextEntry={!passwordVisible}
+                  style={styles.passwordInput}
+                  value={password}
+                />
+                <Pressable
+                  accessibilityLabel={passwordVisible ? authText.hidePassword : authText.showPassword}
+                  accessibilityRole="button"
+                  onPress={() => setPasswordVisible((visible) => !visible)}
+                  style={styles.passwordToggle}
+                >
+                  <Text style={styles.passwordToggleText}>{passwordVisible ? "◌" : "◉"}</Text>
+                </Pressable>
+              </View>
+            )}
             {mode === "login" && (
               <>
                 <Pressable disabled={isBusy} onPress={openGoogleLogin} style={styles.googleButton}>
@@ -742,9 +830,33 @@ export default function App() {
                 </Pressable>
               </>
             )}
-            <Pressable disabled={isBusy} onPress={authenticate} style={styles.primaryButton}>
-              <Text style={styles.primaryButtonText}>{isBusy ? t.working : mode === "login" ? t.alignMe : t.createLight}</Text>
+            <Pressable
+              disabled={isBusy}
+              onPress={mode === "forgot" ? requestPasswordRecovery : mode === "reset" ? submitPasswordReset : authenticate}
+              style={styles.primaryButton}
+            >
+              <Text style={styles.primaryButtonText}>
+                {isBusy
+                  ? t.working
+                  : mode === "login"
+                    ? t.alignMe
+                    : mode === "register"
+                      ? t.createLight
+                      : mode === "forgot"
+                        ? authText.sendRecovery
+                        : authText.resetPassword}
+              </Text>
             </Pressable>
+            {mode === "login" && (
+              <Pressable disabled={isBusy} onPress={() => setMode("forgot")} style={styles.textButton}>
+                <Text style={styles.textButtonText}>{authText.forgotPassword}</Text>
+              </Pressable>
+            )}
+            {(mode === "forgot" || mode === "reset") && (
+              <Pressable disabled={isBusy} onPress={() => setMode("login")} style={styles.textButton}>
+                <Text style={styles.textButtonText}>{t.login}</Text>
+              </Pressable>
+            )}
             <StatusLine isBusy={isBusy} isOffline={isOffline} offlineLabel={t.offlineCache} status={status} />
           </View>
         </KeyboardAvoidingView>
@@ -1174,6 +1286,32 @@ const styles = StyleSheet.create({
     minHeight: 48,
     paddingHorizontal: 14,
   },
+  passwordRow: {
+    alignItems: "center",
+    backgroundColor: "rgba(20, 12, 4, 0.64)",
+    borderColor: "rgba(201, 169, 110, 0.2)",
+    borderRadius: 2,
+    borderWidth: 1,
+    flexDirection: "row",
+    minHeight: 48,
+  },
+  passwordInput: {
+    color: "#F7F2EC",
+    flex: 1,
+    fontSize: 16,
+    minHeight: 48,
+    paddingHorizontal: 14,
+  },
+  passwordToggle: {
+    alignItems: "center",
+    justifyContent: "center",
+    minHeight: 48,
+    width: 48,
+  },
+  passwordToggleText: {
+    color: "#C9A96E",
+    fontSize: 18,
+  },
   dateInput: {
     flex: 1,
   },
@@ -1233,6 +1371,18 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: "500",
     letterSpacing: 2,
+    textTransform: "uppercase",
+  },
+  textButton: {
+    alignItems: "center",
+    justifyContent: "center",
+    minHeight: 34,
+  },
+  textButtonText: {
+    color: "rgba(201, 169, 110, 0.72)",
+    fontSize: 11,
+    letterSpacing: 1,
+    textDecorationLine: "underline",
     textTransform: "uppercase",
   },
   listItem: {

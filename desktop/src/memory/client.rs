@@ -19,7 +19,10 @@ pub enum MemoryClientError {
     #[error("backend request failed: {0}")]
     Request(#[from] reqwest::Error),
     #[error("backend returned {status}: {body}")]
-    Api { status: reqwest::StatusCode, body: String },
+    Api {
+        status: reqwest::StatusCode,
+        body: String,
+    },
     #[error("backend response was missing {0}")]
     MissingHeader(&'static str),
 }
@@ -384,12 +387,8 @@ impl MemoryClient {
         code: &str,
     ) -> Result<AuthResponse, MemoryClientError> {
         let url = format!("{}/api/v1/auth/google/exchange", self.backend_url);
-        self.send_json(
-            self.http
-                .post(url)
-                .json(&GoogleExchangeRequest { code }),
-        )
-        .await
+        self.send_json(self.http.post(url).json(&GoogleExchangeRequest { code }))
+            .await
     }
 
     pub async fn append_journal_entry(
@@ -403,11 +402,14 @@ impl MemoryClient {
             "{}/api/v1/memory/{}/journal/{}/entries",
             self.backend_url, self.workspace_id, date
         );
-        self.send_json(self.authorized(self.http.post(url))?.json(&JournalEntryRequest {
-            section: section.to_string(),
-            text: text.to_string(),
-            timestamp,
-        }))
+        self.send_json(
+            self.authorized(self.http.post(url))?
+                .json(&JournalEntryRequest {
+                    section: section.to_string(),
+                    text: text.to_string(),
+                    timestamp,
+                }),
+        )
         .await
     }
 
@@ -438,7 +440,10 @@ impl MemoryClient {
         query: &str,
         limit: Option<u32>,
     ) -> Result<Vec<SearchResult>, MemoryClientError> {
-        let url = format!("{}/api/v1/memory/{}/search", self.backend_url, self.workspace_id);
+        let url = format!(
+            "{}/api/v1/memory/{}/search",
+            self.backend_url, self.workspace_id
+        );
         let limit_value = limit.unwrap_or(20).to_string();
         self.send_json(
             self.authorized(self.http.get(url))?
@@ -476,12 +481,15 @@ impl MemoryClient {
             "{}/api/v1/messages/{}/orchestrate",
             self.backend_url, self.workspace_id
         );
-        self.send_json(self.authorized(self.http.post(url))?.json(&OrchestrateRequest {
-            message,
-            pending_action,
-            use_memory,
-            memory_limit: memory_limit.unwrap_or(8),
-        }))
+        self.send_json(
+            self.authorized(self.http.post(url))?
+                .json(&OrchestrateRequest {
+                    message,
+                    pending_action,
+                    use_memory,
+                    memory_limit: memory_limit.unwrap_or(8),
+                }),
+        )
         .await
     }
 
@@ -523,12 +531,15 @@ impl MemoryClient {
             "{}/api/v1/audit/{}/events",
             self.backend_url, self.workspace_id
         );
-        self.send_json(self.authorized(self.http.post(url))?.json(&AuditEventRequest {
-            event_type: event_type.to_string(),
-            tool_name,
-            payload,
-            device_id: None,
-        }))
+        self.send_json(
+            self.authorized(self.http.post(url))?
+                .json(&AuditEventRequest {
+                    event_type: event_type.to_string(),
+                    tool_name,
+                    payload,
+                    device_id: None,
+                }),
+        )
         .await
     }
 
@@ -554,16 +565,16 @@ impl MemoryClient {
         params: serde_json::Value,
         idempotency_key: Option<String>,
     ) -> Result<ActionResponse, MemoryClientError> {
-        let url = format!(
-            "{}/api/v1/actions/{}",
-            self.backend_url, self.workspace_id
-        );
-        self.send_json(self.authorized(self.http.post(url))?.json(&ActionCreateRequest {
-            tool_name: tool_name.to_string(),
-            params,
-            device_id: None,
-            idempotency_key,
-        }))
+        let url = format!("{}/api/v1/actions/{}", self.backend_url, self.workspace_id);
+        self.send_json(
+            self.authorized(self.http.post(url))?
+                .json(&ActionCreateRequest {
+                    tool_name: tool_name.to_string(),
+                    params,
+                    device_id: None,
+                    idempotency_key,
+                }),
+        )
         .await
     }
 
@@ -576,9 +587,12 @@ impl MemoryClient {
             "{}/api/v1/actions/{}/{}/confirm",
             self.backend_url, self.workspace_id, action_id
         );
-        self.send_json(self.authorized(self.http.post(url))?.json(&ActionConfirmRequest {
-            confirmation_token: confirmation_token.to_string(),
-        }))
+        self.send_json(
+            self.authorized(self.http.post(url))?
+                .json(&ActionConfirmRequest {
+                    confirmation_token: confirmation_token.to_string(),
+                }),
+        )
         .await
     }
 
@@ -603,10 +617,13 @@ impl MemoryClient {
             "{}/api/v1/actions/{}/{}/result",
             self.backend_url, self.workspace_id, action_id
         );
-        self.send_json(self.authorized(self.http.post(url))?.json(&ActionResultRequest {
-            status: status.to_string(),
-            result,
-        }))
+        self.send_json(
+            self.authorized(self.http.post(url))?
+                .json(&ActionResultRequest {
+                    status: status.to_string(),
+                    result,
+                }),
+        )
         .await
     }
 
@@ -700,12 +717,15 @@ impl MemoryClient {
             "{}/api/v1/sync/{}/keys/wraps",
             self.backend_url, self.workspace_id
         );
-        self.send_json(self.authorized(self.http.post(url))?.json(&WorkspaceKeyWrapRequest {
-            device_id,
-            key_id,
-            wrapping_algorithm,
-            wrapped_key,
-        }))
+        self.send_json(
+            self.authorized(self.http.post(url))?
+                .json(&WorkspaceKeyWrapRequest {
+                    device_id,
+                    key_id,
+                    wrapping_algorithm,
+                    wrapped_key,
+                }),
+        )
         .await
     }
 
@@ -735,14 +755,15 @@ impl MemoryClient {
             "{}/api/v1/sync/{}/keys/recovery",
             self.backend_url, self.workspace_id
         );
-        self.send_json(self.authorized(self.http.post(url))?.json(
-            &WorkspaceRecoveryWrapRequest {
-                key_id,
-                wrapping_algorithm,
-                wrapped_key,
-                recovery_hint,
-            },
-        ))
+        self.send_json(
+            self.authorized(self.http.post(url))?
+                .json(&WorkspaceRecoveryWrapRequest {
+                    key_id,
+                    wrapping_algorithm,
+                    wrapped_key,
+                    recovery_hint,
+                }),
+        )
         .await
     }
 

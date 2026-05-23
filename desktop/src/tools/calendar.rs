@@ -53,7 +53,10 @@ pub fn create_calendar_event(
 
     #[cfg(target_os = "macos")]
     let output = Command::new("osascript")
-        .args(["-e", &build_create_event_script(&calendar, &title, start_dt, end_dt)])
+        .args([
+            "-e",
+            &build_create_event_script(&calendar, &title, start_dt, end_dt),
+        ])
         .output();
 
     #[cfg(not(target_os = "macos"))]

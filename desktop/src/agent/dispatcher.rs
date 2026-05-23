@@ -21,6 +21,6 @@ pub async fn dispatch(cmd: AgentCommand) -> AgentResult {
             action_id: cmd.action_id,
             status: "failed".to_string(),
             result: serde_json::json!({"error": "unknown tool"}),
-        }
+        },
     }
 }

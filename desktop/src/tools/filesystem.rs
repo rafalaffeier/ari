@@ -164,7 +164,9 @@ mod tests {
     #[test]
     fn rejects_relative_path() {
         let root = test_root();
-        assert!(policy(&root).validate_existing_path("allowed/file.txt").is_err());
+        assert!(policy(&root)
+            .validate_existing_path("allowed/file.txt")
+            .is_err());
     }
 
     #[test]

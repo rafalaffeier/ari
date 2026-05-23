@@ -48,9 +48,7 @@ impl WorkspaceKey {
         let decoded = URL_SAFE_NO_PAD
             .decode(value.as_bytes())
             .map_err(|_| CryptoError::InvalidKey)?;
-        let bytes: [u8; KEY_LEN] = decoded
-            .try_into()
-            .map_err(|_| CryptoError::InvalidKey)?;
+        let bytes: [u8; KEY_LEN] = decoded.try_into().map_err(|_| CryptoError::InvalidKey)?;
         Ok(Self { bytes })
     }
 

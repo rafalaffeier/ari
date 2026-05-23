@@ -3,8 +3,8 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let backend_url =
-        std::env::var("AI_ASSISTANT_BACKEND_URL").unwrap_or_else(|_| "http://127.0.0.1:8000".into());
+    let backend_url = std::env::var("AI_ASSISTANT_BACKEND_URL")
+        .unwrap_or_else(|_| "http://127.0.0.1:8000".into());
     let suffix = SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs();
     let email = format!("desktop-smoke-{suffix}@example.com");
     let password = "secret12345";
@@ -34,12 +34,17 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .get("tasks")
         .and_then(|value| value.as_array())
         .ok_or("overview did not include tasks array")?;
-    if !tasks.iter().any(|value| value.as_str().is_some_and(|line| line.contains(&text))) {
+    if !tasks
+        .iter()
+        .any(|value| value.as_str().is_some_and(|line| line.contains(&text)))
+    {
         return Err("written task was not present in overview".into());
     }
     println!("OVERVIEW {} tasks={}", overview.date, tasks.len());
 
-    let results = client.search_memory("Desktop Rust memory smoke", Some(10)).await?;
+    let results = client
+        .search_memory("Desktop Rust memory smoke", Some(10))
+        .await?;
     if results.is_empty() {
         return Err("search returned no desktop smoke result".into());
     }

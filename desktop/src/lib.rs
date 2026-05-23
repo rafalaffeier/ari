@@ -6,9 +6,9 @@ pub mod tools;
 
 use chrono::Utc;
 use memory::client::{
-    ActionResponse, AuditEventResponse, AuthResponse, ChatResponse, Conversation, JournalDayResponse,
-    JournalEntryResponse, JournalOverviewResponse, MemoryClient, MemoryClientError, RecentMessage,
-    OrchestrateResponse, PasswordRecoveryResponse, SearchResult,
+    ActionResponse, AuditEventResponse, AuthResponse, ChatResponse, Conversation,
+    JournalDayResponse, JournalEntryResponse, JournalOverviewResponse, MemoryClient,
+    MemoryClientError, OrchestrateResponse, PasswordRecoveryResponse, RecentMessage, SearchResult,
 };
 use memory::crypto::WorkspaceKey;
 use serde::{Deserialize, Serialize};
@@ -281,7 +281,9 @@ async fn clear_desktop_config(
     }
 
     storage::delete_token("access_token").map_err(|error| {
-        DesktopError::storage(format!("failed to remove access token from secure storage: {error}"))
+        DesktopError::storage(format!(
+            "failed to remove access token from secure storage: {error}"
+        ))
     })?;
     if let Some(config) = state.config.read().await.clone() {
         delete_workspace_key(&config.default_workspace_id)?;
@@ -305,9 +307,7 @@ async fn ensure_workspace_key(
 }
 
 #[tauri::command]
-async fn clear_workspace_key(
-    state: State<'_, AppState>,
-) -> Result<(), DesktopError> {
+async fn clear_workspace_key(state: State<'_, AppState>) -> Result<(), DesktopError> {
     let config = state
         .config
         .read()
@@ -383,7 +383,12 @@ async fn orchestrate_with_ari(
 ) -> Result<OrchestrateResponse, DesktopError> {
     let client = memory_client_from_state(&state).await?;
     Ok(client
-        .orchestrate(&message, pending_action, use_memory.unwrap_or(true), memory_limit)
+        .orchestrate(
+            &message,
+            pending_action,
+            use_memory.unwrap_or(true),
+            memory_limit,
+        )
         .await?)
 }
 
@@ -468,9 +473,7 @@ async fn complete_backend_action(
     result: serde_json::Value,
 ) -> Result<ActionResponse, DesktopError> {
     let client = memory_client_from_state(&state).await?;
-    Ok(client
-        .complete_action(&action_id, &status, result)
-        .await?)
+    Ok(client.complete_action(&action_id, &status, result).await?)
 }
 
 #[tauri::command]
@@ -487,7 +490,10 @@ async fn open_browser_url(url: String) -> Result<serde_json::Value, DesktopError
 }
 
 #[tauri::command]
-async fn call_phone_number(phone_number: String, display_name: Option<String>) -> Result<serde_json::Value, DesktopError> {
+async fn call_phone_number(
+    phone_number: String,
+    display_name: Option<String>,
+) -> Result<serde_json::Value, DesktopError> {
     if !permissions::has_permission("phone.call") {
         return Err(DesktopError::tool("missing permission: phone.call"));
     }
@@ -558,8 +564,8 @@ async fn create_reminder(
     if !permissions::has_permission("reminders.write") {
         return Err(DesktopError::tool("missing permission: reminders.write"));
     }
-    let reminder = tools::reminders::create_reminder(&list, &title, &due)
-        .map_err(DesktopError::tool)?;
+    let reminder =
+        tools::reminders::create_reminder(&list, &title, &due).map_err(DesktopError::tool)?;
     Ok(serde_json::json!({
         "tool": "create_reminder",
         "status": "done",
@@ -599,10 +605,7 @@ fn desktop_config_path(app: &tauri::AppHandle) -> Result<PathBuf, DesktopError> 
     Ok(dir.join(CONFIG_FILE_NAME))
 }
 
-fn save_desktop_config(
-    app: &tauri::AppHandle,
-    config: &DesktopConfig,
-) -> Result<(), DesktopError> {
+fn save_desktop_config(app: &tauri::AppHandle, config: &DesktopConfig) -> Result<(), DesktopError> {
     let path = desktop_config_path(app)?;
     let parent = path
         .parent()
@@ -774,7 +777,9 @@ fn workspace_key_id(workspace_id: &str) -> String {
     format!("workspace-key-{workspace_id}-v1")
 }
 
-fn ensure_workspace_key_for_workspace(workspace_id: &str) -> Result<WorkspaceKeyStatus, DesktopError> {
+fn ensure_workspace_key_for_workspace(
+    workspace_id: &str,
+) -> Result<WorkspaceKeyStatus, DesktopError> {
     let storage_name = workspace_key_storage_name(workspace_id);
     match storage::get_token(&storage_name) {
         Ok(_) => Ok(WorkspaceKeyStatus {
@@ -801,7 +806,9 @@ fn ensure_workspace_key_for_workspace(workspace_id: &str) -> Result<WorkspaceKey
 
 fn delete_workspace_key(workspace_id: &str) -> Result<(), DesktopError> {
     storage::delete_token(&workspace_key_storage_name(workspace_id)).map_err(|error| {
-        DesktopError::storage(format!("failed to remove workspace key from secure storage: {error}"))
+        DesktopError::storage(format!(
+            "failed to remove workspace key from secure storage: {error}"
+        ))
     })
 }
 

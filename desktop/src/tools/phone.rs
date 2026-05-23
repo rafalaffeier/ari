@@ -56,7 +56,10 @@ mod tests {
 
     #[test]
     fn normalizes_phone_number() {
-        assert_eq!(normalize_phone_number("+34 600-111-222").unwrap(), "+34600111222");
+        assert_eq!(
+            normalize_phone_number("+34 600-111-222").unwrap(),
+            "+34600111222"
+        );
     }
 
     #[test]

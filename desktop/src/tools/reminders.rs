@@ -13,10 +13,7 @@ pub struct CreatedReminder {
 pub fn list_reminder_lists() -> Result<Vec<String>, String> {
     #[cfg(target_os = "macos")]
     let output = Command::new("osascript")
-        .args([
-            "-e",
-            r#"tell application "Reminders" to get name of lists"#,
-        ])
+        .args(["-e", r#"tell application "Reminders" to get name of lists"#])
         .output();
 
     #[cfg(not(target_os = "macos"))]
