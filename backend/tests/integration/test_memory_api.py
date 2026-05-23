@@ -117,17 +117,18 @@ class MemoryApiTest(unittest.TestCase):
         self.assertEqual(conversation.json()["messages"][0], {"role": "user", "content": user_message})
         self.assertEqual(conversation.json()["messages"][1], {"role": "assistant", "content": "Launch plan noted."})
 
-    def test_chat_prompt_marks_travel_as_planned_not_executable(self):
+    def test_chat_prompt_marks_hotels_as_planned_not_executable(self):
         original_api_key = settings.OPENAI_API_KEY
         original_complete_text = messages.complete_text
 
         async def fake_complete_text(user_prompt: str, system_prompt: str):
             self.assertIn("Executable tools:", user_prompt)
             self.assertIn("Planned/non-executable tools:", user_prompt)
+            self.assertIn("search_hotels", user_prompt)
             self.assertIn("search_flights", user_prompt)
             self.assertIn("[planned/non-executable]", user_prompt)
-            self.assertIn("do not say you are searching", system_prompt)
-            return "Todavía no tengo búsqueda real de vuelos conectada."
+            self.assertIn("non-executable tool", system_prompt)
+            return "Todavía no tengo búsqueda real de hoteles conectada."
 
         settings.OPENAI_API_KEY = "test-key"
         messages.complete_text = fake_complete_text
@@ -135,7 +136,7 @@ class MemoryApiTest(unittest.TestCase):
             response = self.client.post(
                 f"/api/v1/messages/{WORKSPACE_ID}/chat",
                 json={
-                    "message": "Busca vuelos baratos de Barcelona a Tokyo y dame 3 opciones con precios.",
+                    "message": "Busca hoteles en Tokyo y dame 3 opciones con precios.",
                     "use_memory": False,
                 },
             )
@@ -380,7 +381,7 @@ class MemoryApiTest(unittest.TestCase):
         self.assertEqual(payload["params"]["calendar"], "Trabajo")
         self.assertEqual(payload["params"]["start"], "2026-05-24T09:00:00")
 
-    def test_orchestrate_does_not_fake_unconnected_travel_search(self):
+    def test_orchestrate_does_not_fake_unconnected_hotel_search(self):
         original_api_key = settings.OPENAI_API_KEY
         original_complete = messages.complete
 
@@ -389,12 +390,12 @@ class MemoryApiTest(unittest.TestCase):
             return """
             {
               "mode": "tool_ready",
-              "reply": "Buscando vuelos de Lisboa a Valencia para mañana.",
-              "tool_name": "search_flights",
+              "reply": "Buscando hoteles en Valencia para mañana.",
+              "tool_name": "search_hotels",
               "params": {
-                "origin": "Lisboa",
                 "destination": "Valencia",
-                "departure_date": "2026-05-24"
+                "check_in": "2026-05-24",
+                "check_out": "2026-05-25"
               },
               "missing": [],
               "requires_confirmation": false,
@@ -408,7 +409,7 @@ class MemoryApiTest(unittest.TestCase):
         try:
             response = self.client.post(
                 f"/api/v1/messages/{WORKSPACE_ID}/orchestrate",
-                json={"message": "buscame un viaje de Lisboa a Valencia para mañana"},
+                json={"message": "buscame un hotel en Valencia para mañana"},
             )
         finally:
             settings.OPENAI_API_KEY = original_api_key
@@ -419,7 +420,49 @@ class MemoryApiTest(unittest.TestCase):
         self.assertEqual(payload["mode"], "reply")
         self.assertIsNone(payload["tool_name"])
         self.assertIn("Todavía no tengo", payload["reply"])
-        self.assertNotIn("Buscando vuelos", payload["reply"])
+        self.assertNotIn("Buscando hoteles", payload["reply"])
+
+    def test_orchestrate_prepares_flight_search(self):
+        original_api_key = settings.OPENAI_API_KEY
+        original_complete = messages.complete
+
+        async def fake_complete(user_prompt: str, system_prompt: str):
+            self.assertIn("search_flights", user_prompt)
+            return """
+            {
+              "mode": "tool_ready",
+              "reply": "Voy a buscar vuelos con Duffel.",
+              "tool_name": "search_flights",
+              "params": {
+                "origin": "BCN",
+                "destination": "NRT",
+                "departure_date": "2026-07-10",
+                "return_date": "2026-07-24",
+                "passengers": 1
+              },
+              "missing": [],
+              "requires_confirmation": false,
+              "confidence": 0.95,
+              "language": "es"
+            }
+            """
+
+        settings.OPENAI_API_KEY = "test-key"
+        messages.complete = fake_complete
+        try:
+            response = self.client.post(
+                f"/api/v1/messages/{WORKSPACE_ID}/orchestrate",
+                json={"message": "busca vuelos de Barcelona a Tokyo del 10 al 24 de julio"},
+            )
+        finally:
+            settings.OPENAI_API_KEY = original_api_key
+            messages.complete = original_complete
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertEqual(payload["mode"], "tool_ready")
+        self.assertEqual(payload["tool_name"], "search_flights")
+        self.assertEqual(payload["params"]["origin"], "BCN")
 
     def test_orchestrate_prepares_google_maps_url(self):
         original_api_key = settings.OPENAI_API_KEY

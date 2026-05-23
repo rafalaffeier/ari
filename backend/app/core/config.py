@@ -28,6 +28,12 @@ class Settings(BaseSettings):
     GOOGLE_OAUTH_CLIENT_SECRET: str = ""
     GOOGLE_OAUTH_REDIRECT_URI: str = ""
 
+    DUFFEL_ACCESS_TOKEN: str = ""
+    DUFFEL_API_BASE_URL: str = "https://api.duffel.com"
+    DUFFEL_API_VERSION: str = "v2"
+    DUFFEL_TEST_MODE: bool = True
+    DUFFEL_SUPPLIER_TIMEOUT_MS: int = 10000
+
     MEMORY_ROOT: str = "data/memory"
     SYNC_STORAGE_ROOT: str = "data/sync"
     SYNC_STORAGE_BACKEND: str = "local"

@@ -32,6 +32,7 @@ EXECUTABLE_TOOL_NAMES = {
     "append_journal_entry",
     "read_journal_overview",
     "search_memory",
+    "search_flights",
 }
 
 @router.get("/")
