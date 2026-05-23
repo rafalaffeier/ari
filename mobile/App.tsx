@@ -188,7 +188,7 @@ export default function App() {
   const [pendingEntries, setPendingEntries] = useState<PendingEntry[]>([]);
   const [isOffline, setIsOffline] = useState(false);
   const [isBusy, setIsBusy] = useState(false);
-  const [status, setStatus] = useState(STRINGS[deviceLanguage()].ready);
+  const [status, setStatus] = useState<string>(STRINGS[deviceLanguage()].ready);
   const t = STRINGS[language];
   const sections = useMemo(
     () => SECTIONS.map((item) => ({ ...item, label: SECTION_LABELS[language][item.key] })),
