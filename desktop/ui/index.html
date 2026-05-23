@@ -4,10 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ARI — Solara</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400;1,600&family=Jost:wght@200;300;400;500&display=swap" onload="this.onload=null;this.rel='stylesheet'">
-<noscript><link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400;1,600&family=Jost:wght@200;300;400;500&display=swap" rel="stylesheet"></noscript>
 <style>
 :root {
   --cream:    #F7F2EC;
@@ -26,10 +22,13 @@
 
 *{margin:0;padding:0;box-sizing:border-box}
 html,body{height:100%;overflow:hidden;cursor:none;background:var(--dark)}
-body{font-family:'Jost',sans-serif;color:var(--cream)}
+body{font-family:'Jost',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:var(--cream)}
 canvas{position:fixed;inset:0;z-index:0;pointer-events:none}
 button,input,textarea{font:inherit}
 button{cursor:none}
+body.booting canvas,body.booting #cur,body.booting #cd{display:none}
+body.booting .card,body.booting .app{backdrop-filter:none;box-shadow:none}
+body.booting *{animation:none!important;transition:none!important}
 
 #cur{position:fixed;pointer-events:none;z-index:9999;transform:translate(-50%,-50%)}
 #cd{position:fixed;pointer-events:none;z-index:9999;transform:translate(-50%,-50%);
@@ -202,7 +201,7 @@ button{cursor:none}
 }
 </style>
 </head>
-<body>
+<body class="booting">
 <canvas id="cv"></canvas>
 <div class="libra-label" id="libra-lbl">⚖ Libra</div>
 
@@ -366,8 +365,8 @@ button{cursor:none}
 <script>
 const cur=document.getElementById('cur'),cd=document.getElementById('cd');
 let mx=window.innerWidth/2,my=window.innerHeight/2,cx=mx,cy=my;
-document.addEventListener('mousemove',e=>{mx=e.clientX;my=e.clientY;cd.style.left=mx+'px';cd.style.top=my+'px'});
-(function ac(){cx+=(mx-cx)*.09;cy+=(my-cy)*.09;cur.style.left=(cx-15)+'px';cur.style.top=(cy-15)+'px';requestAnimationFrame(ac)})();
+let visualEffectsStarted=false;
+function animateCursor(){cx+=(mx-cx)*.09;cy+=(my-cy)*.09;cur.style.left=(cx-15)+'px';cur.style.top=(cy-15)+'px';requestAnimationFrame(animateCursor)}
 
 const cv=document.getElementById('cv'),ctx=cv.getContext('2d');
 function resize(){cv.width=window.innerWidth;cv.height=window.innerHeight;placeLibra()}
@@ -391,11 +390,10 @@ function placeLibra(){
   const lbl=document.getElementById('libra-lbl');lbl.style.left=(libraX+libraW*.3)+'px';lbl.style.top=(libraY+libraH+14)+'px';
 }
 function sp(s){return{x:libraX+s.rx*libraW,y:libraY+s.ry*libraH}}
-const fieldStars=Array.from({length:180},()=>({x:Math.random()*9999,y:Math.random()*9999,r:.15+Math.random()*.7,ph:Math.random()*Math.PI*2,sp:.002+Math.random()*.008,warm:Math.random()<.4}));
-const dust=Array.from({length:45},()=>({x:Math.random()*window.innerWidth,y:Math.random()*window.innerHeight,vx:(Math.random()-.5)*.1,vy:(Math.random()-.5)*.1,r:.5+Math.random()*1.5}));
+let fieldStars=[];
+let dust=[];
 let shoots=[];
 function addShoot(){shoots.push({x:Math.random()*cv.width,y:cv.height*.05+Math.random()*cv.height*.5,vx:2+Math.random()*3,vy:(Math.random()-.5)*.5,life:1});setTimeout(addShoot,5000+Math.random()*8000)}
-addShoot();resize();
 let t=0;
 function draw(){
   t+=.008;ctx.clearRect(0,0,cv.width,cv.height);
@@ -413,7 +411,18 @@ function draw(){
   shoots=shoots.filter(s=>{s.x+=s.vx;s.y+=s.vy;s.life-=.012;if(s.life<=0)return false;const sg=ctx.createLinearGradient(s.x-s.vx*20,s.y,s.x,s.y);sg.addColorStop(0,'transparent');sg.addColorStop(1,`rgba(201,169,110,${s.life*.5})`);ctx.beginPath();ctx.moveTo(s.x-s.vx*20,s.y);ctx.lineTo(s.x,s.y);ctx.strokeStyle=sg;ctx.lineWidth=.8;ctx.stroke();return true});
   requestAnimationFrame(draw);
 }
-requestAnimationFrame(draw);
+function startVisualEffects(){
+  if(visualEffectsStarted)return;
+  visualEffectsStarted=true;
+  document.body.classList.remove('booting');
+  document.addEventListener('mousemove',e=>{mx=e.clientX;my=e.clientY;cd.style.left=mx+'px';cd.style.top=my+'px'});
+  fieldStars=Array.from({length:180},()=>({x:Math.random()*9999,y:Math.random()*9999,r:.15+Math.random()*.7,ph:Math.random()*Math.PI*2,sp:.002+Math.random()*.008,warm:Math.random()<.4}));
+  dust=Array.from({length:45},()=>({x:Math.random()*window.innerWidth,y:Math.random()*window.innerHeight,vx:(Math.random()-.5)*.1,vy:(Math.random()-.5)*.1,r:.5+Math.random()*1.5}));
+  addShoot();
+  resize();
+  requestAnimationFrame(animateCursor);
+  requestAnimationFrame(draw);
+}
 
 let activeMode='text',authSession=null,authMode='login',currentConversationHasMessages=false,pendingAction=null,spokenReplies=localStorage.getItem('ari.spokenReplies')==='true',listening=false,mediaRecorder=null,voiceChunks=[];
 let userPrefs=loadUserPreferences();
@@ -426,6 +435,12 @@ const localMemoryRoot='/tmp/ai-assistant-memory';
 function loadUserPreferences(){try{return JSON.parse(localStorage.getItem('ari.preferences')||'{}')}catch(_error){return {}}}
 function saveUserPreferences(){localStorage.setItem('ari.preferences',JSON.stringify(userPrefs))}
 function afterFirstPaint(fn){requestAnimationFrame(()=>setTimeout(fn,0))}
+function loadFontsLater(){
+  const link=document.createElement('link');
+  link.rel='stylesheet';
+  link.href='https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400;1,600&family=Jost:wght@200;300;400;500&display=swap';
+  document.head.appendChild(link);
+}
 function isLocalBackendUrl(url){
   try{
     const parsed=new URL(url);
@@ -1559,6 +1574,8 @@ function renderConversation(conversation){const msgs=document.getElementById('me
 async function initializeApp(){
   syncVoiceControls();
   afterFirstPaint(async()=>{
+    setTimeout(startVisualEffects,120);
+    setTimeout(loadFontsLater,900);
     await loadDefaultBackendUrl();
     await loadDesktopSession();
   });
