@@ -32,6 +32,17 @@ cargo check
 cargo run
 ```
 
+For fast desktop iteration, keep the `cargo run` window open and edit files under `desktop/ui`.
+Press `Cmd+R` on macOS or `Ctrl+R` on Windows/Linux inside the desktop window to reload the
+current HTML/CSS/JS without reinstalling the app. Rust/Tauri command changes still require stopping
+and re-running `cargo run`, but they do not require reinstalling either.
+
+The desktop app points at `https://ari.flusscreative.com` by default. To test against a local backend:
+
+```bash
+AI_ASSISTANT_BACKEND_URL="http://127.0.0.1:8000" cargo run
+```
+
 The desktop crate exposes Tauri commands for backend login/register and Phase 2 memory access:
 
 ```text
