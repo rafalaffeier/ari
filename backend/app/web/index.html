@@ -1138,6 +1138,11 @@
         }
         if (!response.ok) throw new Error(await readError(response));
         if (state.mode === "forgot") {
+          const recovery = await response.json();
+          if (recovery.reset_url) {
+            window.location.href = recovery.reset_url;
+            return;
+          }
           setStatus(tr("recoverySent"), "ok");
         } else if (state.mode === "reset") {
           state.resetToken = "";

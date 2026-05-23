@@ -14,6 +14,32 @@ class AuthRecoveryEmailTest(unittest.TestCase):
         self.assertNotEqual(token_hash, token)
         self.assertEqual(len(token_hash), 64)
 
+    def test_dev_recovery_url_is_only_exposed_without_smtp_in_local_debug(self):
+        original_smtp_host = auth.settings.SMTP_HOST
+        original_debug = auth.settings.DEBUG
+        original_env = auth.settings.ENV
+        try:
+            auth.settings.SMTP_HOST = ""
+            auth.settings.DEBUG = True
+            auth.settings.ENV = "local"
+
+            self.assertTrue(auth._should_expose_dev_recovery_url())
+
+            auth.settings.DEBUG = False
+            auth.settings.ENV = "production"
+
+            self.assertFalse(auth._should_expose_dev_recovery_url())
+
+            auth.settings.SMTP_HOST = "smtp.example.com"
+            auth.settings.DEBUG = True
+            auth.settings.ENV = "local"
+
+            self.assertFalse(auth._should_expose_dev_recovery_url())
+        finally:
+            auth.settings.SMTP_HOST = original_smtp_host
+            auth.settings.DEBUG = original_debug
+            auth.settings.ENV = original_env
+
     def test_auth_email_template_uses_ari_branding(self):
         html = _auth_email_template(
             eyebrow="Recuperacion segura",

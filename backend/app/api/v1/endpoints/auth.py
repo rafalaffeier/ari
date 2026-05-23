@@ -95,6 +95,7 @@ async def forgot_password(
     request: Request,
     db: AsyncSession = Depends(get_db),
 ):
+    response = {"detail": "If the email exists, recovery instructions have been sent"}
     result = await db.execute(select(User).where(User.email == body.email))
     user = result.scalar_one_or_none()
     if user:
@@ -117,7 +118,9 @@ async def forgot_password(
         await db.commit()
         reset_url = _password_reset_url(request, raw_token)
         _send_password_reset_email_safely(user.email, reset_url)
-    return {"detail": "If the email exists, recovery instructions have been sent"}
+        if _should_expose_dev_recovery_url():
+            response["reset_url"] = reset_url
+    return response
 
 @router.post("/reset-password")
 async def reset_password(body: ResetPasswordRequest, db: AsyncSession = Depends(get_db)):
@@ -266,6 +269,9 @@ def _hash_reset_token(token: str) -> str:
 def _password_reset_url(request: Request, token: str) -> str:
     base_url = settings.PUBLIC_APP_URL.rstrip("/") or str(request.base_url).rstrip("/")
     return f"{base_url}/?reset_token={quote(token)}"
+
+def _should_expose_dev_recovery_url() -> bool:
+    return not settings.SMTP_HOST and (settings.DEBUG or settings.ENV == "local")
 
 def _send_welcome_email_safely(email: str) -> None:
     try:
