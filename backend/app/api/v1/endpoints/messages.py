@@ -514,6 +514,10 @@ If the user asks for an available tool, extract params from natural language and
 If a required field is missing, mode is ask and missing lists only those fields.
 If all required fields are present and the tool requires confirmation, mode is tool_confirmation.
 If all required fields are present and the tool does not require confirmation, mode is tool_ready.
+For map or directions requests, prepare open_browser_url when the place or route is clear:
+- Place/search URL: https://www.google.com/maps/search/?api=1&query={url_encoded_query}
+- Route URL: https://www.google.com/maps/dir/?api=1&origin={url_encoded_origin}&destination={url_encoded_destination}
+Do not ask the user to provide the map URL if you can construct it from their request.
 For calendar events without duration, assume 30 minutes.
 For relative dates, use the provided current date.
 For short follow-ups, merge with pending_action instead of starting over.

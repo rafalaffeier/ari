@@ -392,6 +392,47 @@ class MemoryApiTest(unittest.TestCase):
         self.assertIn("Todavía no tengo", payload["reply"])
         self.assertNotIn("Buscando vuelos", payload["reply"])
 
+    def test_orchestrate_prepares_google_maps_url(self):
+        original_api_key = settings.OPENAI_API_KEY
+        original_complete = messages.complete
+
+        async def fake_complete(user_prompt: str, system_prompt: str):
+            self.assertIn("Do not ask the user to provide the map URL", system_prompt)
+            self.assertIn("open_browser_url", user_prompt)
+            return """
+            {
+              "mode": "tool_confirmation",
+              "reply": "Puedo abrir la ruta en Google Maps.",
+              "tool_name": "open_browser_url",
+              "params": {
+                "url": "https://www.google.com/maps/dir/?api=1&origin=Barcelona%20Sants&destination=Aeropuerto%20El%20Prat"
+              },
+              "missing": [],
+              "requires_confirmation": true,
+              "confidence": 0.96,
+              "language": "es"
+            }
+            """
+
+        settings.OPENAI_API_KEY = "test-key"
+        messages.complete = fake_complete
+        try:
+            response = self.client.post(
+                f"/api/v1/messages/{WORKSPACE_ID}/orchestrate",
+                json={"message": "abre un mapa de Barcelona Sants al aeropuerto de El Prat"},
+            )
+        finally:
+            settings.OPENAI_API_KEY = original_api_key
+            messages.complete = original_complete
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertEqual(payload["mode"], "tool_confirmation")
+        self.assertEqual(payload["tool_name"], "open_browser_url")
+        self.assertEqual(payload["missing"], [])
+        self.assertTrue(payload["requires_confirmation"])
+        self.assertIn("google.com/maps/dir/", payload["params"]["url"])
+
 
 if __name__ == "__main__":
     unittest.main()
