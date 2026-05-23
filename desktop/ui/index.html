@@ -4,7 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ARI — Solara</title>
-<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400;1,600&family=Jost:wght@200;300;400;500&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400;1,600&family=Jost:wght@200;300;400;500&display=swap" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400;1,600&family=Jost:wght@200;300;400;500&display=swap" rel="stylesheet"></noscript>
 <style>
 :root {
   --cream:    #F7F2EC;
@@ -388,13 +391,13 @@ function placeLibra(){
   const lbl=document.getElementById('libra-lbl');lbl.style.left=(libraX+libraW*.3)+'px';lbl.style.top=(libraY+libraH+14)+'px';
 }
 function sp(s){return{x:libraX+s.rx*libraW,y:libraY+s.ry*libraH}}
-const fieldStars=Array.from({length:280},()=>({x:Math.random()*9999,y:Math.random()*9999,r:.15+Math.random()*.7,ph:Math.random()*Math.PI*2,sp:.002+Math.random()*.008,warm:Math.random()<.4}));
-const dust=Array.from({length:80},()=>({x:Math.random()*window.innerWidth,y:Math.random()*window.innerHeight,vx:(Math.random()-.5)*.1,vy:(Math.random()-.5)*.1,r:.5+Math.random()*1.5}));
+const fieldStars=Array.from({length:180},()=>({x:Math.random()*9999,y:Math.random()*9999,r:.15+Math.random()*.7,ph:Math.random()*Math.PI*2,sp:.002+Math.random()*.008,warm:Math.random()<.4}));
+const dust=Array.from({length:45},()=>({x:Math.random()*window.innerWidth,y:Math.random()*window.innerHeight,vx:(Math.random()-.5)*.1,vy:(Math.random()-.5)*.1,r:.5+Math.random()*1.5}));
 let shoots=[];
 function addShoot(){shoots.push({x:Math.random()*cv.width,y:cv.height*.05+Math.random()*cv.height*.5,vx:2+Math.random()*3,vy:(Math.random()-.5)*.5,life:1});setTimeout(addShoot,5000+Math.random()*8000)}
 addShoot();resize();
 let t=0;
-(function draw(){
+function draw(){
   t+=.008;ctx.clearRect(0,0,cv.width,cv.height);
   const g1=ctx.createRadialGradient(cv.width*.5,cv.height*.5,0,cv.width*.5,cv.height*.5,cv.width*.55);
   g1.addColorStop(0,'rgba(180,100,30,0.07)');g1.addColorStop(.5,'rgba(130,60,10,0.04)');g1.addColorStop(1,'transparent');ctx.fillStyle=g1;ctx.fillRect(0,0,cv.width,cv.height);
@@ -409,7 +412,8 @@ let t=0;
   ctx.fillStyle='rgba(201,169,110,0.2)';ctx.font='200 8px Jost, sans-serif';LIBRA_STARS.filter(s=>s.main).forEach(s=>{const{x,y}=sp(s);ctx.fillText(s.name,x+8,y-6)});
   shoots=shoots.filter(s=>{s.x+=s.vx;s.y+=s.vy;s.life-=.012;if(s.life<=0)return false;const sg=ctx.createLinearGradient(s.x-s.vx*20,s.y,s.x,s.y);sg.addColorStop(0,'transparent');sg.addColorStop(1,`rgba(201,169,110,${s.life*.5})`);ctx.beginPath();ctx.moveTo(s.x-s.vx*20,s.y);ctx.lineTo(s.x,s.y);ctx.strokeStyle=sg;ctx.lineWidth=.8;ctx.stroke();return true});
   requestAnimationFrame(draw);
-})();
+}
+requestAnimationFrame(draw);
 
 let activeMode='text',authSession=null,authMode='login',currentConversationHasMessages=false,pendingAction=null,spokenReplies=localStorage.getItem('ari.spokenReplies')==='true',listening=false,mediaRecorder=null,voiceChunks=[];
 let userPrefs=loadUserPreferences();
@@ -421,6 +425,7 @@ const localMemoryRoot='/tmp/ai-assistant-memory';
 
 function loadUserPreferences(){try{return JSON.parse(localStorage.getItem('ari.preferences')||'{}')}catch(_error){return {}}}
 function saveUserPreferences(){localStorage.setItem('ari.preferences',JSON.stringify(userPrefs))}
+function afterFirstPaint(fn){requestAnimationFrame(()=>setTimeout(fn,0))}
 function isLocalBackendUrl(url){
   try{
     const parsed=new URL(url);
@@ -1552,9 +1557,11 @@ async function openConversation(el){
 }
 function renderConversation(conversation){const msgs=document.getElementById('messages');msgs.innerHTML='';currentConversationHasMessages=false;conversation.messages.forEach(message=>addMessage(message.content,message.role==='assistant'?'ai':'user'));currentConversationHasMessages=true;document.getElementById('chat-meta').textContent=`ARI · ${conversation.date} · line ${conversation.line_number}`;showScreen('screen-chat')}
 async function initializeApp(){
-  await loadDefaultBackendUrl();
-  await loadDesktopSession();
   syncVoiceControls();
+  afterFirstPaint(async()=>{
+    await loadDefaultBackendUrl();
+    await loadDesktopSession();
+  });
 }
 initializeApp();
 </script>
