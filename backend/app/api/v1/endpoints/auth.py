@@ -1,4 +1,7 @@
 import uuid
+import hashlib
+import logging
+import secrets
 from datetime import datetime, timedelta, timezone
 from urllib.parse import quote, urlencode, urlparse
 
@@ -12,11 +15,14 @@ from sqlalchemy import select
 from app.core.config import settings
 from app.core.database import get_db
 from app.core.security import verify_password, create_access_token, hash_password
+from app.services.email import send_password_reset_email, send_welcome_email
+from app.models.password_reset import PasswordResetToken
 from app.models.user import User
 from app.models.workspace import Workspace, WorkspaceRole, WorkspaceUser
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, Field
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 GOOGLE_AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth"
 GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token"
@@ -27,7 +33,14 @@ GOOGLE_EXCHANGE_TTL_MINUTES = 5
 
 class RegisterRequest(BaseModel):
     email: EmailStr
-    password: str
+    password: str = Field(min_length=8)
+
+class ForgotPasswordRequest(BaseModel):
+    email: EmailStr
+
+class ResetPasswordRequest(BaseModel):
+    token: str = Field(min_length=32)
+    password: str = Field(min_length=8)
 
 class GoogleExchangeRequest(BaseModel):
     code: str
@@ -54,6 +67,7 @@ async def register(body: RegisterRequest, db: AsyncSession = Depends(get_db)):
     await db.commit()
     await db.refresh(user)
     await db.refresh(workspace)
+    _send_welcome_email_safely(user.email)
     token = create_access_token(str(user.id))
     return TokenResponse(access_token=token, user_id=user.id, default_workspace_id=workspace.id, email=user.email)
 
@@ -74,6 +88,55 @@ async def login(form: OAuth2PasswordRequestForm = Depends(), db: AsyncSession = 
         default_workspace_id=default_workspace.workspace_id if default_workspace else None,
         email=user.email,
     )
+
+@router.post("/forgot-password")
+async def forgot_password(
+    body: ForgotPasswordRequest,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+):
+    result = await db.execute(select(User).where(User.email == body.email))
+    user = result.scalar_one_or_none()
+    if user:
+        now = datetime.now(timezone.utc)
+        existing_tokens = await db.execute(
+            select(PasswordResetToken).where(
+                PasswordResetToken.user_id == user.id,
+                PasswordResetToken.used_at.is_(None),
+            )
+        )
+        for existing_token in existing_tokens.scalars():
+            existing_token.used_at = now
+        raw_token = secrets.token_urlsafe(48)
+        reset_token = PasswordResetToken(
+            user_id=user.id,
+            token_hash=_hash_reset_token(raw_token),
+            expires_at=now + timedelta(minutes=settings.PASSWORD_RESET_TOKEN_EXPIRE_MINUTES),
+        )
+        db.add(reset_token)
+        await db.commit()
+        reset_url = _password_reset_url(request, raw_token)
+        _send_password_reset_email_safely(user.email, reset_url)
+    return {"detail": "If the email exists, recovery instructions have been sent"}
+
+@router.post("/reset-password")
+async def reset_password(body: ResetPasswordRequest, db: AsyncSession = Depends(get_db)):
+    token_hash = _hash_reset_token(body.token.strip())
+    result = await db.execute(select(PasswordResetToken).where(PasswordResetToken.token_hash == token_hash))
+    reset_token = result.scalar_one_or_none()
+    now = datetime.now(timezone.utc)
+    if not reset_token or reset_token.used_at or reset_token.expires_at < now:
+        raise HTTPException(status_code=400, detail="Invalid or expired recovery link")
+
+    user_result = await db.execute(select(User).where(User.id == reset_token.user_id))
+    user = user_result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(status_code=400, detail="Invalid or expired recovery link")
+
+    user.password_hash = hash_password(body.password)
+    reset_token.used_at = now
+    await db.commit()
+    return {"detail": "Password updated"}
 
 @router.get("/google/start")
 async def google_start(
@@ -197,6 +260,25 @@ def _encode_google_exchange_code(auth: TokenResponse) -> str:
         algorithm="HS256",
     )
 
+def _hash_reset_token(token: str) -> str:
+    return hashlib.sha256(token.encode("utf-8")).hexdigest()
+
+def _password_reset_url(request: Request, token: str) -> str:
+    base_url = settings.PUBLIC_APP_URL.rstrip("/") or str(request.base_url).rstrip("/")
+    return f"{base_url}/?reset_token={quote(token)}"
+
+def _send_welcome_email_safely(email: str) -> None:
+    try:
+        send_welcome_email(email)
+    except Exception:
+        logger.exception("Failed to send welcome email to %s", email)
+
+def _send_password_reset_email_safely(email: str, reset_url: str) -> None:
+    try:
+        send_password_reset_email(email, reset_url, settings.PASSWORD_RESET_TOKEN_EXPIRE_MINUTES)
+    except Exception:
+        logger.exception("Failed to send password reset email to %s", email)
+
 async def _exchange_google_code(request: Request, code: str) -> dict:
     redirect_uri = _google_redirect_uri(request)
     async with httpx.AsyncClient(timeout=12.0) as client:
@@ -243,6 +325,7 @@ async def _get_or_create_google_user(db: AsyncSession, email: str) -> tuple[User
         await db.commit()
         await db.refresh(user)
         await db.refresh(workspace)
+        _send_welcome_email_safely(user.email)
         return user, workspace
 
     workspace_result = await db.execute(

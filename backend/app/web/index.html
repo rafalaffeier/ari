@@ -152,6 +152,7 @@
       text-underline-offset: 4px;
     }
     .link:hover { color: var(--gold); }
+    .auth-secondary { margin-top: 16px; text-align: center; font-size: 10px; letter-spacing: 2px; text-transform: uppercase; }
 
     .social {
       width: 100%;
@@ -361,6 +362,9 @@
           </div>
           <button class="cta" id="authBtn" type="submit">Align me →</button>
         </form>
+        <div class="auth-secondary">
+          <button class="link" id="forgotBtn" type="button">Forgot password?</button>
+        </div>
       </div>
 
       <div class="card-bottom-rule"></div>
@@ -468,6 +472,7 @@
       spokenReplies: localStorage.getItem("ari.spokenReplies") === "true",
       language: localStorage.getItem("ari.appLanguage") || "",
       listening: false,
+      resetToken: "",
     };
 
     const LANGUAGES = [
@@ -487,6 +492,8 @@
         askPlaceholder: "Ask the sun...",
         authCreateStatus: "— create your private account —",
         authLoginStatus: "— log in to use ARI —",
+        authForgotStatus: "— we will send a recovery link —",
+        authResetStatus: "— choose a new password —",
         begin: "Begin your expansion",
         connected: "ONLINE",
         continueGoogle: "Continue with Google",
@@ -494,6 +501,7 @@
         createLight: "Create light ->",
         divider: "✦ or ✦",
         firstTime: "First time here?",
+        forgotPassword: "Forgot password?",
         heading: "Access your light",
         login: "Login",
         loginRequired: "ARI · login required",
@@ -515,7 +523,11 @@
         prioritiesCopy: "Shape the day into actions",
         recent: "Recent queries",
         returnLogin: "Return to login",
+        resetPassword: "Reset password ->",
+        sendRecovery: "Send recovery ->",
         sessionActive: "— session active —",
+        recoverySent: "— recovery email sent —",
+        passwordUpdated: "— password updated —",
         text: "Text",
         voice: "Voice",
         voiceOff: "ARI · voice replies off",
@@ -535,6 +547,8 @@
         askPlaceholder: "Pregunta al sol...",
         authCreateStatus: "— crea tu cuenta privada —",
         authLoginStatus: "— inicia sesion para usar ARI —",
+        authForgotStatus: "— enviaremos un enlace de recuperacion —",
+        authResetStatus: "— elige una contrasena nueva —",
         begin: "Comienza tu expansion",
         connected: "EN LINEA",
         continueGoogle: "Continuar con Google",
@@ -542,6 +556,7 @@
         createLight: "Crear luz ->",
         divider: "✦ o ✦",
         firstTime: "Primera vez aqui?",
+        forgotPassword: "Olvidaste tu contrasena?",
         heading: "Accede a tu luz",
         login: "Entrar",
         loginRequired: "ARI · acceso requerido",
@@ -563,7 +578,11 @@
         prioritiesCopy: "Ordena el dia en acciones",
         recent: "Consultas recientes",
         returnLogin: "Volver al acceso",
+        resetPassword: "Cambiar contrasena ->",
+        sendRecovery: "Enviar recuperacion ->",
         sessionActive: "— sesion activa —",
+        recoverySent: "— email de recuperacion enviado —",
+        passwordUpdated: "— contrasena actualizada —",
         text: "Texto",
         voice: "Voz",
         voiceOff: "ARI · respuestas de voz apagadas",
@@ -873,6 +892,7 @@
     const authForm = document.getElementById("authForm");
     const authFooterText = document.getElementById("authFooterText");
     const authToggle = document.getElementById("authToggle");
+    const forgotBtn = document.getElementById("forgotBtn");
     const googleBtn = document.getElementById("googleBtn");
     const authDivider = document.getElementById("authDivider");
     const chatMeta = document.getElementById("chatMeta");
@@ -923,8 +943,7 @@
       googleBtn.lastChild.textContent = ` ${tr("continueGoogle")}`;
       authDivider.textContent = tr("divider");
       authBtn.textContent = state.mode === "login" ? tr("alignMe") : tr("createLight");
-      authFooterText.textContent = state.mode === "login" ? tr("firstTime") : "Already aligned?";
-      authToggle.textContent = state.mode === "login" ? tr("begin") : tr("returnLogin");
+      forgotBtn.textContent = tr("forgotPassword");
       document.querySelector(".chat-title").textContent = tr("activeQuery");
       document.getElementById("newQueryBtn").textContent = tr("newQuery");
       document.querySelector(".side-label").textContent = tr("recent");
@@ -947,14 +966,38 @@
 
     function setAuthMode(mode) {
       state.mode = mode;
+      const emailInput = document.getElementById("email");
+      const passwordInput = document.getElementById("password");
+      const emailGroup = emailInput.closest(".fg");
+      const passwordGroup = passwordInput.closest(".fg");
       loginTab.classList.toggle("active", mode === "login");
       registerTab.classList.toggle("active", mode === "register");
-      authBtn.textContent = mode === "login" ? tr("alignMe") : tr("createLight");
+      authBtn.textContent = mode === "login"
+        ? tr("alignMe")
+        : mode === "register"
+          ? tr("createLight")
+          : mode === "forgot"
+            ? tr("sendRecovery")
+            : tr("resetPassword");
       authFooterText.textContent = mode === "login" ? tr("firstTime") : "Already aligned?";
       authToggle.textContent = mode === "login" ? tr("begin") : tr("returnLogin");
+      emailGroup.style.display = mode === "reset" ? "none" : "block";
+      passwordGroup.style.display = mode === "forgot" ? "none" : "block";
+      emailInput.required = mode !== "reset";
+      passwordInput.required = mode !== "forgot";
+      passwordInput.autocomplete = mode === "reset" ? "new-password" : "current-password";
       googleBtn.style.display = mode === "login" ? "flex" : "none";
       authDivider.style.display = mode === "login" ? "flex" : "none";
-      setStatus(mode === "login" ? tr("authLoginStatus") : tr("authCreateStatus"));
+      forgotBtn.style.display = mode === "login" ? "inline" : "none";
+      setStatus(
+        mode === "login"
+          ? tr("authLoginStatus")
+          : mode === "register"
+            ? tr("authCreateStatus")
+            : mode === "forgot"
+              ? tr("authForgotStatus")
+              : tr("authResetStatus"),
+      );
     }
 
     function showScreen(name) {
@@ -1019,11 +1062,23 @@
       authBtn.disabled = true;
       const email = document.getElementById("email").value.trim();
       const password = document.getElementById("password").value;
-      setStatus(state.mode === "login" ? "— connecting —" : "— creating account —");
+      setStatus(state.mode === "login" ? "— connecting —" : state.mode === "register" ? "— creating account —" : "— working —");
 
       try {
         let response;
-        if (state.mode === "register") {
+        if (state.mode === "forgot") {
+          response = await fetch("/api/v1/auth/forgot-password", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email }),
+          });
+        } else if (state.mode === "reset") {
+          response = await fetch("/api/v1/auth/reset-password", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ token: state.resetToken, password }),
+          });
+        } else if (state.mode === "register") {
           response = await fetch("/api/v1/auth/register", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -1040,8 +1095,17 @@
           });
         }
         if (!response.ok) throw new Error(await readError(response));
-        saveSession(await response.json(), email);
-        setStatus(tr("sessionActive"), "ok");
+        if (state.mode === "forgot") {
+          setStatus(tr("recoverySent"), "ok");
+        } else if (state.mode === "reset") {
+          state.resetToken = "";
+          history.replaceState(null, "", window.location.pathname);
+          setAuthMode("login");
+          setStatus(tr("passwordUpdated"), "ok");
+        } else {
+          saveSession(await response.json(), email);
+          setStatus(tr("sessionActive"), "ok");
+        }
       } catch (error) {
         setStatus(error.message, "error");
       } finally {
@@ -1050,6 +1114,7 @@
     });
 
     authToggle.addEventListener("click", () => setAuthMode(state.mode === "login" ? "register" : "login"));
+    forgotBtn.addEventListener("click", () => setAuthMode("forgot"));
     loginTab.addEventListener("click", () => setAuthMode("login"));
     registerTab.addEventListener("click", () => setAuthMode("register"));
     googleBtn.addEventListener("click", () => {
@@ -1445,7 +1510,9 @@
     drawSky();
     buildLanguageSelect(authLanguage);
     buildLanguageSelect(appLanguage);
-    setAuthMode("login");
+    const resetParams = new URLSearchParams(window.location.search);
+    state.resetToken = resetParams.get("reset_token") || "";
+    setAuthMode(state.resetToken ? "reset" : "login");
     applyTranslations();
     syncSession();
     hydrateGoogleCallback();

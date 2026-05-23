@@ -28,6 +28,15 @@ class Settings(BaseSettings):
     GOOGLE_OAUTH_CLIENT_SECRET: str = ""
     GOOGLE_OAUTH_REDIRECT_URI: str = ""
 
+    PUBLIC_APP_URL: str = "http://localhost:8000"
+    EMAIL_FROM: str = "ARI <no-reply@ari.local>"
+    SMTP_HOST: str = ""
+    SMTP_PORT: int = 587
+    SMTP_USERNAME: str = ""
+    SMTP_PASSWORD: str = ""
+    SMTP_USE_TLS: bool = True
+    PASSWORD_RESET_TOKEN_EXPIRE_MINUTES: int = 30
+
     DUFFEL_ACCESS_TOKEN: str = ""
     DUFFEL_API_BASE_URL: str = "https://api.duffel.com"
     DUFFEL_API_VERSION: str = "v2"
@@ -61,6 +70,8 @@ class Settings(BaseSettings):
                 raise ValueError("S3_BUCKET is required when SYNC_STORAGE_BACKEND=s3")
             if bool(self.GOOGLE_OAUTH_CLIENT_ID) != bool(self.GOOGLE_OAUTH_CLIENT_SECRET):
                 raise ValueError("GOOGLE_OAUTH_CLIENT_ID and GOOGLE_OAUTH_CLIENT_SECRET must be set together")
+            if bool(self.SMTP_USERNAME) != bool(self.SMTP_PASSWORD):
+                raise ValueError("SMTP_USERNAME and SMTP_PASSWORD must be set together")
         if self.SYNC_STORAGE_BACKEND not in {"local", "s3"}:
             raise ValueError("SYNC_STORAGE_BACKEND must be local or s3")
         if self.RATE_LIMIT_REQUESTS < 1:

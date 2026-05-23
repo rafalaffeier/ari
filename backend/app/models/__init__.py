@@ -11,3 +11,4 @@ from .job import Job
 from .travel import TravelSearch, TravelResult, TravelPriceAlert
 from .sync import FileVersion, SyncEvent, WorkspaceKeyWrap, WorkspaceRecoveryWrap
 from .integration import Integration
+from .password_reset import PasswordResetToken
