@@ -44,6 +44,17 @@ struct RegisterRequest<'a> {
 }
 
 #[derive(Debug, Serialize)]
+struct ForgotPasswordRequest<'a> {
+    email: &'a str,
+}
+
+#[derive(Debug, Serialize)]
+struct ResetPasswordRequest<'a> {
+    token: &'a str,
+    password: &'a str,
+}
+
+#[derive(Debug, Serialize)]
 struct GoogleExchangeRequest<'a> {
     code: &'a str,
 }
@@ -55,6 +66,12 @@ pub struct AuthResponse {
     pub user_id: String,
     pub default_workspace_id: Option<String>,
     pub email: Option<String>,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+pub struct PasswordRecoveryResponse {
+    pub detail: String,
+    pub reset_url: Option<String>,
 }
 
 #[derive(Debug, Serialize)]
@@ -335,6 +352,29 @@ impl MemoryClient {
             self.http
                 .post(url)
                 .form(&[("username", email), ("password", password)]),
+        )
+        .await
+    }
+
+    pub async fn forgot_password(
+        &self,
+        email: &str,
+    ) -> Result<PasswordRecoveryResponse, MemoryClientError> {
+        let url = format!("{}/api/v1/auth/forgot-password", self.backend_url);
+        self.send_json(self.http.post(url).json(&ForgotPasswordRequest { email }))
+            .await
+    }
+
+    pub async fn reset_password(
+        &self,
+        token: &str,
+        password: &str,
+    ) -> Result<PasswordRecoveryResponse, MemoryClientError> {
+        let url = format!("{}/api/v1/auth/reset-password", self.backend_url);
+        self.send_json(
+            self.http
+                .post(url)
+                .json(&ResetPasswordRequest { token, password }),
         )
         .await
     }

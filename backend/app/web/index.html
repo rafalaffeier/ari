@@ -204,8 +204,9 @@
       overflow: hidden;
     }
 
-    .side-brand { padding: 38px 34px 30px; border-bottom: 1px solid var(--border); }
-    .side-brand .brand-name { font-size: 36px; }
+    .side-brand { padding: 38px 34px 30px; border-bottom: 1px solid var(--border); display: flex; align-items: baseline; gap: 18px; min-width: 0; }
+    .side-brand .brand-name { font-size: 36px; margin-bottom: 0; flex: 0 0 auto; }
+    .side-brand .brand-sub { letter-spacing: 4px; white-space: nowrap; }
     .side-section { padding: 28px 26px 0; min-height: 0; }
     .side-label { margin-bottom: 14px; color: rgba(201,169,110,.35); font-size: 8px; letter-spacing: 5px; text-transform: uppercase; }
     .recent-list { display: flex; flex-direction: column; gap: 8px; }
@@ -223,7 +224,6 @@
     }
     .recent-item:hover, .recent-item.active { border-color: var(--border); background: rgba(201,169,110,.05); color: var(--cream); }
     .glyph { color: rgba(201,169,110,.55); font-family: "Jost", sans-serif; font-size: 11px; margin-right: 10px; }
-    .new-query { width: calc(100% - 52px); margin: 24px 26px 0; }
     .side-footer { margin-top: auto; padding: 22px 26px; border-top: 1px solid var(--border); }
     .user-card { display: flex; align-items: center; gap: 12px; min-width: 0; }
     .avatar { width: 38px; height: 38px; border: 1px solid rgba(201,169,110,.28); display: flex; align-items: center; justify-content: center; color: var(--gold); flex: 0 0 auto; }
@@ -233,7 +233,7 @@
     .main { height: 100vh; min-width: 0; display: grid; grid-template-rows: auto minmax(0,1fr) auto; overflow: hidden; }
     .topbar { height: 92px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 0 42px; background: rgba(20,12,4,.44); }
     .chat-title { font-family: "Cormorant Garamond", serif; font-size: 26px; font-style: italic; font-weight: 300; letter-spacing: 3px; }
-    .chat-meta { margin-top: 5px; color: rgba(201,169,110,.38); font-size: 9px; letter-spacing: 3px; text-transform: uppercase; }
+    .chat-meta { margin-top: 5px; color: rgba(201,169,110,.38); font-size: 9px; letter-spacing: 3px; }
     .actions { display: flex; align-items: center; gap: 12px; }
     .badge { height: 34px; padding: 0 16px; border: 1px solid rgba(201,169,110,.22); display: flex; align-items: center; gap: 10px; color: var(--soft-2); font-size: 9px; letter-spacing: 3px; text-transform: uppercase; white-space: nowrap; }
     .badge-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--gold); box-shadow: 0 0 12px var(--gold); }
@@ -250,7 +250,6 @@
       padding: 0 10px;
       outline: none;
     }
-    .auth-language { width: 100%; margin-bottom: 18px; }
 
     .messages { min-height: 0; overflow: auto; padding: 42px; display: flex; flex-direction: column; gap: 24px; }
     .messages::-webkit-scrollbar { width: 6px; }
@@ -300,7 +299,8 @@
     .composer { display: grid; grid-template-columns: 1fr 46px 46px; gap: 14px; align-items: end; border: 1px solid rgba(201,169,110,.22); padding: 10px 16px; background: rgba(20,12,4,.44); }
     .composer textarea { min-height: 44px; max-height: 120px; resize: none; border-bottom: 0; padding: 10px 0 6px; }
     .send { height: 46px; border: 1px solid rgba(201,169,110,.35); background: rgba(201,169,110,.06); color: var(--gold); font-size: 18px; }
-    .voice-btn { height: 46px; border: 1px solid rgba(201,169,110,.22); background: rgba(201,169,110,.035); color: rgba(201,169,110,.68); font-size: 17px; }
+    .voice-btn { height: 46px; border: 1px solid rgba(201,169,110,.22); background: rgba(201,169,110,.035); color: rgba(201,169,110,.68); font-size: 17px; display: flex; align-items: center; justify-content: center; }
+    .voice-icon { width: 18px; height: 18px; display: block; }
     .voice-btn:hover, .voice-btn.active { border-color: rgba(201,169,110,.55); color: var(--cream); box-shadow: 0 0 22px rgba(201,169,110,.1); }
     .voice-btn.listening { color: var(--danger); border-color: rgba(232,161,142,.58); box-shadow: 0 0 24px rgba(232,161,142,.16); }
 
@@ -350,19 +350,11 @@
 
         <div class="heading" id="authHeading">Access your light</div>
         <div class="sub-h" id="status">— log in to use ARI —</div>
-        <select class="language-select auth-language" id="authLanguage" aria-label="Language"></select>
 
         <div class="tabs">
           <button class="tab active" id="loginTab" type="button">Login</button>
           <button class="tab" id="registerTab" type="button">Create</button>
         </div>
-
-        <button class="social" id="googleBtn" type="button">
-          <span class="s-pulse"></span>
-          Continue with Google
-        </button>
-
-        <div class="orn-div" id="authDivider">✦ or ✦</div>
 
         <form id="authForm">
           <div class="fg">
@@ -374,6 +366,12 @@
             <input id="password" type="password" autocomplete="current-password" placeholder="••••••••" required minlength="8">
             <button class="password-toggle" id="passwordToggle" type="button" aria-controls="password" aria-pressed="false" aria-label="Show password"></button>
           </div>
+          <button class="social" id="googleBtn" type="button">
+            <span class="s-pulse"></span>
+            Continue with Google
+          </button>
+
+          <div class="orn-div" id="authDivider">✦ or ✦</div>
           <button class="cta" id="authBtn" type="submit">Align me →</button>
         </form>
         <div class="auth-secondary">
@@ -396,7 +394,6 @@
           <div class="brand-name"><span>A</span>ri</div>
           <div class="brand-sub">Solara</div>
         </div>
-        <button class="cta new-query" type="button" id="newQueryBtn">New query →</button>
         <div class="side-section">
           <div class="side-label">Recent queries</div>
           <div class="recent-list" id="recentQueries">
@@ -467,7 +464,12 @@
           </div>
           <form class="composer" id="chatForm">
             <textarea id="messageInput" rows="1" placeholder="Ask the sun..." required></textarea>
-            <button class="voice-btn" id="voiceBtn" type="button" title="Speak to ARI">☉</button>
+            <button class="voice-btn" id="voiceBtn" type="button" title="Speak to ARI" aria-label="Voice input">
+              <svg class="voice-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3Z" stroke="currentColor" stroke-width="1.7"/>
+                <path d="M5 11a7 7 0 0 0 14 0M12 18v3M9 21h6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>
+              </svg>
+            </button>
             <button class="send" id="sendBtn" type="submit">◇</button>
           </form>
         </footer>
@@ -862,7 +864,12 @@
     function normalizeLanguage(value) {
       return String(value || "en").toLowerCase().replace("_", "-").split("-")[0] || "en";
     }
-    state.language = normalizeLanguage(state.language || navigator.language || "en");
+    function detectDeviceLanguage() {
+      const languages = (navigator.languages && navigator.languages.length ? navigator.languages : [navigator.language]).filter(Boolean);
+      const normalized = languages.map(normalizeLanguage);
+      return normalized.find((code) => I18N[code]) || normalized[0] || "en";
+    }
+    state.language = detectDeviceLanguage();
     function translationLanguage() {
       return I18N[state.language] ? state.language : "en";
     }
@@ -889,6 +896,19 @@
         zh: "zh-CN",
       };
       return localeByLanguage[state.language] || state.language || "en-US";
+    }
+    function formatActiveDate(date = new Date()) {
+      if (translationLanguage() === "es") {
+        const weekday = new Intl.DateTimeFormat("es-ES", { weekday: "short" }).format(date).replace(".", "").normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+        const day = new Intl.DateTimeFormat("es-ES", { day: "numeric" }).format(date);
+        const month = new Intl.DateTimeFormat("es-ES", { month: "long" }).format(date);
+        const year = new Intl.DateTimeFormat("es-ES", { year: "numeric" }).format(date);
+        return `${weekday.charAt(0).toUpperCase()}${weekday.slice(1)} ${day} de ${month} ${year}`;
+      }
+      return new Intl.DateTimeFormat(languageLocale(), { weekday: "short", day: "numeric", month: "long", year: "numeric" }).format(date).replace(/\./g, "");
+    }
+    function activeQueryMeta() {
+      return formatActiveDate();
     }
     function languageText(key) {
       const texts = {
@@ -929,7 +949,6 @@
     const voiceBtn = document.getElementById("voiceBtn");
     const voiceModeBtn = document.getElementById("voiceModeBtn");
     const recentQueries = document.getElementById("recentQueries");
-    const authLanguage = document.getElementById("authLanguage");
     const appLanguage = document.getElementById("appLanguage");
     let mediaRecorder = null;
     let voiceChunks = [];
@@ -958,7 +977,6 @@
 
     function applyTranslations() {
       document.documentElement.lang = state.language;
-      authLanguage.value = state.language;
       appLanguage.value = state.language;
       document.getElementById("authHeading").textContent = tr("heading");
       loginTab.textContent = tr("login");
@@ -969,7 +987,6 @@
       forgotBtn.textContent = tr("forgotPassword");
       updatePasswordToggle();
       document.querySelector(".chat-title").textContent = tr("activeQuery");
-      document.getElementById("newQueryBtn").textContent = tr("newQuery");
       document.querySelector(".side-label").textContent = tr("recent");
       document.querySelectorAll(".mode")[0].textContent = tr("text");
       document.querySelectorAll(".mode")[1].textContent = tr("memory");
@@ -1050,7 +1067,7 @@
     function syncSession() {
       const active = Boolean(state.token && state.workspaceId);
       if (active) {
-        chatMeta.textContent = `ARI · workspace ${state.workspaceId.slice(0, 8)} · ${new Date().toLocaleDateString(languageLocale())}`;
+        chatMeta.textContent = activeQueryMeta();
         connectionLabel.textContent = tr("connected");
         sidebarUserName.textContent = tr("privateSession");
         sidebarUserEmail.textContent = state.email || state.userId || "ARI web";
@@ -1176,7 +1193,6 @@
     });
     document.getElementById("logoutBtn").addEventListener("click", clearSession);
     document.getElementById("clearBtn").addEventListener("click", clearChat);
-    document.getElementById("newQueryBtn").addEventListener("click", clearChat);
 
     document.querySelectorAll("[data-note]").forEach((button) => {
       button.addEventListener("click", () => addMessage(button.dataset.note, "ai"));
@@ -1238,7 +1254,7 @@
       messagesEl.innerHTML = "";
       messagesEl.appendChild(welcomeState);
       welcomeState.style.display = "block";
-      chatMeta.textContent = state.workspaceId ? `ARI · workspace ${state.workspaceId.slice(0, 8)} · ${new Date().toLocaleDateString(languageLocale())}` : tr("loginRequired");
+      chatMeta.textContent = state.workspaceId ? activeQueryMeta() : tr("loginRequired");
       document.querySelector(".welcome-title").textContent = tr("welcomeTitle");
       document.querySelector(".welcome-copy").textContent = tr("welcomeCopy");
       const quicks = document.querySelectorAll(".quick");
@@ -1561,7 +1577,6 @@
     window.addEventListener("resize", resizeCanvas);
     resizeCanvas();
     drawSky();
-    buildLanguageSelect(authLanguage);
     buildLanguageSelect(appLanguage);
     const resetParams = new URLSearchParams(window.location.search);
     state.resetToken = resetParams.get("reset_token") || "";

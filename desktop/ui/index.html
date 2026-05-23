@@ -89,6 +89,10 @@ body.booting *{animation:none!important;transition:none!important}
 }
 .fg input:focus,.composer textarea:focus{border-bottom-color:rgba(201,169,110,0.5)}
 .fg input::placeholder,.composer textarea::placeholder{color:rgba(201,169,110,0.18);font-style:italic}
+.fg.has-toggle input{padding-right:44px}
+.password-toggle{position:absolute;right:0;bottom:7px;border:0;background:transparent;color:rgba(201,169,110,.52);line-height:0;padding:4px}
+.password-toggle:hover{color:var(--gold)}
+.password-toggle svg{width:20px;height:20px;stroke:currentColor}
 .fg-line{position:absolute;bottom:0;left:0;width:0;height:1px;background:var(--gold);transition:width .45s cubic-bezier(.4,0,.2,1);box-shadow:0 0 8px rgba(201,169,110,.5)}
 .fg input:focus~.fg-line{width:100%}
 .forgot{text-align:right;margin:-8px 0 22px;font-size:9px;font-weight:300;letter-spacing:1px}
@@ -258,17 +262,23 @@ body.booting *{animation:none!important;transition:none!important}
       <div class="heading" id="auth-heading">Access your light</div>
       <div class="sub-h" id="auth-status">— log in to use ARI —</div>
 
-      <div class="fg">
+      <div class="fg" id="auth-email-group">
         <label>Email</label>
         <input id="auth-email" type="email" value="demo-3@example.com" placeholder="soul@ari.ai">
         <div class="fg-line"></div>
       </div>
-      <div class="fg">
-        <label>Password</label>
-        <input id="auth-password" type="password" placeholder="••••••••">
+      <div class="fg" id="auth-reset-token-group" style="display:none">
+        <label>Recovery code</label>
+        <input id="auth-reset-token" type="text" placeholder="Paste recovery link or code">
         <div class="fg-line"></div>
       </div>
-      <div class="forgot" id="forgot-row"><button class="link" type="button" onclick="setAuthStatus('Password recovery is not connected yet', 'error')">Forgot your key?</button></div>
+      <div class="fg has-toggle" id="auth-password-group">
+        <label>Password</label>
+        <input id="auth-password" type="password" placeholder="••••••••">
+        <button class="password-toggle" id="auth-password-toggle" type="button" aria-controls="auth-password" aria-pressed="false" aria-label="Show password"></button>
+        <div class="fg-line"></div>
+      </div>
+      <div class="forgot" id="forgot-row"><button class="link" type="button" onclick="setAuthMode('forgot')">Forgot your key?</button></div>
 
       <button class="social" id="auth-social" type="button" onclick="loginWithGoogle()">
         <span class="s-pulse"></span>

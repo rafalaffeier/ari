@@ -8,7 +8,7 @@ use chrono::Utc;
 use memory::client::{
     ActionResponse, AuditEventResponse, AuthResponse, ChatResponse, Conversation, JournalDayResponse,
     JournalEntryResponse, JournalOverviewResponse, MemoryClient, MemoryClientError, RecentMessage,
-    OrchestrateResponse, SearchResult,
+    OrchestrateResponse, PasswordRecoveryResponse, SearchResult,
 };
 use memory::crypto::WorkspaceKey;
 use serde::{Deserialize, Serialize};
@@ -162,6 +162,27 @@ async fn register(
     let client = MemoryClient::for_backend(normalized_backend_url.clone())?;
     let auth = client.register(&email, &password).await?;
     Ok(auth)
+}
+
+#[tauri::command]
+async fn forgot_password(
+    backend_url: String,
+    email: String,
+) -> Result<PasswordRecoveryResponse, DesktopError> {
+    let normalized_backend_url = normalize_backend_url(&backend_url)?;
+    let client = MemoryClient::for_backend(normalized_backend_url)?;
+    Ok(client.forgot_password(&email).await?)
+}
+
+#[tauri::command]
+async fn reset_password(
+    backend_url: String,
+    token: String,
+    password: String,
+) -> Result<PasswordRecoveryResponse, DesktopError> {
+    let normalized_backend_url = normalize_backend_url(&backend_url)?;
+    let client = MemoryClient::for_backend(normalized_backend_url)?;
+    Ok(client.reset_password(&token, &password).await?)
 }
 
 #[tauri::command]
@@ -796,6 +817,8 @@ pub fn run() {
             configure_desktop,
             login,
             register,
+            forgot_password,
+            reset_password,
             exchange_google_code,
             login_with_google,
             load_desktop_config,

@@ -58,6 +58,7 @@ const STRINGS = {
     entries: "entries",
     exit: "Exit",
     googleActive: "Google session active",
+    continueGoogle: "Continue with Google",
     googleCodePlaceholder: "Paste ARI Google code",
     googleMissingCode: "Paste the ARI Google login code first.",
     googleMissingTitle: "Missing code",
@@ -106,6 +107,7 @@ const STRINGS = {
     entries: "entradas",
     exit: "Salir",
     googleActive: "Sesion de Google activa",
+    continueGoogle: "Continuar con Google",
     googleCodePlaceholder: "Pega el codigo de Google de ARI",
     googleMissingCode: "Pega primero el codigo de inicio de Google de ARI.",
     googleMissingTitle: "Falta el codigo",
@@ -154,6 +156,7 @@ const STRINGS = {
     entries: "записей",
     exit: "Выйти",
     googleActive: "Сессия Google активна",
+    continueGoogle: "Продолжить с Google",
     googleCodePlaceholder: "Вставьте код ARI Google",
     googleMissingCode: "Сначала вставьте код входа ARI Google.",
     googleMissingTitle: "Нет кода",
@@ -202,6 +205,7 @@ const STRINGS = {
     entries: "записів",
     exit: "Вийти",
     googleActive: "Сесія Google активна",
+    continueGoogle: "Продовжити з Google",
     googleCodePlaceholder: "Вставте код ARI Google",
     googleMissingCode: "Спочатку вставте код входу ARI Google.",
     googleMissingTitle: "Немає коду",
@@ -250,6 +254,7 @@ const STRINGS = {
     entries: "Einträge",
     exit: "Beenden",
     googleActive: "Google-Sitzung aktiv",
+    continueGoogle: "Mit Google fortfahren",
     googleCodePlaceholder: "ARI-Google-Code einfügen",
     googleMissingCode: "Füge zuerst den ARI-Google-Anmeldecode ein.",
     googleMissingTitle: "Code fehlt",
@@ -298,6 +303,7 @@ const STRINGS = {
     entries: "voci",
     exit: "Esci",
     googleActive: "Sessione Google attiva",
+    continueGoogle: "Continua con Google",
     googleCodePlaceholder: "Incolla il codice Google di ARI",
     googleMissingCode: "Incolla prima il codice di accesso Google di ARI.",
     googleMissingTitle: "Codice mancante",
@@ -346,6 +352,7 @@ const STRINGS = {
     entries: "entradas",
     exit: "Sair",
     googleActive: "Sessão do Google ativa",
+    continueGoogle: "Continuar com Google",
     googleCodePlaceholder: "Cole o código Google da ARI",
     googleMissingCode: "Cole primeiro o código de login Google da ARI.",
     googleMissingTitle: "Código ausente",
@@ -469,9 +476,6 @@ export default function App() {
   const signedIn = Boolean(token && workspaceId);
 
   useEffect(() => {
-    AsyncStorage.getItem(LANGUAGE_KEY).then((stored) => {
-      if (stored) setLanguage(normalizeLanguage(stored));
-    });
     memoryCache.loadSession().then((session) => {
       if (session) setSession(session.token, session.userId, session.workspaceId);
     });
@@ -480,7 +484,6 @@ export default function App() {
 
   function changeLanguage(nextLanguage: AppLanguage) {
     setLanguage(nextLanguage);
-    AsyncStorage.setItem(LANGUAGE_KEY, nextLanguage);
   }
 
   useEffect(() => {
@@ -700,32 +703,10 @@ export default function App() {
             <Text style={styles.brand}>Ari</Text>
             <Text style={styles.brandSub}>Solara · Quantum Intelligent</Text>
             <Text style={styles.authTitle}>{t.accessLight}</Text>
-            <View style={styles.languageRow}>
-              <Text style={styles.languageLabel}>{t.language}</Text>
-              <LanguagePicker language={language} onChange={changeLanguage} />
-            </View>
             <View style={styles.segment}>
               <SegmentButton active={mode === "login"} label={t.login} onPress={() => setMode("login")} />
               <SegmentButton active={mode === "register"} label={t.create} onPress={() => setMode("register")} />
             </View>
-            {mode === "login" && (
-              <>
-                <Pressable disabled={isBusy} onPress={openGoogleLogin} style={styles.googleButton}>
-                  <Text style={styles.googleButtonText}>☉ Continue with Google</Text>
-                </Pressable>
-                <TextInput
-                  autoCapitalize="none"
-                  onChangeText={setGoogleCode}
-                  placeholder={t.googleCodePlaceholder}
-                  placeholderTextColor="rgba(201,169,110,0.34)"
-                  style={styles.input}
-                  value={googleCode}
-                />
-                <Pressable disabled={isBusy || !googleCode.trim()} onPress={exchangeGoogleCode} style={styles.ghostButton}>
-                  <Text style={styles.ghostButtonText}>{t.googleVerify}</Text>
-                </Pressable>
-              </>
-            )}
             <TextInput
               autoCapitalize="none"
               keyboardType="email-address"
@@ -743,6 +724,24 @@ export default function App() {
               style={styles.input}
               value={password}
             />
+            {mode === "login" && (
+              <>
+                <Pressable disabled={isBusy} onPress={openGoogleLogin} style={styles.googleButton}>
+                  <Text style={styles.googleButtonText}>{t.continueGoogle}</Text>
+                </Pressable>
+                <TextInput
+                  autoCapitalize="none"
+                  onChangeText={setGoogleCode}
+                  placeholder={t.googleCodePlaceholder}
+                  placeholderTextColor="rgba(201,169,110,0.34)"
+                  style={styles.input}
+                  value={googleCode}
+                />
+                <Pressable disabled={isBusy || !googleCode.trim()} onPress={exchangeGoogleCode} style={styles.ghostButton}>
+                  <Text style={styles.ghostButtonText}>{t.googleVerify}</Text>
+                </Pressable>
+              </>
+            )}
             <Pressable disabled={isBusy} onPress={authenticate} style={styles.primaryButton}>
               <Text style={styles.primaryButtonText}>{isBusy ? t.working : mode === "login" ? t.alignMe : t.createLight}</Text>
             </Pressable>
