@@ -180,9 +180,12 @@ button{cursor:none}
 .modes{display:flex;gap:10px;margin-bottom:14px}
 .mode{padding:9px 16px;border:1px solid rgba(201,169,110,.16);background:transparent;color:rgba(201,169,110,.38);font-size:8px;letter-spacing:3px;text-transform:uppercase}
 .mode.active,.mode:hover{border-color:rgba(201,169,110,.42);color:var(--cream);background:rgba(201,169,110,.05)}
-.composer{display:grid;grid-template-columns:1fr 46px;gap:14px;align-items:end;border:1px solid rgba(201,169,110,.22);padding:10px 16px;background:rgba(20,12,4,.44)}
+.composer{display:grid;grid-template-columns:1fr 46px 46px;gap:14px;align-items:end;border:1px solid rgba(201,169,110,.22);padding:10px 16px;background:rgba(20,12,4,.44)}
 .composer textarea{resize:none;max-height:110px;min-height:44px;border-bottom:0}
 .send{height:46px;border:1px solid rgba(201,169,110,.35);background:rgba(201,169,110,.06);color:var(--gold);font-size:18px}
+.voice-btn{height:46px;border:1px solid rgba(201,169,110,.22);background:rgba(201,169,110,.035);color:rgba(201,169,110,.68);font-size:17px}
+.voice-btn:hover,.voice-btn.active{border-color:rgba(201,169,110,.55);color:var(--cream);box-shadow:0 0 22px rgba(201,169,110,.1)}
+.voice-btn.listening{color:var(--rose);border-color:rgba(196,131,106,.62);box-shadow:0 0 24px rgba(196,131,106,.16)}
 
 @media (max-width:900px){
   .app{grid-template-columns:1fr}
@@ -344,11 +347,12 @@ button{cursor:none}
           <button class="mode active" id="mode-text" onclick="setMode('text')">Text</button>
           <button class="mode" id="mode-memory" onclick="setMode('memory')">Memory</button>
           <button class="mode" id="mode-activity" onclick="setMode('activity')">Activity</button>
-          <button class="mode" onclick="setAuthStatus('Voice is not connected yet', 'error')">Voice</button>
+          <button class="mode" id="mode-voice" onclick="toggleVoiceMode()">Voice</button>
           <button class="mode" onclick="setAuthStatus('Files are not connected yet', 'error')">File</button>
         </div>
         <div class="composer">
           <textarea id="chat-input" rows="1" placeholder="Ask the sun..." oninput="autoResize(this)" onkeydown="handleKey(event)"></textarea>
+          <button class="voice-btn" id="voice-btn" onclick="startVoiceInput()">☉</button>
           <button class="send" onclick="sendMessage()">◇</button>
         </div>
       </footer>
@@ -407,7 +411,8 @@ let t=0;
   requestAnimationFrame(draw);
 })();
 
-let activeMode='text',authSession=null,authMode='login',currentConversationHasMessages=false,pendingAction=null;
+let activeMode='text',authSession=null,authMode='login',currentConversationHasMessages=false,pendingAction=null,spokenReplies=localStorage.getItem('ari.spokenReplies')==='true',listening=false,recognition=null;
+const SpeechRecognition=window.SpeechRecognition||window.webkitSpeechRecognition;
 let userPrefs=loadUserPreferences();
 let toolCatalog={};
 const invoke=window.__TAURI__?.core?.invoke;
@@ -668,6 +673,43 @@ function setMode(mode){
   document.getElementById('chat-input').placeholder=mode==='memory'?'Search your memory...':mode==='activity'?'Activity is read-only...':'Ask the sun...';
   if(mode==='activity')loadActivityLog();
 }
+function syncVoiceControls(){
+  const voiceMode=document.getElementById('mode-voice'),voiceBtn=document.getElementById('voice-btn');
+  if(voiceMode)voiceMode.classList.toggle('active',spokenReplies);
+  if(voiceBtn){
+    voiceBtn.classList.toggle('active',spokenReplies);
+    voiceBtn.disabled=!SpeechRecognition;
+    voiceBtn.title=SpeechRecognition?'Speak to ARI':'Voice input is not supported in this desktop webview';
+  }
+}
+function toggleVoiceMode(){
+  spokenReplies=!spokenReplies;localStorage.setItem('ari.spokenReplies',String(spokenReplies));syncVoiceControls();
+  document.getElementById('chat-meta').textContent=spokenReplies?'ARI · voice replies on':'ARI · voice replies off';
+  if(spokenReplies)speakText('Voice replies are on.');
+}
+function startVoiceInput(){
+  if(!authSession){showScreen('screen-login');setAuthStatus('— log in before using voice —','error');return}
+  if(!SpeechRecognition){addMessage('Voice input is not supported in this desktop webview yet. Try ARI in Chrome for voice input.','ai');return}
+  if(listening&&recognition){recognition.stop();return}
+  recognition=new SpeechRecognition();recognition.lang=navigator.language||'es-ES';recognition.interimResults=false;recognition.continuous=false;recognition.maxAlternatives=1;
+  listening=true;document.getElementById('voice-btn').classList.add('listening');document.getElementById('chat-meta').textContent='ARI · listening';
+  recognition.onresult=event=>{
+    const transcript=Array.from(event.results).map(result=>result[0]?.transcript||'').join(' ').trim();
+    if(!transcript)return;
+    const input=document.getElementById('chat-input');input.value=transcript;autoResize(input);sendMessage();
+  };
+  recognition.onerror=event=>addMessage(`Voice input stopped: ${event.error||'unknown error'}.`,'ai');
+  recognition.onend=()=>{listening=false;document.getElementById('voice-btn').classList.remove('listening');document.getElementById('chat-meta').textContent=spokenReplies?'ARI · voice replies on':'ARI · memory active'};
+  recognition.start();
+}
+function speakText(text){
+  if(!('speechSynthesis' in window))return;
+  const cleaned=String(text||'').replace(/\s+/g,' ').trim();if(!cleaned)return;
+  window.speechSynthesis.cancel();
+  const utterance=new SpeechSynthesisUtterance(cleaned.slice(0,1200));
+  utterance.lang=navigator.language||'es-ES';utterance.rate=.96;utterance.pitch=.92;
+  window.speechSynthesis.speak(utterance);
+}
 function escapeHtml(value){return String(value).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;').replace(/\n/g,'<br>')}
 function escapeAttr(value){return String(value).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;').replace(/\n/g,' ')}
 function addMessage(text,from){
@@ -677,6 +719,7 @@ function addMessage(text,from){
   div.className=`message ${from}`;
   div.innerHTML=`<div class="msg-avatar">${from==='ai'?'☉':'◇'}</div><div><div class="bubble">${escapeHtml(text)}</div><div class="msg-time">${from==='ai'?'ARI':'YOU'} · ${time}</div></div>`;
   msgs.appendChild(div);msgs.scrollTop=msgs.scrollHeight;
+  if(from==='ai'&&spokenReplies)speakText(text);
 }
 function showTyping(){const msgs=document.getElementById('messages'),div=document.createElement('div');div.className='message';div.id='typing-msg';div.innerHTML='<div class="msg-avatar">☉</div><div class="typing"><span></span><span></span><span></span></div>';msgs.appendChild(div);msgs.scrollTop=msgs.scrollHeight}
 function removeTyping(){const t=document.getElementById('typing-msg');if(t)t.remove()}
@@ -1429,6 +1472,7 @@ async function openConversation(el){
 }
 function renderConversation(conversation){const msgs=document.getElementById('messages');msgs.innerHTML='';currentConversationHasMessages=false;conversation.messages.forEach(message=>addMessage(message.content,message.role==='assistant'?'ai':'user'));currentConversationHasMessages=true;document.getElementById('chat-meta').textContent=`ARI · ${conversation.date} · line ${conversation.line_number}`;showScreen('screen-chat')}
 loadDesktopSession();
+syncVoiceControls();
 </script>
 </body>
 </html>

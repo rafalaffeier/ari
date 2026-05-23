@@ -257,9 +257,12 @@
     .modes { display: flex; gap: 10px; margin-bottom: 14px; flex-wrap: wrap; }
     .mode { padding: 9px 16px; border: 1px solid rgba(201,169,110,.16); background: transparent; color: rgba(201,169,110,.42); font-size: 8px; letter-spacing: 3px; text-transform: uppercase; }
     .mode.active, .mode:hover { border-color: rgba(201,169,110,.42); color: var(--cream); background: rgba(201,169,110,.05); }
-    .composer { display: grid; grid-template-columns: 1fr 46px; gap: 14px; align-items: end; border: 1px solid rgba(201,169,110,.22); padding: 10px 16px; background: rgba(20,12,4,.44); }
+    .composer { display: grid; grid-template-columns: 1fr 46px 46px; gap: 14px; align-items: end; border: 1px solid rgba(201,169,110,.22); padding: 10px 16px; background: rgba(20,12,4,.44); }
     .composer textarea { min-height: 44px; max-height: 120px; resize: none; border-bottom: 0; padding: 10px 0 6px; }
     .send { height: 46px; border: 1px solid rgba(201,169,110,.35); background: rgba(201,169,110,.06); color: var(--gold); font-size: 18px; }
+    .voice-btn { height: 46px; border: 1px solid rgba(201,169,110,.22); background: rgba(201,169,110,.035); color: rgba(201,169,110,.68); font-size: 17px; }
+    .voice-btn:hover, .voice-btn.active { border-color: rgba(201,169,110,.55); color: var(--cream); box-shadow: 0 0 22px rgba(201,169,110,.1); }
+    .voice-btn.listening { color: var(--danger); border-color: rgba(232,161,142,.58); box-shadow: 0 0 24px rgba(232,161,142,.16); }
 
     @media (max-width: 900px) {
       body { overflow: auto; }
@@ -414,10 +417,11 @@
             <button class="mode active" type="button">Text</button>
             <button class="mode" type="button" data-note="Memory search will be expanded here next.">Memory</button>
             <button class="mode" type="button" data-note="Activity view will be expanded here next.">Activity</button>
-            <button class="mode" type="button" data-note="Voice is not connected yet.">Voice</button>
+            <button class="mode" id="voiceModeBtn" type="button">Voice</button>
           </div>
           <form class="composer" id="chatForm">
             <textarea id="messageInput" rows="1" placeholder="Ask the sun..." required></textarea>
+            <button class="voice-btn" id="voiceBtn" type="button" title="Speak to ARI">☉</button>
             <button class="send" id="sendBtn" type="submit">◇</button>
           </form>
         </footer>
@@ -433,6 +437,8 @@
       userId: localStorage.getItem("ari.userId") || "",
       email: localStorage.getItem("ari.email") || "",
       recent: JSON.parse(localStorage.getItem("ari.recent") || "[]"),
+      spokenReplies: localStorage.getItem("ari.spokenReplies") === "true",
+      listening: false,
     };
 
     const loginScreen = document.getElementById("screen-login");
@@ -454,7 +460,11 @@
     const welcomeState = document.getElementById("welcomeState");
     const messageInput = document.getElementById("messageInput");
     const sendBtn = document.getElementById("sendBtn");
+    const voiceBtn = document.getElementById("voiceBtn");
+    const voiceModeBtn = document.getElementById("voiceModeBtn");
     const recentQueries = document.getElementById("recentQueries");
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    let recognition = null;
 
     function setStatus(text, tone = "muted") {
       statusEl.textContent = text;
@@ -492,6 +502,10 @@
       }
       messageInput.disabled = !active;
       sendBtn.disabled = !active;
+      voiceBtn.disabled = !active || !SpeechRecognition;
+      voiceBtn.title = SpeechRecognition ? "Speak to ARI" : "Voice input is not supported in this browser";
+      voiceModeBtn.classList.toggle("active", state.spokenReplies);
+      voiceBtn.classList.toggle("active", state.spokenReplies);
       renderRecent();
     }
 
@@ -575,6 +589,8 @@
     document.querySelectorAll("[data-note]").forEach((button) => {
       button.addEventListener("click", () => addMessage(button.dataset.note, "ai"));
     });
+    voiceModeBtn.addEventListener("click", toggleVoiceMode);
+    voiceBtn.addEventListener("click", startVoiceInput);
 
     document.querySelectorAll("[data-prompt]").forEach((button) => {
       button.addEventListener("click", () => {
@@ -642,6 +658,7 @@
       message.innerHTML = `<div class="msg-avatar">${mark}</div><div><div class="bubble">${escapeHtml(text)}</div><div class="msg-time">${label} · ${new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</div></div>`;
       messagesEl.appendChild(message);
       messagesEl.scrollTop = messagesEl.scrollHeight;
+      return message;
     }
 
     function showTyping() {
@@ -658,7 +675,7 @@
       if (typing) typing.remove();
     }
 
-    async function sendMessage() {
+    async function sendMessage(options = {}) {
       const text = messageInput.value.trim();
       if (!text || !state.token || !state.workspaceId) return;
       messageInput.value = "";
@@ -680,7 +697,9 @@
         if (!response.ok) throw new Error(await readError(response));
         const data = await response.json();
         removeTyping();
-        addMessage(data.reply || "ARI did not return a response.", "ai");
+        const reply = data.reply || "ARI did not return a response.";
+        addMessage(reply, "ai");
+        if (options.speak || state.spokenReplies) speakText(reply);
         chatMeta.textContent = `ARI · ${data.model || "model"} · memory active`;
       } catch (error) {
         removeTyping();
@@ -690,6 +709,66 @@
         sendBtn.disabled = false;
         messageInput.focus();
       }
+    }
+
+    function toggleVoiceMode() {
+      state.spokenReplies = !state.spokenReplies;
+      localStorage.setItem("ari.spokenReplies", String(state.spokenReplies));
+      voiceModeBtn.classList.toggle("active", state.spokenReplies);
+      voiceBtn.classList.toggle("active", state.spokenReplies);
+      chatMeta.textContent = state.spokenReplies ? "ARI · voice replies on" : "ARI · voice replies off";
+      if (state.spokenReplies) speakText("Voice replies are on.");
+    }
+
+    function startVoiceInput() {
+      if (!state.token || !state.workspaceId) return;
+      if (!SpeechRecognition) {
+        addMessage("Voice input is not supported in this browser yet.", "ai");
+        return;
+      }
+      if (state.listening && recognition) {
+        recognition.stop();
+        return;
+      }
+      recognition = new SpeechRecognition();
+      recognition.lang = navigator.language || "es-ES";
+      recognition.interimResults = false;
+      recognition.continuous = false;
+      recognition.maxAlternatives = 1;
+      state.listening = true;
+      voiceBtn.classList.add("listening");
+      chatMeta.textContent = "ARI · listening";
+      recognition.onresult = (event) => {
+        const transcript = Array.from(event.results)
+          .map((result) => result[0]?.transcript || "")
+          .join(" ")
+          .trim();
+        if (!transcript) return;
+        messageInput.value = transcript;
+        autoResize(messageInput);
+        sendMessage({ speak: true });
+      };
+      recognition.onerror = (event) => {
+        addMessage(`Voice input stopped: ${event.error || "unknown error"}.`, "ai");
+      };
+      recognition.onend = () => {
+        state.listening = false;
+        voiceBtn.classList.remove("listening");
+        chatMeta.textContent = state.spokenReplies ? "ARI · voice replies on" : "ARI · memory active";
+      };
+      recognition.start();
+    }
+
+    function speakText(text) {
+      if (!("speechSynthesis" in window)) return;
+      const cleaned = String(text || "").replace(/\s+/g, " ").trim();
+      if (!cleaned) return;
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(cleaned.slice(0, 1200));
+      utterance.lang = navigator.language || "es-ES";
+      utterance.rate = 0.96;
+      utterance.pitch = 0.92;
+      window.speechSynthesis.speak(utterance);
     }
 
     function escapeHtml(value) {
