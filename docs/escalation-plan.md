@@ -2,6 +2,14 @@
 
 This plan controls how the product grows from the local foundation into a secure multi-device assistant.
 
+## Product Design Source
+
+The ARI Solara desktop UI is the canonical visual source for all client surfaces.
+
+- Desktop, web, and mobile must share the same product identity: Solara, dark warm background, gold/rose accents, quiet borders, serif-led ARI branding, and focused assistant-first layouts.
+- The website and mobile app should adapt the desktop design to their platform constraints instead of introducing a separate visual language.
+- New UI work should check `desktop/ui/index.html` first before adding colors, typography, spacing, icons, or interaction patterns.
+
 ## Phase 0: Foundation
 
 Status: complete

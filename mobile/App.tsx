@@ -237,30 +237,37 @@ export default function App() {
     return (
       <SafeAreaView style={styles.screen}>
         <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={styles.auth}>
-          <Text style={styles.brand}>ARI Memory</Text>
-          <View style={styles.segment}>
-            <SegmentButton active={mode === "login"} label="Login" onPress={() => setMode("login")} />
-            <SegmentButton active={mode === "register"} label="Register" onPress={() => setMode("register")} />
+          <View style={styles.authCard}>
+            <Text style={styles.sunMark}>☉</Text>
+            <Text style={styles.brand}>Ari</Text>
+            <Text style={styles.brandSub}>Solara · private memory</Text>
+            <Text style={styles.authTitle}>Access your light</Text>
+            <View style={styles.segment}>
+              <SegmentButton active={mode === "login"} label="Login" onPress={() => setMode("login")} />
+              <SegmentButton active={mode === "register"} label="Create" onPress={() => setMode("register")} />
+            </View>
+            <TextInput
+              autoCapitalize="none"
+              keyboardType="email-address"
+              onChangeText={setEmail}
+              placeholder="soul@ari.ai"
+              placeholderTextColor="rgba(201,169,110,0.34)"
+              style={styles.input}
+              value={email}
+            />
+            <TextInput
+              onChangeText={setPassword}
+              placeholder="password"
+              placeholderTextColor="rgba(201,169,110,0.34)"
+              secureTextEntry
+              style={styles.input}
+              value={password}
+            />
+            <Pressable disabled={isBusy} onPress={authenticate} style={styles.primaryButton}>
+              <Text style={styles.primaryButtonText}>{isBusy ? "Working..." : mode === "login" ? "Align me →" : "Create light →"}</Text>
+            </Pressable>
+            <StatusLine isBusy={isBusy} isOffline={isOffline} status={status} />
           </View>
-          <TextInput
-            autoCapitalize="none"
-            keyboardType="email-address"
-            onChangeText={setEmail}
-            placeholder="email"
-            style={styles.input}
-            value={email}
-          />
-          <TextInput
-            onChangeText={setPassword}
-            placeholder="password"
-            secureTextEntry
-            style={styles.input}
-            value={password}
-          />
-          <Pressable disabled={isBusy} onPress={authenticate} style={styles.primaryButton}>
-            <Text style={styles.primaryButtonText}>{isBusy ? "Working..." : mode === "login" ? "Sign in" : "Create"}</Text>
-          </Pressable>
-          <StatusLine isBusy={isBusy} isOffline={isOffline} status={status} />
         </KeyboardAvoidingView>
       </SafeAreaView>
     );
@@ -270,11 +277,11 @@ export default function App() {
     <SafeAreaView style={styles.screen}>
       <View style={styles.header}>
         <View>
-          <Text style={styles.brandSmall}>ARI Memory</Text>
-          <Text style={styles.meta}>{userId?.slice(0, 8)} / {workspaceId?.slice(0, 8)}</Text>
+          <Text style={styles.brandSmall}>Ari</Text>
+          <Text style={styles.meta}>Solara · {userId?.slice(0, 8)} · {workspaceId?.slice(0, 8)}</Text>
         </View>
         <Pressable onPress={signOut} style={styles.ghostButton}>
-          <Text style={styles.ghostButtonText}>Logout</Text>
+          <Text style={styles.ghostButtonText}>Exit</Text>
         </Pressable>
       </View>
 
@@ -384,7 +391,7 @@ function SegmentButton({ active, label, onPress }: { active: boolean; label: str
 function StatusLine({ isBusy, isOffline, status }: { isBusy: boolean; isOffline: boolean; status: string }) {
   return (
     <View style={styles.status}>
-      {isBusy && <ActivityIndicator size="small" color="#3d5a80" />}
+      {isBusy && <ActivityIndicator size="small" color="#C9A96E" />}
       <View style={[styles.statusDot, isOffline ? styles.statusDotOffline : styles.statusDotOnline]} />
       <Text style={styles.statusText}>{isOffline ? "Offline cache" : status}</Text>
     </View>
@@ -418,63 +425,109 @@ function sectionSummary(sections: Record<string, number>) {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: "#f7f2ea",
+    backgroundColor: "#1A1208",
   },
   auth: {
     flex: 1,
     justifyContent: "center",
-    padding: 20,
-    gap: 12,
+    padding: 18,
+  },
+  authCard: {
+    backgroundColor: "rgba(20, 12, 4, 0.92)",
+    borderColor: "rgba(201, 169, 110, 0.24)",
+    borderRadius: 2,
+    borderWidth: 1,
+    gap: 14,
+    padding: 26,
+  },
+  sunMark: {
+    color: "#C9A96E",
+    fontSize: 32,
+    textAlign: "center",
   },
   header: {
     alignItems: "center",
+    backgroundColor: "rgba(20, 12, 4, 0.84)",
+    borderBottomColor: "rgba(201, 169, 110, 0.18)",
+    borderBottomWidth: 1,
     flexDirection: "row",
     justifyContent: "space-between",
-    padding: 16,
-    paddingBottom: 8,
+    padding: 18,
   },
   brand: {
-    color: "#17202a",
-    fontSize: 34,
-    fontWeight: "800",
-    marginBottom: 10,
+    color: "#F7F2EC",
+    fontFamily: Platform.select({ ios: "Georgia", android: "serif", default: "serif" }),
+    fontSize: 44,
+    fontStyle: "italic",
+    fontWeight: "300",
+    letterSpacing: 6,
+    textAlign: "center",
+  },
+  brandSub: {
+    color: "rgba(201, 169, 110, 0.48)",
+    fontSize: 9,
+    letterSpacing: 3,
+    marginBottom: 12,
+    textAlign: "center",
+    textTransform: "uppercase",
+  },
+  authTitle: {
+    color: "#F7F2EC",
+    fontFamily: Platform.select({ ios: "Georgia", android: "serif", default: "serif" }),
+    fontSize: 22,
+    fontStyle: "italic",
+    fontWeight: "300",
+    marginBottom: 2,
+    textAlign: "center",
   },
   brandSmall: {
-    color: "#17202a",
-    fontSize: 22,
-    fontWeight: "800",
+    color: "#F7F2EC",
+    fontFamily: Platform.select({ ios: "Georgia", android: "serif", default: "serif" }),
+    fontSize: 32,
+    fontStyle: "italic",
+    fontWeight: "300",
+    letterSpacing: 5,
   },
   meta: {
-    color: "#667085",
-    fontSize: 12,
+    color: "rgba(201, 169, 110, 0.42)",
+    fontSize: 9,
+    letterSpacing: 2,
     marginTop: 2,
+    textTransform: "uppercase",
   },
   segment: {
-    backgroundColor: "#e8dfd2",
-    borderRadius: 8,
+    backgroundColor: "rgba(201, 169, 110, 0.04)",
+    borderColor: "rgba(201, 169, 110, 0.16)",
+    borderRadius: 2,
+    borderWidth: 1,
     flexDirection: "row",
-    gap: 4,
+    gap: 8,
     marginHorizontal: 16,
-    padding: 4,
+    padding: 6,
   },
   segmentButton: {
     alignItems: "center",
-    borderRadius: 6,
+    borderColor: "transparent",
+    borderRadius: 1,
+    borderWidth: 1,
     flex: 1,
     minHeight: 38,
     justifyContent: "center",
     paddingHorizontal: 8,
   },
   segmentButtonActive: {
-    backgroundColor: "#17202a",
+    backgroundColor: "rgba(201, 169, 110, 0.08)",
+    borderColor: "rgba(201, 169, 110, 0.42)",
   },
   segmentText: {
-    color: "#394150",
-    fontSize: 13,
-    fontWeight: "700",
+    color: "rgba(201, 169, 110, 0.48)",
+    fontSize: 10,
+    fontWeight: "500",
+    letterSpacing: 2,
+    textTransform: "uppercase",
   },
   segmentTextActive: {
-    color: "#ffffff",
+    color: "#F7F2EC",
   },
   status: {
     alignItems: "center",
@@ -490,14 +543,15 @@ const styles = StyleSheet.create({
     width: 10,
   },
   statusDotOnline: {
-    backgroundColor: "#2f855a",
+    backgroundColor: "#C9A96E",
   },
   statusDotOffline: {
-    backgroundColor: "#c05621",
+    backgroundColor: "#C4836A",
   },
   statusText: {
-    color: "#475467",
-    fontSize: 13,
+    color: "rgba(247, 242, 236, 0.68)",
+    fontSize: 11,
+    letterSpacing: 1,
   },
   content: {
     padding: 16,
@@ -507,9 +561,11 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   title: {
-    color: "#17202a",
-    fontSize: 22,
-    fontWeight: "800",
+    color: "#F7F2EC",
+    fontFamily: Platform.select({ ios: "Georgia", android: "serif", default: "serif" }),
+    fontSize: 24,
+    fontStyle: "italic",
+    fontWeight: "300",
   },
   rowBetween: {
     alignItems: "center",
@@ -518,11 +574,11 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   input: {
-    backgroundColor: "#ffffff",
-    borderColor: "#d0d5dd",
-    borderRadius: 8,
+    backgroundColor: "rgba(20, 12, 4, 0.64)",
+    borderColor: "rgba(201, 169, 110, 0.2)",
+    borderRadius: 2,
     borderWidth: 1,
-    color: "#17202a",
+    color: "#F7F2EC",
     fontSize: 16,
     minHeight: 48,
     paddingHorizontal: 14,
@@ -540,54 +596,64 @@ const styles = StyleSheet.create({
   },
   primaryButton: {
     alignItems: "center",
-    backgroundColor: "#3d5a80",
-    borderRadius: 8,
+    backgroundColor: "rgba(201, 169, 110, 0.08)",
+    borderColor: "rgba(201, 169, 110, 0.34)",
+    borderRadius: 1,
+    borderWidth: 1,
     minHeight: 50,
     justifyContent: "center",
   },
   primaryButtonText: {
-    color: "#ffffff",
+    color: "#F7F2EC",
+    fontFamily: Platform.select({ ios: "Georgia", android: "serif", default: "serif" }),
     fontSize: 16,
-    fontWeight: "800",
+    fontStyle: "italic",
+    fontWeight: "300",
+    letterSpacing: 2,
   },
   ghostButton: {
     alignItems: "center",
-    backgroundColor: "#ffffff",
-    borderColor: "#d0d5dd",
-    borderRadius: 8,
+    backgroundColor: "rgba(201, 169, 110, 0.04)",
+    borderColor: "rgba(201, 169, 110, 0.22)",
+    borderRadius: 1,
     borderWidth: 1,
     minHeight: 42,
     justifyContent: "center",
     paddingHorizontal: 14,
   },
   ghostButtonText: {
-    color: "#17202a",
-    fontWeight: "800",
+    color: "#C9A96E",
+    fontSize: 10,
+    fontWeight: "500",
+    letterSpacing: 2,
+    textTransform: "uppercase",
   },
   listItem: {
-    backgroundColor: "#ffffff",
-    borderColor: "#d0d5dd",
-    borderRadius: 8,
+    backgroundColor: "rgba(20, 12, 4, 0.62)",
+    borderColor: "rgba(201, 169, 110, 0.16)",
+    borderRadius: 2,
     borderWidth: 1,
     gap: 6,
     padding: 14,
   },
   listDate: {
-    color: "#17202a",
+    color: "#F7F2EC",
+    fontFamily: Platform.select({ ios: "Georgia", android: "serif", default: "serif" }),
     fontSize: 17,
-    fontWeight: "800",
+    fontStyle: "italic",
+    fontWeight: "300",
   },
   listMeta: {
-    color: "#475467",
+    color: "rgba(247, 242, 236, 0.62)",
     fontSize: 14,
   },
   chips: {
-    color: "#3d5a80",
+    color: "#C9A96E",
     fontSize: 12,
-    fontWeight: "700",
+    fontWeight: "500",
   },
   empty: {
-    color: "#667085",
+    color: "rgba(247, 242, 236, 0.56)",
     fontSize: 15,
     paddingVertical: 20,
   },
@@ -598,9 +664,9 @@ const styles = StyleSheet.create({
   },
   overviewSection: {
     alignItems: "center",
-    backgroundColor: "#ffffff",
-    borderColor: "#d0d5dd",
-    borderRadius: 8,
+    backgroundColor: "rgba(20, 12, 4, 0.62)",
+    borderColor: "rgba(201, 169, 110, 0.16)",
+    borderRadius: 2,
     borderWidth: 1,
     flexBasis: "30%",
     flexGrow: 1,
@@ -608,21 +674,22 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   overviewTitle: {
-    color: "#475467",
+    color: "rgba(201, 169, 110, 0.52)",
     fontSize: 12,
-    fontWeight: "700",
+    fontWeight: "500",
+    letterSpacing: 1,
   },
   overviewCount: {
-    color: "#17202a",
+    color: "#F7F2EC",
     fontSize: 20,
-    fontWeight: "800",
+    fontWeight: "500",
   },
   markdown: {
-    backgroundColor: "#ffffff",
-    borderColor: "#d0d5dd",
-    borderRadius: 8,
+    backgroundColor: "rgba(20, 12, 4, 0.62)",
+    borderColor: "rgba(201, 169, 110, 0.16)",
+    borderRadius: 2,
     borderWidth: 1,
-    color: "#17202a",
+    color: "#F7F2EC",
     fontFamily: Platform.select({ ios: "Menlo", android: "monospace", default: "monospace" }),
     fontSize: 13,
     lineHeight: 20,
@@ -634,12 +701,12 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   pending: {
-    color: "#c05621",
+    color: "#C4836A",
     fontSize: 13,
-    fontWeight: "700",
+    fontWeight: "500",
   },
   resultLine: {
-    color: "#344054",
+    color: "rgba(247, 242, 236, 0.72)",
     fontSize: 14,
     lineHeight: 20,
   },
