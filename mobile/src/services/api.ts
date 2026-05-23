@@ -8,6 +8,11 @@ export type AuthResponse = {
   email?: string | null;
 };
 
+export type PasswordRecoveryResponse = {
+  detail: string;
+  reset_url?: string | null;
+};
+
 export type Workspace = {
   id: string;
   name: string;
@@ -87,12 +92,12 @@ export const api = {
       body: JSON.stringify({ email, password }),
     }),
   forgotPassword: (email: string) =>
-    request<{ detail: string }>("/auth/forgot-password", {
+    request<PasswordRecoveryResponse>("/auth/forgot-password", {
       method: "POST",
       body: JSON.stringify({ email }),
     }),
   resetPassword: (token: string, password: string) =>
-    request<{ detail: string }>("/auth/reset-password", {
+    request<PasswordRecoveryResponse>("/auth/reset-password", {
       method: "POST",
       body: JSON.stringify({ token, password }),
     }),

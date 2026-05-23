@@ -781,18 +781,44 @@ function setAuthStatus(text,tone='muted'){const el=document.getElementById('auth
 function commandError(error){if(error&&typeof error==='object'&&'message'in error)return `${error.kind||'error'}: ${error.message}`;return String(error)}
 function isAuthError(error){return error&&typeof error==='object'&&error.kind==='auth'}
 function authArgs(){return{backendUrl,email:document.getElementById('auth-email').value.trim(),password:document.getElementById('auth-password').value,localMemoryRoot}}
-function setAuthMode(mode){
-  authMode=mode;const isRegister=mode==='register';
-  document.getElementById('auth-heading').textContent=isRegister?appText('begin'):appText('heading');
-  document.getElementById('auth-primary').textContent=isRegister?appText('create'):appText('align');
-  document.getElementById('auth-footer-text').textContent=isRegister?'Already aligned?':'First time here?';
-  const toggle=document.getElementById('auth-toggle');toggle.textContent=isRegister?'Return to login':appText('begin');toggle.onclick=()=>setAuthMode(isRegister?'login':'register');
-  document.getElementById('forgot-row').style.display=isRegister?'none':'block';
-  document.getElementById('auth-social').style.display=isRegister?'none':'flex';
-  document.getElementById('auth-divider').style.display=isRegister?'none':'flex';
-  setAuthStatus(isRegister?appText('authCreate'):appText('authLogin'));
+function recoveryTokenValue(){
+  const value=document.getElementById('auth-reset-token').value.trim();
+  try{
+    const url=new URL(value);
+    return url.searchParams.get('reset_token')||value;
+  }catch(_error){
+    return value.replace(/^.*reset_token=/,'').trim();
+  }
 }
-function submitAuth(){authMode==='register'?registerUser():loginUser()}
+function eyeIcon(){return '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6-10-6-10-6Z"/><circle cx="12" cy="12" r="3"/></svg>'}
+function eyeOffIcon(){return '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3l18 18"/><path d="M10.6 10.6a3 3 0 0 0 2.8 2.8"/><path d="M9.9 5.2A10.7 10.7 0 0 1 12 5c6.5 0 10 7 10 7a18.5 18.5 0 0 1-3.1 4.1"/><path d="M6.7 6.7C3.8 8.6 2 12 2 12s3.5 7 10 7c1.9 0 3.5-.5 4.9-1.2"/></svg>'}
+function updatePasswordToggle(){
+  const input=document.getElementById('auth-password'),toggle=document.getElementById('auth-password-toggle'),visible=input.type==='text';
+  toggle.innerHTML=visible?eyeOffIcon():eyeIcon();
+  toggle.setAttribute('aria-pressed',String(visible));
+  toggle.setAttribute('aria-label',visible?'Hide password':'Show password');
+}
+function togglePasswordVisibility(){
+  const input=document.getElementById('auth-password');
+  input.type=input.type==='password'?'text':'password';
+  updatePasswordToggle();
+  input.focus();
+}
+function setAuthMode(mode){
+  authMode=mode;const isRegister=mode==='register',isForgot=mode==='forgot',isReset=mode==='reset';
+  document.getElementById('auth-heading').textContent=isRegister?appText('begin'):appText('heading');
+  document.getElementById('auth-primary').textContent=isRegister?appText('create'):isForgot?'Send recovery ->':isReset?'Change password ->':appText('align');
+  document.getElementById('auth-footer-text').textContent=authMode==='login'?'First time here?':'Already aligned?';
+  const toggle=document.getElementById('auth-toggle');toggle.textContent=authMode==='login'?appText('begin'):'Return to login';toggle.onclick=()=>setAuthMode(authMode==='login'?'register':'login');
+  document.getElementById('auth-email-group').style.display=isReset?'none':'block';
+  document.getElementById('auth-reset-token-group').style.display=isReset?'block':'none';
+  document.getElementById('auth-password-group').style.display=isForgot?'none':'block';
+  document.getElementById('forgot-row').style.display=authMode==='login'?'block':'none';
+  document.getElementById('auth-social').style.display=authMode==='login'?'flex':'none';
+  document.getElementById('auth-divider').style.display=authMode==='login'?'flex':'none';
+  setAuthStatus(isRegister?appText('authCreate'):isForgot?'— send a recovery link —':isReset?'— paste recovery link and choose a new password —':appText('authLogin'));
+}
+function submitAuth(){authMode==='register'?registerUser():authMode==='forgot'?forgotPassword():authMode==='reset'?resetPassword():loginUser()}
 function showScreen(id){if(id==='screen-chat'&&!authSession){setAuthStatus('— log in before opening ARI —','error');id='screen-login'}document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active')}
 function hydrateSession(auth){
   authSession=auth;const email=auth.email||document.getElementById('auth-email').value.trim();
@@ -806,6 +832,37 @@ function hydrateSession(auth){
 }
 async function loginUser(){if(!invoke){setAuthStatus('Tauri IPC unavailable','error');return}setAuthStatus('— connecting —');try{const auth=await invoke('login',authArgs());hydrateSession(auth);showScreen('screen-chat')}catch(error){setAuthStatus(commandError(error),'error')}}
 async function registerUser(){if(!invoke){setAuthStatus('Tauri IPC unavailable','error');return}setAuthStatus('— creating account —');try{await invoke('register',authArgs());setAuthMode('login');setAuthStatus('— account created, log in now —','ok');document.getElementById('auth-password').focus()}catch(error){setAuthStatus(commandError(error),'error')}}
+async function forgotPassword(){
+  if(!invoke){setAuthStatus('Tauri IPC unavailable','error');return}
+  const email=document.getElementById('auth-email').value.trim();
+  if(!email){setAuthStatus('— email is required —','error');return}
+  setAuthStatus('— sending recovery —');
+  try{
+    const recovery=await invoke('forgot_password',{backendUrl,email});
+    if(recovery?.reset_url){
+      document.getElementById('auth-reset-token').value=recovery.reset_url;
+      setAuthMode('reset');
+      setAuthStatus('— local recovery ready, choose a new password —','ok');
+      document.getElementById('auth-password').focus();
+      return;
+    }
+    setAuthMode('reset');
+    setAuthStatus('— check your email and paste the recovery link —','ok');
+  }catch(error){setAuthStatus(commandError(error),'error')}
+}
+async function resetPassword(){
+  if(!invoke){setAuthStatus('Tauri IPC unavailable','error');return}
+  const token=recoveryTokenValue(),password=document.getElementById('auth-password').value;
+  if(!token||!password){setAuthStatus('— recovery code and password are required —','error');return}
+  setAuthStatus('— changing password —');
+  try{
+    await invoke('reset_password',{backendUrl,token,password});
+    document.getElementById('auth-reset-token').value='';
+    document.getElementById('auth-password').value='';
+    setAuthMode('login');
+    setAuthStatus('— password updated, log in now —','ok');
+  }catch(error){setAuthStatus(commandError(error),'error')}
+}
 async function loginWithGoogle(){
   if(!invoke){setAuthStatus('Tauri IPC unavailable','error');return}
   try{
@@ -1693,6 +1750,8 @@ function renderConversation(conversation){const msgs=document.getElementById('me
 async function initializeApp(){
   buildLanguageSelects();
   applyAppLanguage();
+  document.getElementById('auth-password-toggle').addEventListener('click',togglePasswordVisibility);
+  updatePasswordToggle();
   syncVoiceControls();
   afterFirstPaint(async()=>{
     setTimeout(startVisualEffects,120);
