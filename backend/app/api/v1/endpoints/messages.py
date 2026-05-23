@@ -1,0 +1,575 @@
+from __future__ import annotations
+
+import json
+import uuid
+from datetime import date
+
+from fastapi import APIRouter, Depends, HTTPException, status
+from pydantic import BaseModel, Field
+
+from app.ai.clients.openai_client import complete, complete_text
+from app.ai.prompts.ari_system_prompt import ARI_SYSTEM_PROMPT, build_ari_chat_prompt
+from app.api.deps import require_workspace_access
+from app.core.config import settings
+from app.memory import JournalEntry, JournalStore
+from app.memory.recall import RecallSource, build_memory_context
+from app.services.tool_registry import get_tool
+from app.tools.catalog import load_tool_catalog
+
+router = APIRouter()
+
+EXECUTABLE_TOOL_NAMES = {
+    "open_browser_url",
+    "list_calendars",
+    "create_calendar_event",
+    "list_reminder_lists",
+    "create_reminder",
+    "get_weather",
+    "append_journal_entry",
+    "read_journal_overview",
+    "search_memory",
+}
+
+@router.get("/")
+async def list_messages():
+    return []
+
+
+class ChatRequest(BaseModel):
+    message: str = Field(..., min_length=1, max_length=12000)
+    use_memory: bool = True
+    memory_limit: int = Field(8, ge=0, le=20)
+
+
+class ChatMemoryResult(BaseModel):
+    date: date
+    path: str
+    line_number: int
+    line: str
+    reason: str | None = None
+    source_date: str | None = None
+
+
+class ChatResponse(BaseModel):
+    reply: str
+    model: str
+    memory_results: list[ChatMemoryResult]
+    stored: bool
+    stored_actions: list[str] = []
+
+
+class RecallRequest(BaseModel):
+    message: str = Field(..., min_length=1, max_length=12000)
+    limit: int = Field(8, ge=1, le=20)
+
+
+class RecallResponse(BaseModel):
+    memory_results: list[ChatMemoryResult]
+    context: str
+
+
+class OrchestrateRequest(BaseModel):
+    message: str = Field(..., min_length=1, max_length=12000)
+    pending_action: dict | None = None
+    use_memory: bool = True
+    memory_limit: int = Field(8, ge=0, le=20)
+
+
+class OrchestrateResponse(BaseModel):
+    mode: str = "reply"
+    reply: str
+    tool_name: str | None = None
+    params: dict = Field(default_factory=dict)
+    missing: list[str] = Field(default_factory=list)
+    requires_confirmation: bool = False
+    confidence: float = 0.0
+    language: str = "en"
+    model: str
+    memory_results: list[ChatMemoryResult] = []
+
+
+class RecentMessageResponse(BaseModel):
+    date: date
+    line_number: int
+    title: str
+
+
+class ConversationMessageResponse(BaseModel):
+    role: str
+    content: str
+
+
+class ConversationResponse(BaseModel):
+    date: date
+    line_number: int
+    title: str
+    messages: list[ConversationMessageResponse]
+
+
+def get_store() -> JournalStore:
+    return JournalStore(settings.MEMORY_ROOT)
+
+
+@router.post("/{workspace_id}/recall", response_model=RecallResponse)
+async def recall_memory(
+    body: RecallRequest,
+    workspace_id: uuid.UUID = Depends(require_workspace_access),
+):
+    context = build_memory_context(
+        get_store(),
+        str(workspace_id),
+        body.message.strip(),
+        limit=body.limit,
+        current_date=date.today(),
+    )
+    return RecallResponse(memory_results=_memory_result_responses(context.sources), context=context.prompt)
+
+
+@router.post("/{workspace_id}/chat", response_model=ChatResponse)
+async def chat(
+    body: ChatRequest,
+    workspace_id: uuid.UUID = Depends(require_workspace_access),
+):
+    if not settings.OPENAI_API_KEY.strip():
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="OPENAI_API_KEY is not configured. Add it to backend/.env.local and restart the backend.",
+        )
+
+    user_message = body.message.strip()
+    store = get_store()
+    memory_results = []
+    memory_context = ""
+    if body.use_memory and body.memory_limit > 0:
+        recall = build_memory_context(
+            store,
+            str(workspace_id),
+            user_message,
+            limit=body.memory_limit,
+            current_date=date.today(),
+        )
+        memory_results = recall.sources
+        memory_context = recall.prompt
+    recent_context = _recent_chat_context(store, str(workspace_id), limit=8)
+    prompt = build_ari_chat_prompt(
+        user_message,
+        memory_context,
+        recent_context,
+        current_date=date.today().isoformat(),
+        available_tools=_tool_catalog_context(),
+    )
+
+    try:
+        reply = await complete_text(prompt, system_prompt=ARI_SYSTEM_PROMPT)
+    except Exception as exc:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail=f"OpenAI request failed: {exc}",
+        ) from exc
+
+    store.append_entry(
+        str(workspace_id),
+        date.today(),
+        JournalEntry(section="chat", text=f"User: {user_message}"),
+    )
+    store.append_entry(
+        str(workspace_id),
+        date.today(),
+        JournalEntry(section="chat", text=f"ARI: {reply}"),
+    )
+    stored_actions = _store_detected_actions(store, str(workspace_id), user_message)
+
+    return ChatResponse(
+        reply=reply,
+        model=settings.AI_MODEL,
+        memory_results=_memory_result_responses(memory_results),
+        stored=True,
+        stored_actions=stored_actions,
+    )
+
+
+@router.post("/{workspace_id}/orchestrate", response_model=OrchestrateResponse)
+async def orchestrate(
+    body: OrchestrateRequest,
+    workspace_id: uuid.UUID = Depends(require_workspace_access),
+):
+    if not settings.OPENAI_API_KEY.strip():
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="OPENAI_API_KEY is not configured. Add it to backend/.env.local and restart the backend.",
+        )
+
+    user_message = body.message.strip()
+    store = get_store()
+    memory_results = []
+    memory_context = ""
+    if body.use_memory and body.memory_limit > 0:
+        recall = build_memory_context(
+            store,
+            str(workspace_id),
+            user_message,
+            limit=body.memory_limit,
+            current_date=date.today(),
+        )
+        memory_results = recall.sources
+        memory_context = recall.prompt
+    recent_context = _recent_chat_context(store, str(workspace_id), limit=8)
+    prompt = _build_orchestrator_prompt(
+        user_message,
+        body.pending_action,
+        memory_context,
+        recent_context,
+    )
+
+    try:
+        raw = await complete(prompt, system_prompt=_ARI_ORCHESTRATOR_SYSTEM_PROMPT)
+        data = json.loads(raw)
+    except Exception as exc:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail=f"ARI orchestration failed: {exc}",
+        ) from exc
+
+    response = _normalize_orchestration(data, memory_results)
+
+    store.append_entry(
+        str(workspace_id),
+        date.today(),
+        JournalEntry(section="chat", text=f"User: {user_message}"),
+    )
+    store.append_entry(
+        str(workspace_id),
+        date.today(),
+        JournalEntry(section="chat", text=f"ARI: {response.reply}"),
+    )
+    _store_detected_actions(store, str(workspace_id), user_message)
+    return response
+
+
+@router.get("/{workspace_id}/recent", response_model=list[RecentMessageResponse])
+async def recent_messages(
+    limit: int = 20,
+    workspace_id: uuid.UUID = Depends(require_workspace_access),
+):
+    bounded_limit = max(1, min(limit, 50))
+    results = get_store().search(str(workspace_id), "User:", limit=100)
+    recent = []
+    for item in reversed(results):
+        _, _, title = item.line.partition("User:")
+        title = title.strip()
+        if not title:
+            continue
+        recent.append(
+            RecentMessageResponse(
+                date=item.date,
+                line_number=item.line_number,
+                title=title[:120],
+            )
+        )
+        if len(recent) >= bounded_limit:
+            break
+    return recent
+
+
+@router.get("/{workspace_id}/conversation/{day}/{line_number}", response_model=ConversationResponse)
+async def read_conversation(
+    day: date,
+    line_number: int,
+    workspace_id: uuid.UUID = Depends(require_workspace_access),
+):
+    if line_number < 1:
+        raise HTTPException(status_code=400, detail="line_number must be positive")
+
+    content = get_store().read_day(str(workspace_id), day)
+    lines = content.splitlines()
+    index = line_number - 1
+    if index >= len(lines):
+        raise HTTPException(status_code=404, detail="conversation not found")
+
+    user_text = _extract_chat_content(lines[index], "User:")
+    if user_text is None:
+        raise HTTPException(status_code=404, detail="conversation not found")
+
+    messages = [ConversationMessageResponse(role="user", content=user_text)]
+    for follow_line in lines[index + 1 :]:
+        if _extract_chat_content(follow_line, "User:") is not None:
+            break
+        ari_text = _extract_chat_content(follow_line, "ARI:")
+        if ari_text is not None:
+            messages.append(ConversationMessageResponse(role="assistant", content=ari_text))
+            break
+
+    return ConversationResponse(
+        date=day,
+        line_number=line_number,
+        title=user_text[:120],
+        messages=messages,
+    )
+
+
+def _extract_chat_content(line: str, marker: str) -> str | None:
+    _, found, content = line.partition(marker)
+    if not found:
+        return None
+    return content.strip()
+
+
+def _memory_result_responses(sources: list[RecallSource]) -> list[ChatMemoryResult]:
+    return [
+        ChatMemoryResult(
+            date=source.date,
+            path=source.path,
+            line_number=source.line_number,
+            line=source.line,
+            reason=source.reason,
+            source_date=source.source_date,
+        )
+        for source in sources
+    ]
+
+
+def _recent_chat_context(store: JournalStore, workspace_id: str, limit: int = 8) -> str:
+    overview = store.overview(workspace_id, date.today())
+    chat_lines = overview.sections.get("chat", [])
+    recent = chat_lines[-limit:]
+    cleaned = []
+    for line in recent:
+        _, _, content = line.partition(" ")
+        cleaned.append(content.strip() if content else line.strip())
+    return "\n".join(cleaned)
+
+
+def _tool_catalog_context() -> str:
+    lines = []
+    for tool in load_tool_catalog():
+        required = ", ".join(tool.get("schema", {}).get("required", [])) or "none"
+        confirmation = "confirmation required" if tool.get("requires_confirmation") else "no confirmation"
+        lines.append(
+            f"- {tool['name']} ({tool['scope']}, {tool.get('risk_level', 'low')}, {confirmation}; required: {required})"
+        )
+    return "\n".join(lines)
+
+
+_ARI_ORCHESTRATOR_SYSTEM_PROMPT = """
+You are ARI Solara's execution brain.
+Return only valid JSON. Do not include markdown.
+
+You decide whether ARI should:
+- reply: normal conversation, thinking, advice, drafting, explanation, emotional support, brainstorming.
+- ask: a short clarifying question because execution needs a missing detail.
+- tool_confirmation: a tool can be prepared and needs user confirmation before local execution.
+- tool_ready: a no-confirmation tool can run now.
+
+Use the tool catalog exactly. Never invent tool names, calendar names, files, external results, prices or locations.
+For memory recall, use only the provided local memory snippets and cite the journal date or file:line reference.
+If the snippets are empty or insufficient for a memory question, say that memory is not enough instead of inventing.
+Only tools listed under executable tools can be prepared for execution.
+If the user asks for a non-executable/planned tool, explain that real execution is not connected yet; do not say you are searching or that results exist.
+If a user asks "how are you?" or asks to think through something, mode is reply.
+If the user asks for an available tool, extract params from natural language and pending action context.
+If a required field is missing, mode is ask and missing lists only those fields.
+If all required fields are present and the tool requires confirmation, mode is tool_confirmation.
+If all required fields are present and the tool does not require confirmation, mode is tool_ready.
+For calendar events without duration, assume 30 minutes.
+For relative dates, use the provided current date.
+For short follow-ups, merge with pending_action instead of starting over.
+Speak in the user's language unless they requested another language.
+
+JSON shape:
+{
+  "mode": "reply" | "ask" | "tool_confirmation" | "tool_ready",
+  "reply": "what ARI should say to the user",
+  "tool_name": string | null,
+  "params": object,
+  "missing": string[],
+  "requires_confirmation": boolean,
+  "confidence": number,
+  "language": "en" | "es" | "ru" | "uk" | "it" | "fr" | "de" | "pt"
+}
+""".strip()
+
+
+def _build_orchestrator_prompt(
+    message: str,
+    pending_action: dict | None,
+    memory_context: str,
+    recent_context: str,
+) -> str:
+    return f"""
+Current date: {date.today().isoformat()}
+
+Available tool catalog:
+{json.dumps(_executable_tool_catalog(), ensure_ascii=False, indent=2)}
+
+Planned but not executable yet:
+{json.dumps(_planned_tool_names(), ensure_ascii=False)}
+
+Pending action:
+{json.dumps(pending_action or None, ensure_ascii=False)}
+
+Recent conversation:
+{recent_context or "(none)"}
+
+Local memory snippets:
+{memory_context or "(none)"}
+
+User message:
+{message}
+""".strip()
+
+
+def _normalize_orchestration(data: dict, memory_results: list[RecallSource]) -> OrchestrateResponse:
+    mode = str(data.get("mode") or "reply")
+    if mode not in {"reply", "ask", "tool_confirmation", "tool_ready"}:
+        mode = "reply"
+    tool_name = data.get("tool_name")
+    tool = get_tool(tool_name) if tool_name else None
+    if tool_name and tool_name not in EXECUTABLE_TOOL_NAMES:
+        reply = str(data.get("reply") or "").strip()
+        if _looks_like_fake_execution_reply(reply):
+            reply = (
+                "Todavía no tengo una búsqueda real de vuelos/hoteles conectada. "
+                "Puedo ayudarte a preparar origen, destino, fechas, presupuesto y preferencias, "
+                "pero no debo decir que busqué resultados hasta conectar un proveedor real."
+            )
+        return OrchestrateResponse(
+            mode="reply",
+            reply=reply or "Esa herramienta todavía no está conectada para ejecución real.",
+            tool_name=None,
+            params={},
+            missing=[],
+            requires_confirmation=False,
+            confidence=max(0.0, min(1.0, float(data.get("confidence") or 0))),
+            language=str(data.get("language") or "es"),
+            model=settings.AI_MODEL,
+            memory_results=_memory_result_responses(memory_results),
+        )
+    params = data.get("params") if isinstance(data.get("params"), dict) else {}
+    missing: list[str] = []
+    requires_confirmation = False
+    if tool:
+        required = tool.get("schema", {}).get("required", [])
+        missing = [key for key in required if params.get(key) in (None, "")]
+        model_missing = data.get("missing") if isinstance(data.get("missing"), list) else []
+        for key in model_missing:
+            if isinstance(key, str) and key not in missing:
+                missing.append(key)
+        requires_confirmation = bool(tool.get("requires_confirmation", False))
+        if missing:
+            mode = "ask"
+        elif requires_confirmation and mode == "tool_ready":
+            mode = "tool_confirmation"
+        elif not requires_confirmation and mode == "tool_confirmation":
+            mode = "tool_ready"
+    else:
+        tool_name = None
+        params = {}
+        missing = []
+        requires_confirmation = False
+        if mode in {"tool_confirmation", "tool_ready"}:
+            mode = "reply"
+    reply = str(data.get("reply") or "").strip()
+    if not reply:
+        reply = "I need one more detail." if mode == "ask" else "I can do that."
+    return OrchestrateResponse(
+        mode=mode,
+        reply=reply,
+        tool_name=tool_name,
+        params=params,
+        missing=missing,
+        requires_confirmation=requires_confirmation,
+        confidence=max(0.0, min(1.0, float(data.get("confidence") or 0))),
+        language=str(data.get("language") or "en"),
+        model=settings.AI_MODEL,
+        memory_results=_memory_result_responses(memory_results),
+    )
+
+
+def _executable_tool_catalog() -> list[dict]:
+    return [tool for tool in load_tool_catalog() if tool.get("name") in EXECUTABLE_TOOL_NAMES]
+
+
+def _planned_tool_names() -> list[str]:
+    return [tool["name"] for tool in load_tool_catalog() if tool.get("name") not in EXECUTABLE_TOOL_NAMES]
+
+
+def _looks_like_fake_execution_reply(reply: str) -> bool:
+    return any(
+        marker in reply.lower()
+        for marker in (
+            "buscando",
+            "voy a buscar",
+            "searching",
+            "i will search",
+            "i'm searching",
+            "looking for",
+        )
+    )
+
+
+def _store_detected_actions(store: JournalStore, workspace_id: str, user_message: str) -> list[str]:
+    entries = _detect_action_entries(user_message)
+    stored = []
+    for section, text in entries:
+        store.append_entry(workspace_id, date.today(), JournalEntry(section=section, text=text))
+        stored.append(section)
+    return stored
+
+
+def _detect_action_entries(user_message: str) -> list[tuple[str, str]]:
+    text = " ".join(user_message.strip().split())
+    lower = text.lower()
+    entries: list[tuple[str, str]] = []
+
+    fact_markers = (
+        "remember that ",
+        "remember: ",
+        "recuerda que ",
+        "ten en cuenta que ",
+        "my preference is ",
+        "i prefer ",
+        "prefiero ",
+    )
+    if any(marker in lower for marker in fact_markers):
+        entries.append(("facts", _clip_entry(f"User memory: {text}")))
+
+    task_markers = (
+        "remind me to ",
+        "recuérdame ",
+        "recuerdame ",
+        "i need to ",
+        "need to ",
+        "tengo que ",
+        "hay que ",
+        "todo: ",
+    )
+    followup_markers = (
+        "follow up",
+        "seguimiento",
+        "call ",
+        "llamar ",
+        "contact ",
+        "contactar ",
+        "send email",
+        "enviar email",
+        "mandar email",
+    )
+    if any(marker in lower for marker in task_markers + followup_markers):
+        entries.append(("pending", _clip_entry(f"Follow-up/task: {text}")))
+
+    decision_markers = (
+        "we decided ",
+        "i decided ",
+        "decision: ",
+        "decidimos ",
+        "decidí ",
+        "decidi ",
+    )
+    if any(marker in lower for marker in decision_markers):
+        entries.append(("decisions", _clip_entry(f"Decision: {text}")))
+
+    return entries
+
+
+def _clip_entry(text: str, limit: int = 500) -> str:
+    return text if len(text) <= limit else text[: limit - 1].rstrip() + "…"

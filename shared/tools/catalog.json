@@ -1,0 +1,263 @@
+[
+  {
+    "name": "open_file",
+    "version": "1.0",
+    "scope": "desktop",
+    "permission_key": "filesystem.read",
+    "risk_level": "low",
+    "requires_confirmation": false,
+    "retryable": false,
+    "schema": {
+      "type": "object",
+      "required": ["path"],
+      "properties": {
+        "path": {"type": "string"}
+      }
+    }
+  },
+  {
+    "name": "delete_file",
+    "version": "1.0",
+    "scope": "desktop",
+    "permission_key": "filesystem.write",
+    "risk_level": "high",
+    "requires_confirmation": true,
+    "retryable": false,
+    "schema": {
+      "type": "object",
+      "required": ["path"],
+      "properties": {
+        "path": {"type": "string"}
+      }
+    }
+  },
+  {
+    "name": "run_command",
+    "version": "1.0",
+    "scope": "desktop",
+    "permission_key": "terminal.exec",
+    "risk_level": "critical",
+    "requires_confirmation": true,
+    "retryable": false,
+    "schema": {
+      "type": "object",
+      "required": ["command"],
+      "properties": {
+        "command": {"type": "string"}
+      }
+    }
+  },
+  {
+    "name": "open_browser_url",
+    "version": "1.0",
+    "scope": "desktop",
+    "permission_key": "browser.open",
+    "risk_level": "low",
+    "requires_confirmation": true,
+    "retryable": false,
+    "schema": {
+      "type": "object",
+      "required": ["url"],
+      "properties": {
+        "url": {"type": "string", "format": "uri"}
+      }
+    }
+  },
+  {
+    "name": "list_calendars",
+    "version": "1.0",
+    "scope": "desktop",
+    "permission_key": "calendar.read",
+    "risk_level": "low",
+    "requires_confirmation": true,
+    "retryable": true,
+    "schema": {
+      "type": "object",
+      "required": [],
+      "properties": {}
+    }
+  },
+  {
+    "name": "create_calendar_event",
+    "version": "1.0",
+    "scope": "desktop",
+    "permission_key": "calendar.write",
+    "risk_level": "medium",
+    "requires_confirmation": true,
+    "retryable": true,
+    "max_retries": 2,
+    "schema": {
+      "type": "object",
+      "required": ["calendar", "title", "start", "end"],
+      "properties": {
+        "calendar": {"type": "string"},
+        "title": {"type": "string"},
+        "start": {"type": "string"},
+        "end": {"type": "string"}
+      }
+    }
+  },
+  {
+    "name": "list_reminder_lists",
+    "version": "1.0",
+    "scope": "desktop",
+    "permission_key": "reminders.read",
+    "risk_level": "low",
+    "requires_confirmation": true,
+    "retryable": true,
+    "schema": {
+      "type": "object",
+      "required": [],
+      "properties": {}
+    }
+  },
+  {
+    "name": "create_reminder",
+    "version": "1.0",
+    "scope": "desktop",
+    "permission_key": "reminders.write",
+    "risk_level": "medium",
+    "requires_confirmation": true,
+    "retryable": true,
+    "max_retries": 2,
+    "schema": {
+      "type": "object",
+      "required": ["list", "title", "due"],
+      "properties": {
+        "list": {"type": "string"},
+        "title": {"type": "string"},
+        "due": {"type": "string"}
+      }
+    }
+  },
+  {
+    "name": "get_weather",
+    "version": "1.0",
+    "scope": "desktop",
+    "permission_key": "location.weather",
+    "risk_level": "low",
+    "requires_confirmation": false,
+    "retryable": true,
+    "schema": {
+      "type": "object",
+      "required": [],
+      "properties": {
+        "city": {"type": "string"},
+        "latitude": {"type": "number"},
+        "longitude": {"type": "number"}
+      }
+    }
+  },
+  {
+    "name": "append_journal_entry",
+    "version": "1.0",
+    "scope": "desktop",
+    "permission_key": "memory.write",
+    "risk_level": "low",
+    "requires_confirmation": false,
+    "retryable": true,
+    "schema": {
+      "type": "object",
+      "required": ["section", "text"],
+      "properties": {
+        "section": {"type": "string"},
+        "text": {"type": "string"},
+        "date": {"type": "string", "format": "date"}
+      }
+    }
+  },
+  {
+    "name": "read_journal_overview",
+    "version": "1.0",
+    "scope": "desktop",
+    "permission_key": "memory.read",
+    "risk_level": "low",
+    "requires_confirmation": false,
+    "retryable": true,
+    "schema": {
+      "type": "object",
+      "required": ["date"],
+      "properties": {
+        "date": {"type": "string", "format": "date"}
+      }
+    }
+  },
+  {
+    "name": "search_memory",
+    "version": "1.0",
+    "scope": "desktop",
+    "permission_key": "memory.read",
+    "risk_level": "low",
+    "requires_confirmation": false,
+    "retryable": true,
+    "schema": {
+      "type": "object",
+      "required": ["query"],
+      "properties": {
+        "query": {"type": "string"},
+        "limit": {"type": "integer"}
+      }
+    }
+  },
+  {
+    "name": "search_flights",
+    "version": "1.0",
+    "scope": "backend",
+    "permission_key": "travel.read",
+    "risk_level": "low",
+    "requires_confirmation": false,
+    "retryable": true,
+    "max_retries": 3,
+    "schema": {
+      "type": "object",
+      "required": ["origin", "destination", "departure_date"],
+      "properties": {
+        "origin": {"type": "string"},
+        "destination": {"type": "string"},
+        "departure_date": {"type": "string", "format": "date"},
+        "return_date": {"type": "string", "format": "date"},
+        "passengers": {"type": "integer", "default": 1},
+        "budget": {"type": "number"},
+        "preferences": {"type": "object"}
+      }
+    }
+  },
+  {
+    "name": "search_hotels",
+    "version": "1.0",
+    "scope": "backend",
+    "permission_key": "travel.read",
+    "risk_level": "low",
+    "requires_confirmation": false,
+    "retryable": true,
+    "max_retries": 3,
+    "schema": {
+      "type": "object",
+      "required": ["destination", "check_in", "check_out"],
+      "properties": {
+        "destination": {"type": "string"},
+        "check_in": {"type": "string", "format": "date"},
+        "check_out": {"type": "string", "format": "date"},
+        "guests": {"type": "integer"},
+        "budget": {"type": "number"}
+      }
+    }
+  },
+  {
+    "name": "track_price_drop",
+    "version": "1.0",
+    "scope": "backend",
+    "permission_key": "travel.write",
+    "risk_level": "low",
+    "requires_confirmation": false,
+    "retryable": false,
+    "schema": {
+      "type": "object",
+      "required": ["travel_search_id", "target_price"],
+      "properties": {
+        "travel_search_id": {"type": "string"},
+        "target_price": {"type": "number"}
+      }
+    }
+  }
+]

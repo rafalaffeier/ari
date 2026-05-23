@@ -1,0 +1,19 @@
+{
+  "expo": {
+    "name": "ARI Memory",
+    "slug": "ari-memory",
+    "version": "0.5.0",
+    "orientation": "portrait",
+    "scheme": "ari-memory",
+    "userInterfaceStyle": "automatic",
+    "assetBundlePatterns": ["**/*"],
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#f7f2ea"
+      }
+    }
+  }
+}

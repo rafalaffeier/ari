@@ -1,0 +1,1418 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ARI — Solara</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400;1,600&family=Jost:wght@200;300;400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --cream:    #F7F2EC;
+  --blush:    #E8C9BC;
+  --rose:     #C4836A;
+  --deep:     #8B4F3A;
+  --gold:     #C9A96E;
+  --gold-dim: rgba(201,169,110,0.35);
+  --dark:     #1A1208;
+  --soft:     #FFF8F0;
+  --soft-2:   rgba(255,248,240,0.86);
+  --soft-3:   rgba(255,248,240,0.72);
+  --muted:    rgba(255,248,240,0.62);
+  --border:   rgba(201,169,110,0.18);
+}
+
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;overflow:hidden;cursor:none;background:var(--dark)}
+body{font-family:'Jost',sans-serif;color:var(--cream)}
+canvas{position:fixed;inset:0;z-index:0;pointer-events:none}
+button,input,textarea{font:inherit}
+button{cursor:none}
+
+#cur{position:fixed;pointer-events:none;z-index:9999;transform:translate(-50%,-50%)}
+#cd{position:fixed;pointer-events:none;z-index:9999;transform:translate(-50%,-50%);
+  width:4px;height:4px;border-radius:50%;background:var(--gold);box-shadow:0 0 8px var(--gold)}
+
+.screen{position:fixed;inset:0;z-index:10;display:none}
+.screen.active{display:flex}
+.scene{align-items:center;justify-content:center}
+
+.card{
+  width:420px;position:relative;
+  background:rgba(20,12,4,0.82);
+  border:1px solid var(--border);
+  border-radius:2px;
+  padding:0;
+  backdrop-filter:blur(40px);
+  box-shadow:
+    0 0 60px rgba(201,169,110,0.07),
+    0 40px 80px rgba(0,0,0,0.55),
+    inset 0 1px 0 rgba(201,169,110,0.12);
+  overflow:hidden;
+}
+.card-top-bar{height:2px;background:linear-gradient(90deg, transparent 5%, var(--rose) 30%, var(--gold) 60%, transparent 95%);opacity:.7}
+.card-inner{padding:48px 44px 40px}
+.brand-block{text-align:center;margin-bottom:36px}
+.sun-wrap{width:56px;height:56px;margin:0 auto 16px;position:relative;display:flex;align-items:center;justify-content:center}
+.sun-wrap svg{animation:sunrot 24s linear infinite;position:absolute;inset:0}
+@keyframes sunrot{to{transform:rotate(360deg)}}
+.brand-name{
+  font-family:'Cormorant Garamond',serif;
+  font-size:42px;font-weight:300;font-style:italic;
+  letter-spacing:6px;color:var(--cream);
+  line-height:1;margin-bottom:5px;
+}
+.brand-name span{color:var(--gold)}
+.brand-sub{font-size:8px;font-weight:300;letter-spacing:4px;color:rgba(201,169,110,0.4);text-transform:uppercase}
+.heading{font-family:'Cormorant Garamond',serif;font-size:20px;font-weight:300;font-style:italic;color:var(--cream);text-align:center;margin-bottom:4px}
+.sub-h{font-size:8px;font-weight:200;letter-spacing:3px;color:rgba(201,169,110,0.3);text-align:center;text-transform:uppercase;margin-bottom:28px;min-height:10px}
+.social{
+  width:100%;padding:12px;background:rgba(201,169,110,0.05);
+  border:1px solid rgba(201,169,110,0.15);border-radius:1px;
+  color:var(--soft-3);font-size:11px;font-weight:300;
+  letter-spacing:2px;text-transform:uppercase;
+  display:flex;align-items:center;justify-content:center;gap:10px;transition:all .3s;margin-bottom:20px;
+}
+.social:hover{border-color:var(--gold-dim);color:var(--soft-2)}
+.s-pulse{width:6px;height:6px;border-radius:50%;background:var(--gold);flex-shrink:0;animation:gpulse 2.5s ease-in-out infinite}
+@keyframes gpulse{0%,100%{box-shadow:0 0 0 0 rgba(201,169,110,.5)}50%{box-shadow:0 0 0 5px rgba(201,169,110,0)}}
+.orn-div{display:flex;align-items:center;gap:12px;margin-bottom:22px;font-family:'Cormorant Garamond',serif;font-size:13px;font-style:italic;color:rgba(201,169,110,0.28);letter-spacing:1px}
+.orn-div::before,.orn-div::after{content:'';flex:1;height:1px;background:linear-gradient(90deg,transparent,var(--border),transparent)}
+.fg{margin-bottom:18px;position:relative}
+.fg label{display:block;font-size:8px;font-weight:300;letter-spacing:3px;color:rgba(201,169,110,0.4);text-transform:uppercase;margin-bottom:8px}
+.fg input,.composer textarea{
+  width:100%;background:transparent;border:none;border-bottom:1px solid rgba(201,169,110,0.15);
+  padding:10px 0;color:var(--cream);
+  font-family:'Cormorant Garamond',serif;font-size:17px;font-weight:300;font-style:italic;
+  outline:none;transition:border-color .35s;letter-spacing:.5px;
+}
+.fg input:focus,.composer textarea:focus{border-bottom-color:rgba(201,169,110,0.5)}
+.fg input::placeholder,.composer textarea::placeholder{color:rgba(201,169,110,0.18);font-style:italic}
+.fg-line{position:absolute;bottom:0;left:0;width:0;height:1px;background:var(--gold);transition:width .45s cubic-bezier(.4,0,.2,1);box-shadow:0 0 8px rgba(201,169,110,.5)}
+.fg input:focus~.fg-line{width:100%}
+.forgot{text-align:right;margin:-8px 0 22px;font-size:9px;font-weight:300;letter-spacing:1px}
+.link{color:rgba(201,169,110,.45);cursor:none;text-decoration:underline;text-underline-offset:3px;transition:color .2s;background:none;border:0}
+.link:hover{color:rgba(201,169,110,.75)}
+.cta{
+  width:100%;padding:15px 24px;background:transparent;border:1px solid rgba(201,169,110,0.3);
+  border-radius:1px;color:var(--cream);
+  font-family:'Cormorant Garamond',serif;font-size:17px;font-weight:300;font-style:italic;
+  letter-spacing:3px;transition:all .35s;position:relative;overflow:hidden;margin-bottom:14px;
+}
+.cta::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(201,169,110,0.1) 0%,rgba(196,131,106,0.08) 100%);opacity:0;transition:opacity .35s}
+.cta:hover{border-color:rgba(201,169,110,0.55);box-shadow:0 0 28px rgba(201,169,110,0.1)}
+.cta:hover::before{opacity:1}
+.card-bottom-rule{height:1px;background:linear-gradient(90deg,transparent,var(--border),transparent);margin:0 44px}
+.card-footer{padding:18px 44px 24px;text-align:center;font-size:9px;font-weight:300;letter-spacing:1px;color:rgba(201,169,110,0.25)}
+.libra-label{position:fixed;font-size:8px;font-weight:200;letter-spacing:4px;color:rgba(201,169,110,0.18);text-transform:uppercase;z-index:5;pointer-events:none;white-space:nowrap}
+
+.app{width:100%;height:100%;min-height:0;overflow:hidden;display:grid;grid-template-columns:310px 1fr;background:rgba(20,12,4,.34);backdrop-filter:blur(14px)}
+.sidebar{height:100vh;min-height:0;border-right:1px solid var(--border);background:rgba(20,12,4,.64);display:flex;flex-direction:column;min-width:0;overflow:hidden}
+.side-brand{padding:38px 34px 30px;border-bottom:1px solid var(--border)}
+.side-brand .brand-name{font-size:36px}
+.side-section{padding:28px 26px 0;min-height:0;overflow:hidden}
+.side-label{font-size:8px;font-weight:300;letter-spacing:5px;text-transform:uppercase;color:rgba(201,169,110,.34);margin-bottom:14px}
+.recent-list{display:flex;flex-direction:column;gap:8px;min-width:0}
+.recent-item{
+  display:flex;align-items:center;gap:12px;min-height:42px;max-width:100%;padding:11px 12px;
+  border:1px solid transparent;color:var(--soft-3);
+  font-family:'Cormorant Garamond',serif;font-size:16px;font-style:italic;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;transition:all .25s;
+}
+.recent-item:hover,.recent-item.active{border-color:var(--border);background:rgba(201,169,110,.05);color:var(--cream)}
+.glyph{color:rgba(201,169,110,.55);font-family:'Jost',sans-serif;font-size:11px;flex:0 0 auto}
+.new-query{display:block;width:calc(100% - 52px);margin:24px 26px 0}
+.side-footer{margin-top:auto;padding:22px 26px;border-top:1px solid var(--border)}
+.user-card{display:flex;align-items:center;gap:12px;color:var(--soft-2)}
+.avatar{width:38px;height:38px;border:1px solid rgba(201,169,110,.28);display:flex;align-items:center;justify-content:center;color:var(--gold)}
+.user-name{font-family:'Cormorant Garamond',serif;font-size:17px;font-style:italic;color:var(--cream);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.user-email{font-size:9px;letter-spacing:1px;color:rgba(201,169,110,.35);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+.main{height:100vh;min-height:0;min-width:0;overflow:hidden;display:grid;grid-template-rows:auto minmax(0,1fr) auto}
+.topbar{height:92px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 42px;background:rgba(20,12,4,.44)}
+.chat-title{font-family:'Cormorant Garamond',serif;font-size:26px;font-style:italic;font-weight:300;letter-spacing:3px;color:var(--cream)}
+.chat-meta{font-size:9px;font-weight:300;letter-spacing:3px;text-transform:uppercase;color:rgba(201,169,110,.35);margin-top:5px}
+.actions{display:flex;align-items:center;gap:12px}
+.badge{height:34px;padding:0 16px;border:1px solid rgba(201,169,110,.22);display:flex;align-items:center;gap:10px;font-size:9px;letter-spacing:3px;text-transform:uppercase;color:var(--soft-2)}
+.badge-dot{width:7px;height:7px;border-radius:50%;background:var(--gold);box-shadow:0 0 12px var(--gold)}
+.icon-btn{width:38px;height:38px;background:rgba(201,169,110,.03);border:1px solid rgba(201,169,110,.18);color:rgba(201,169,110,.58);transition:all .2s}
+.icon-btn:hover{border-color:rgba(201,169,110,.48);color:var(--cream)}
+
+.messages{position:relative;min-height:0;overflow:auto;padding:42px;display:flex;flex-direction:column;gap:24px;overscroll-behavior:contain}
+.messages::-webkit-scrollbar{width:6px}.messages::-webkit-scrollbar-thumb{background:rgba(201,169,110,.18)}
+.welcome{margin:auto;text-align:center;max-width:520px;color:var(--soft-3)}
+.welcome .sun-wrap{margin-bottom:24px}
+.welcome-title{font-family:'Cormorant Garamond',serif;font-size:32px;font-style:italic;font-weight:300;color:var(--cream);letter-spacing:2px;margin-bottom:8px}
+.welcome-copy{font-family:'Cormorant Garamond',serif;font-size:18px;font-style:italic;line-height:1.55;color:var(--soft-3)}
+.quick-row{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-top:34px}
+.quick{border:1px solid rgba(201,169,110,.14);background:rgba(201,169,110,.035);padding:14px 12px;text-align:left;color:var(--soft-3);transition:all .2s;min-height:84px}
+.quick:hover{border-color:rgba(201,169,110,.4);color:var(--cream)}
+.quick b{display:block;font-family:'Cormorant Garamond',serif;font-size:16px;font-style:italic;font-weight:300;color:var(--cream);margin:6px 0}
+.quick span{font-size:9px;line-height:1.4;color:rgba(201,169,110,.38)}
+.message{display:flex;gap:14px;max-width:78%;animation:msgin .25s ease}
+.message.user{align-self:flex-end;flex-direction:row-reverse}
+@keyframes msgin{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.msg-avatar{width:34px;height:34px;border:1px solid rgba(201,169,110,.24);display:flex;align-items:center;justify-content:center;color:var(--gold);flex:0 0 auto}
+.bubble{
+  border:1px solid rgba(201,169,110,.16);background:rgba(20,12,4,.68);
+  padding:16px 18px;color:var(--soft);
+  font-family:'Cormorant Garamond',serif;font-size:18px;font-style:italic;line-height:1.5;white-space:normal;
+  box-shadow:0 18px 40px rgba(0,0,0,.22);
+}
+.message.user .bubble{background:rgba(201,169,110,.08);border-color:rgba(201,169,110,.28);color:var(--cream)}
+.msg-time{font-size:8px;letter-spacing:3px;text-transform:uppercase;color:rgba(201,169,110,.28);margin-top:8px}
+.typing{display:flex;gap:6px;border:1px solid rgba(201,169,110,.16);background:rgba(20,12,4,.58);padding:15px 18px;width:86px}
+.typing span{width:6px;height:6px;border-radius:50%;background:var(--gold);animation:type 1s infinite ease-in-out}
+.typing span:nth-child(2){animation-delay:.15s}.typing span:nth-child(3){animation-delay:.3s}
+@keyframes type{0%,60%,100%{opacity:.25;transform:translateY(0)}30%{opacity:1;transform:translateY(-5px)}}
+.activity-view{width:100%;max-width:980px;align-self:center;display:flex;flex-direction:column;gap:14px}
+.activity-head{display:flex;align-items:flex-end;justify-content:space-between;gap:18px;margin-bottom:6px}
+.activity-title{font-family:'Cormorant Garamond',serif;font-size:28px;font-style:italic;font-weight:300;color:var(--cream);letter-spacing:2px}
+.activity-sub{font-size:9px;letter-spacing:3px;text-transform:uppercase;color:rgba(201,169,110,.35);margin-top:4px}
+.activity-refresh{width:auto;margin:0;padding:10px 16px;font-size:13px}
+.activity-card{display:grid;grid-template-columns:150px 170px 1fr;gap:16px;align-items:start;border:1px solid rgba(201,169,110,.16);background:rgba(20,12,4,.62);padding:16px 18px;box-shadow:0 18px 40px rgba(0,0,0,.18)}
+.activity-type{font-size:9px;letter-spacing:3px;text-transform:uppercase;color:var(--gold)}
+.activity-tool{font-family:'Cormorant Garamond',serif;font-size:18px;font-style:italic;color:var(--cream);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.activity-time{font-size:8px;letter-spacing:2px;text-transform:uppercase;color:rgba(201,169,110,.32);margin-top:6px}
+.activity-payload{font-family:'Jost',sans-serif;font-size:11px;line-height:1.55;color:var(--soft-3);word-break:break-word}
+.activity-hash{font-size:8px;letter-spacing:1px;color:rgba(201,169,110,.28);margin-top:8px}
+
+.composer-wrap{border-top:1px solid var(--border);padding:20px 42px 28px;background:rgba(20,12,4,.58);flex:0 0 auto}
+.modes{display:flex;gap:10px;margin-bottom:14px}
+.mode{padding:9px 16px;border:1px solid rgba(201,169,110,.16);background:transparent;color:rgba(201,169,110,.38);font-size:8px;letter-spacing:3px;text-transform:uppercase}
+.mode.active,.mode:hover{border-color:rgba(201,169,110,.42);color:var(--cream);background:rgba(201,169,110,.05)}
+.composer{display:grid;grid-template-columns:1fr 46px;gap:14px;align-items:end;border:1px solid rgba(201,169,110,.22);padding:10px 16px;background:rgba(20,12,4,.44)}
+.composer textarea{resize:none;max-height:110px;min-height:44px;border-bottom:0}
+.send{height:46px;border:1px solid rgba(201,169,110,.35);background:rgba(201,169,110,.06);color:var(--gold);font-size:18px}
+
+@media (max-width:900px){
+  .app{grid-template-columns:1fr}
+  .sidebar{display:none}
+  .topbar{padding:0 22px}
+  .messages{padding:28px 22px}
+  .composer-wrap{padding:16px 22px 22px}
+  .quick-row{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .activity-card{grid-template-columns:1fr}
+  .message{max-width:92%}
+}
+</style>
+</head>
+<body>
+<canvas id="cv"></canvas>
+<div class="libra-label" id="libra-lbl">⚖ Libra</div>
+
+<div id="cur">
+  <svg width="30" height="30" viewBox="0 0 30 30" fill="none">
+    <circle cx="15" cy="15" r="13" stroke="#C9A96E" stroke-width=".6" opacity=".5"/>
+    <circle cx="15" cy="15" r="3.5" stroke="#C9A96E" stroke-width=".5" opacity=".3"/>
+    <line x1="15" y1="2" x2="15" y2="6" stroke="#C9A96E" stroke-width=".8" opacity=".55"/>
+    <line x1="15" y1="24" x2="15" y2="28" stroke="#C9A96E" stroke-width=".8" opacity=".55"/>
+    <line x1="2" y1="15" x2="6" y2="15" stroke="#C9A96E" stroke-width=".8" opacity=".55"/>
+    <line x1="24" y1="15" x2="28" y2="15" stroke="#C9A96E" stroke-width=".8" opacity=".55"/>
+  </svg>
+</div>
+<div id="cd"></div>
+
+<div class="screen scene active" id="screen-login">
+  <div class="card">
+    <div class="card-top-bar"></div>
+    <div class="card-inner">
+      <div class="brand-block">
+        <div class="sun-wrap">
+          <svg width="56" height="56" viewBox="0 0 56 56" fill="none">
+            <circle cx="28" cy="28" r="9" stroke="#C9A96E" stroke-width=".7" opacity=".6"/>
+            <circle cx="28" cy="28" r="15" stroke="#C9A96E" stroke-width=".45" opacity=".3"/>
+            <circle cx="28" cy="28" r="21" stroke="#C9A96E" stroke-width=".35" opacity=".18"/>
+            <line x1="28" y1="2" x2="28" y2="8" stroke="#C9A96E" stroke-width=".8" opacity=".5"/>
+            <line x1="28" y1="48" x2="28" y2="54" stroke="#C9A96E" stroke-width=".8" opacity=".5"/>
+            <line x1="2" y1="28" x2="8" y2="28" stroke="#C9A96E" stroke-width=".8" opacity=".5"/>
+            <line x1="48" y1="28" x2="54" y2="28" stroke="#C9A96E" stroke-width=".8" opacity=".5"/>
+            <line x1="8" y1="8" x2="13" y2="13" stroke="#C9A96E" stroke-width=".65" opacity=".4"/>
+            <line x1="48" y1="8" x2="43" y2="13" stroke="#C9A96E" stroke-width=".65" opacity=".4"/>
+            <line x1="8" y1="48" x2="13" y2="43" stroke="#C9A96E" stroke-width=".65" opacity=".4"/>
+            <line x1="48" y1="48" x2="43" y2="43" stroke="#C9A96E" stroke-width=".65" opacity=".4"/>
+            <circle cx="28" cy="28" r="3" fill="#C9A96E" opacity=".22"/>
+            <circle cx="28" cy="28" r="1.5" fill="#C9A96E" opacity=".7"/>
+          </svg>
+        </div>
+        <div class="brand-name"><span>A</span>ri</div>
+        <div class="brand-sub">Solara · execution intelligence</div>
+      </div>
+
+      <div class="heading" id="auth-heading">Access your light</div>
+      <div class="sub-h" id="auth-status">— log in to use ARI —</div>
+
+      <button class="social" id="auth-social" type="button" onclick="setAuthStatus('Google is not connected yet', 'error')">
+        <span class="s-pulse"></span>
+        Continue with Google
+      </button>
+
+      <div class="orn-div" id="auth-divider">✦ or ✦</div>
+
+      <div class="fg">
+        <label>Email</label>
+        <input id="auth-email" type="email" value="demo-3@example.com" placeholder="soul@ari.ai">
+        <div class="fg-line"></div>
+      </div>
+      <div class="fg">
+        <label>Password</label>
+        <input id="auth-password" type="password" placeholder="••••••••">
+        <div class="fg-line"></div>
+      </div>
+      <div class="forgot" id="forgot-row"><button class="link" type="button" onclick="setAuthStatus('Password recovery is not connected yet', 'error')">Forgot your key?</button></div>
+
+      <button class="cta" id="auth-primary" onclick="submitAuth()">Align me →</button>
+    </div>
+
+    <div class="card-bottom-rule"></div>
+    <div class="card-footer">
+      <span id="auth-footer-text">First time here?</span>
+      <button class="link" id="auth-toggle" onclick="setAuthMode('register')">Begin your expansion</button>
+    </div>
+  </div>
+</div>
+
+<div class="screen" id="screen-chat">
+  <div class="app">
+    <aside class="sidebar">
+      <div class="side-brand">
+        <div class="brand-name"><span>A</span>ri</div>
+        <div class="brand-sub">Solara</div>
+      </div>
+      <button class="cta new-query" onclick="clearChat()">New query →</button>
+      <div class="side-section">
+        <div class="side-label">Recent queries</div>
+        <div class="recent-list" id="recent-queries">
+          <div class="recent-item active"><span class="glyph">☉</span>No queries yet</div>
+        </div>
+      </div>
+      <div class="side-section">
+        <div class="side-label">Memory</div>
+        <div class="recent-list">
+          <div class="recent-item" onclick="setMode('memory')"><span class="glyph">⊹</span>Search memory</div>
+          <div class="recent-item" onclick="setMode('activity')"><span class="glyph">◎</span>Activity log</div>
+          <div class="recent-item" onclick="setMode('text')"><span class="glyph">✦</span>Return to chat</div>
+        </div>
+      </div>
+      <div class="side-footer">
+        <div class="user-card">
+          <div class="avatar">☉</div>
+          <div style="min-width:0">
+            <div class="user-name" id="sidebar-user-name">Signed out</div>
+            <div class="user-email" id="sidebar-user-email">Log in to use ARI</div>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <div>
+          <div class="chat-title">Active query</div>
+          <div class="chat-meta" id="chat-meta">ARI · login required</div>
+        </div>
+        <div class="actions">
+          <div class="badge"><span class="badge-dot"></span><span id="connection-label">LOGIN</span></div>
+          <button class="icon-btn" onclick="clearChat()">◎</button>
+          <button class="icon-btn" onclick="logoutUser()">⎋</button>
+        </div>
+      </header>
+
+      <section class="messages" id="messages">
+        <div class="welcome" id="welcome-state">
+          <div class="sun-wrap">
+            <svg width="56" height="56" viewBox="0 0 56 56" fill="none">
+              <circle cx="28" cy="28" r="9" stroke="#C9A96E" stroke-width=".7" opacity=".6"/>
+              <circle cx="28" cy="28" r="15" stroke="#C9A96E" stroke-width=".45" opacity=".3"/>
+              <circle cx="28" cy="28" r="21" stroke="#C9A96E" stroke-width=".35" opacity=".18"/>
+              <circle cx="28" cy="28" r="3" fill="#C9A96E" opacity=".22"/>
+              <circle cx="28" cy="28" r="1.5" fill="#C9A96E" opacity=".7"/>
+            </svg>
+          </div>
+          <div class="welcome-title">ARI is awake</div>
+          <div class="welcome-copy">A warm execution assistant for thought, memory and action.</div>
+          <div class="quick-row">
+            <button class="quick" onclick="sendQuick('Help me organize my next three priorities')">☉<b>Priorities</b><span>Shape the day into actions</span></button>
+            <button class="quick" onclick="sendQuick('Write a concise professional email')">✦<b>Writing</b><span>Draft with a clean tone</span></button>
+            <button class="quick" onclick="sendQuick('Summarize this idea into a product plan')">⊹<b>Product</b><span>Turn ideas into structure</span></button>
+            <button class="quick" onclick="sendQuick('Search my memory for launch plan')">◇<b>Memory</b><span>Recover useful context</span></button>
+          </div>
+        </div>
+      </section>
+
+      <footer class="composer-wrap">
+        <div class="modes">
+          <button class="mode active" id="mode-text" onclick="setMode('text')">Text</button>
+          <button class="mode" id="mode-memory" onclick="setMode('memory')">Memory</button>
+          <button class="mode" id="mode-activity" onclick="setMode('activity')">Activity</button>
+          <button class="mode" onclick="setAuthStatus('Voice is not connected yet', 'error')">Voice</button>
+          <button class="mode" onclick="setAuthStatus('Files are not connected yet', 'error')">File</button>
+        </div>
+        <div class="composer">
+          <textarea id="chat-input" rows="1" placeholder="Ask the sun..." oninput="autoResize(this)" onkeydown="handleKey(event)"></textarea>
+          <button class="send" onclick="sendMessage()">◇</button>
+        </div>
+      </footer>
+    </main>
+  </div>
+</div>
+
+<script>
+const cur=document.getElementById('cur'),cd=document.getElementById('cd');
+let mx=window.innerWidth/2,my=window.innerHeight/2,cx=mx,cy=my;
+document.addEventListener('mousemove',e=>{mx=e.clientX;my=e.clientY;cd.style.left=mx+'px';cd.style.top=my+'px'});
+(function ac(){cx+=(mx-cx)*.09;cy+=(my-cy)*.09;cur.style.left=(cx-15)+'px';cur.style.top=(cy-15)+'px';requestAnimationFrame(ac)})();
+
+const cv=document.getElementById('cv'),ctx=cv.getContext('2d');
+function resize(){cv.width=window.innerWidth;cv.height=window.innerHeight;placeLibra()}
+window.addEventListener('resize',resize);
+
+const LIBRA_STARS=[
+  {name:'Zubenelgenubi', rx:.38,ry:.62,mag:.95,main:true},
+  {name:'Zubeneschamali',rx:.62,ry:.30,mag:1.0, main:true},
+  {name:'Zubenelakrab',  rx:.78,ry:.55,mag:.65, main:true},
+  {name:'Brachium',      rx:.18,ry:.72,mag:.60, main:false},
+  {name:'ι Lib',         rx:.55,ry:.78,mag:.45, main:false},
+  {name:'θ Lib',         rx:.30,ry:.42,mag:.40, main:false},
+  {name:'τ Lib',         rx:.70,ry:.88,mag:.38, main:false},
+  {name:'48 Lib',        rx:.45,ry:.18,mag:.35, main:false},
+  {name:'ν Lib',         rx:.88,ry:.40,mag:.32, main:false},
+];
+const LIBRA_LINES=[[0,5],[5,7],[7,1],[1,2],[0,1],[3,0],[2,8],[0,4],[1,6],[4,3]];
+let libraX=0,libraY=0,libraW=0,libraH=0;
+function placeLibra(){
+  libraW=Math.min(cv.width*.26,300);libraH=libraW*.85;libraX=60+cv.width*.03;libraY=60+cv.height*.05;
+  const lbl=document.getElementById('libra-lbl');lbl.style.left=(libraX+libraW*.3)+'px';lbl.style.top=(libraY+libraH+14)+'px';
+}
+function sp(s){return{x:libraX+s.rx*libraW,y:libraY+s.ry*libraH}}
+const fieldStars=Array.from({length:280},()=>({x:Math.random()*9999,y:Math.random()*9999,r:.15+Math.random()*.7,ph:Math.random()*Math.PI*2,sp:.002+Math.random()*.008,warm:Math.random()<.4}));
+const dust=Array.from({length:80},()=>({x:Math.random()*window.innerWidth,y:Math.random()*window.innerHeight,vx:(Math.random()-.5)*.1,vy:(Math.random()-.5)*.1,r:.5+Math.random()*1.5}));
+let shoots=[];
+function addShoot(){shoots.push({x:Math.random()*cv.width,y:cv.height*.05+Math.random()*cv.height*.5,vx:2+Math.random()*3,vy:(Math.random()-.5)*.5,life:1});setTimeout(addShoot,5000+Math.random()*8000)}
+addShoot();resize();
+let t=0;
+(function draw(){
+  t+=.008;ctx.clearRect(0,0,cv.width,cv.height);
+  const g1=ctx.createRadialGradient(cv.width*.5,cv.height*.5,0,cv.width*.5,cv.height*.5,cv.width*.55);
+  g1.addColorStop(0,'rgba(180,100,30,0.07)');g1.addColorStop(.5,'rgba(130,60,10,0.04)');g1.addColorStop(1,'transparent');ctx.fillStyle=g1;ctx.fillRect(0,0,cv.width,cv.height);
+  const g2=ctx.createRadialGradient(cv.width*.85,cv.height*.1,0,cv.width*.85,cv.height*.1,cv.width*.35);
+  g2.addColorStop(0,'rgba(200,90,30,0.05)');g2.addColorStop(1,'transparent');ctx.fillStyle=g2;ctx.fillRect(0,0,cv.width,cv.height);
+  const gL=ctx.createRadialGradient(libraX+libraW*.5,libraY+libraH*.5,0,libraX+libraW*.5,libraY+libraH*.5,libraW*.9);
+  gL.addColorStop(0,'rgba(201,169,110,0.04)');gL.addColorStop(1,'transparent');ctx.fillStyle=gL;ctx.fillRect(0,0,cv.width,cv.height);
+  fieldStars.forEach(s=>{const sx=s.x%cv.width,sy=s.y%cv.height,a=.1+.5*(.5+.5*Math.sin(t*s.sp*80+s.ph));ctx.beginPath();ctx.arc(sx,sy,s.r,0,Math.PI*2);ctx.fillStyle=s.warm?`rgba(255,215,100,${a})`:`rgba(247,242,236,${a})`;ctx.fill()});
+  dust.forEach(p=>{p.x+=p.vx;p.y+=p.vy;if(p.x<0)p.x=cv.width;if(p.x>cv.width)p.x=0;if(p.y<0)p.y=cv.height;if(p.y>cv.height)p.y=0;const a=.03+.07*(.5+.5*Math.sin(t*.3+p.x*.01));ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);ctx.fillStyle=`rgba(201,169,110,${a})`;ctx.fill()});
+  ctx.save();ctx.setLineDash([3,6]);LIBRA_LINES.forEach(([i,j])=>{const a=sp(LIBRA_STARS[i]),b=sp(LIBRA_STARS[j]);ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.strokeStyle=`rgba(201,169,110,${0.10+0.05*Math.sin(t*.35)})`;ctx.lineWidth=.65;ctx.stroke()});ctx.setLineDash([]);ctx.restore();
+  LIBRA_STARS.forEach((star,i)=>{const{x,y}=sp(star),tw=.5+.5*Math.sin(t*(1.4+i*.28)+star.rx*9),alph=star.mag*(.5+.5*tw),r=star.main?(1.8+tw*.7):(1.0+tw*.45);if(star.main){const gg=ctx.createRadialGradient(x,y,0,x,y,r*10);gg.addColorStop(0,`rgba(201,169,110,${alph*.22})`);gg.addColorStop(1,'transparent');ctx.fillStyle=gg;ctx.beginPath();ctx.arc(x,y,r*10,0,Math.PI*2);ctx.fill()}const gm=ctx.createRadialGradient(x,y,0,x,y,r*4);gm.addColorStop(0,`rgba(247,230,170,${alph*.55})`);gm.addColorStop(1,'transparent');ctx.fillStyle=gm;ctx.beginPath();ctx.arc(x,y,r*4,0,Math.PI*2);ctx.fill();ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fillStyle=`rgba(255,240,190,${.7+.3*tw})`;ctx.fill();if(star.main){const sl=5+tw*4,sa=alph*.38;ctx.save();ctx.strokeStyle=`rgba(247,220,130,${sa})`;ctx.lineWidth=.55;ctx.beginPath();ctx.moveTo(x-sl,y);ctx.lineTo(x+sl,y);ctx.stroke();ctx.beginPath();ctx.moveTo(x,y-sl);ctx.lineTo(x,y+sl);ctx.stroke();ctx.restore()}});
+  ctx.fillStyle='rgba(201,169,110,0.2)';ctx.font='200 8px Jost, sans-serif';LIBRA_STARS.filter(s=>s.main).forEach(s=>{const{x,y}=sp(s);ctx.fillText(s.name,x+8,y-6)});
+  shoots=shoots.filter(s=>{s.x+=s.vx;s.y+=s.vy;s.life-=.012;if(s.life<=0)return false;const sg=ctx.createLinearGradient(s.x-s.vx*20,s.y,s.x,s.y);sg.addColorStop(0,'transparent');sg.addColorStop(1,`rgba(201,169,110,${s.life*.5})`);ctx.beginPath();ctx.moveTo(s.x-s.vx*20,s.y);ctx.lineTo(s.x,s.y);ctx.strokeStyle=sg;ctx.lineWidth=.8;ctx.stroke();return true});
+  requestAnimationFrame(draw);
+})();
+
+let activeMode='text',authSession=null,authMode='login',currentConversationHasMessages=false,pendingAction=null;
+let userPrefs=loadUserPreferences();
+let toolCatalog={};
+const invoke=window.__TAURI__?.core?.invoke;
+const backendUrl='http://127.0.0.1:8000';
+const localMemoryRoot='/tmp/ai-assistant-memory';
+
+function loadUserPreferences(){try{return JSON.parse(localStorage.getItem('ari.preferences')||'{}')}catch(_error){return {}}}
+function saveUserPreferences(){localStorage.setItem('ari.preferences',JSON.stringify(userPrefs))}
+async function loadToolCatalog(){
+  try{
+    const response=await fetch(`${backendUrl}/api/v1/tools/`);
+    if(!response.ok)throw new Error(`tool catalog returned ${response.status}`);
+    const tools=await response.json();
+    toolCatalog=Object.fromEntries(tools.map(tool=>[tool.name,tool]));
+    document.getElementById('connection-label').title=`${tools.length} tools available`;
+    return tools;
+  }catch(_error){
+    toolCatalog={};
+    document.getElementById('connection-label').title='Tool catalog unavailable; using local fallbacks';
+    return [];
+  }
+}
+function toolMeta(actionOrName){const name=typeof actionOrName==='string'?actionOrName:actionOrName.tool;return toolCatalog[name]||null}
+function toolRequiresConfirmation(action,fallback=false){
+  const meta=toolMeta(action);
+  return meta?Boolean(meta.requires_confirmation):fallback;
+}
+function toolRiskLabel(action){const meta=toolMeta(action);return meta&&meta.risk_level?meta.risk_level:'local'}
+function actionParams(action){
+  if(action.tool==='create_calendar_event'){
+    const d=action.draft||{};
+    return {calendar:d.calendar,title:d.title,start:d.start,end:d.end};
+  }
+  if(action.tool==='create_reminder'){
+    const d=action.draft||{};
+    return {list:d.list,title:d.title,due:d.due};
+  }
+  if(action.tool==='open_browser_url')return {url:action.url};
+  if(action.tool==='append_journal_entry')return {section:action.section,text:action.text,date:action.date};
+  if(action.tool==='read_journal_overview')return {date:action.date};
+  if(action.tool==='search_memory')return {query:action.query,limit:action.limit};
+  if(action.tool==='get_weather')return {city:action.city,latitude:action.latitude,longitude:action.longitude};
+  return {};
+}
+function actionFromModelIntent(intent){
+  if(!intent||intent.intent!=='tool'||!intent.tool_name||intent.confidence<0.65)return null;
+  const params=intent.params&&typeof intent.params==='object'?intent.params:{};
+  const language=intent.language||replyLanguage('');
+  if(intent.tool_name==='create_calendar_event'){
+    const start=params.start?new Date(params.start):null,end=params.end?new Date(params.end):null;
+    const durationMinutes=start&&end?Math.max(1,Math.round((end-start)/60000)):30;
+    const draft={
+      title:params.title||'',
+      calendar:params.calendar||'',
+      start:params.start||'',
+      end:params.end||'',
+      durationMinutes,
+      language
+    };
+    if(start&&!Number.isNaN(start.getTime())){
+      draft.date=localDateString(start);
+      draft.dateLabel=draft.date;
+      draft.hour=start.getHours();
+      draft.minute=start.getMinutes();
+      draft.timeLabel=`${pad2(draft.hour)}:${pad2(draft.minute)}`;
+    }
+    const missing=Array.isArray(intent.missing)?intent.missing:[];
+    draft.missingCalendar=missing.includes('calendar');
+    return {tool:'create_calendar_event',draft,missing,modelInterpreted:true,orchestratorReply:intent.reply};
+  }
+  if(intent.tool_name==='create_reminder'){
+    const due=params.due?new Date(params.due):null;
+    const draft={title:params.title||'',list:params.list||'',due:params.due||'',language};
+    if(due&&!Number.isNaN(due.getTime())){
+      draft.date=localDateString(due);
+      draft.dateLabel=draft.date;
+      draft.hour=due.getHours();
+      draft.minute=due.getMinutes();
+      draft.timeLabel=`${pad2(draft.hour)}:${pad2(draft.minute)}`;
+    }
+    const missing=Array.isArray(intent.missing)?intent.missing:[];
+    draft.missingList=missing.includes('list');
+    return {tool:'create_reminder',draft,missing,modelInterpreted:true,orchestratorReply:intent.reply};
+  }
+  if(intent.tool_name==='open_browser_url')return {tool:'open_browser_url',url:params.url,modelInterpreted:true,orchestratorReply:intent.reply};
+  if(intent.tool_name==='list_calendars')return {tool:'list_calendars',modelInterpreted:true,orchestratorReply:intent.reply};
+  if(intent.tool_name==='list_reminder_lists')return {tool:'list_reminder_lists',modelInterpreted:true,orchestratorReply:intent.reply};
+  if(intent.tool_name==='get_weather')return {tool:'get_weather',city:params.city,latitude:params.latitude,longitude:params.longitude,language,modelInterpreted:true,orchestratorReply:intent.reply};
+  return null;
+}
+function pendingActionPayload(){
+  return pendingAction?{tool:pendingAction.tool,params:actionParams(pendingAction),missing:pendingAction.missing||[]}:null;
+}
+async function orchestrateUserMessage(text){
+  if(!invoke||!authSession)return null;
+  const result=await invoke('orchestrate_with_ari',{
+    message:text,
+    pendingAction:pendingActionPayload(),
+    useMemory:true,
+    memoryLimit:8
+  });
+  const action=actionFromModelIntent({
+    intent:result.tool_name?'tool':'none',
+    tool_name:result.tool_name,
+    params:result.params,
+    missing:result.missing,
+    confidence:result.confidence,
+    language:result.language,
+    reply:result.reply
+  });
+  return {...result,action};
+}
+function toolSpecNameForAction(action){
+  if(action.tool==='create_calendar_event')return 'calendar_event';
+  if(action.tool==='create_reminder')return 'reminder';
+  if(action.tool==='open_browser_url')return 'open_url';
+  if(action.tool==='get_weather')return 'weather';
+  return action.tool;
+}
+function missingRequiredToolFields(action){
+  const meta=toolMeta(action),required=meta?.schema?.required||[];
+  if(!required.length)return [];
+  const params=actionParams(action);
+  return required.filter(name=>params[name]===undefined||params[name]===null||params[name]==='');
+}
+function auditPayload(action,extra={}){
+  return {
+    tool: action.tool,
+    params: actionParams(action),
+    risk_level: toolRiskLabel(action),
+    requires_confirmation: toolRequiresConfirmation(action,false),
+    ...extra
+  };
+}
+async function auditToolEvent(eventType,action,extra={}){
+  if(!invoke||!authSession||!action?.tool)return;
+  try{
+    await invoke('audit_tool_event',{
+      eventType,
+      toolName:action.tool,
+      payload:auditPayload(action,extra)
+    });
+  }catch(_error){}
+}
+function makeIdempotencyKey(action){
+  if(action.idempotencyKey)return action.idempotencyKey;
+  const random=window.crypto?.randomUUID?.()||`${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  action.idempotencyKey=`ari-${action.tool}-${random}`;
+  return action.idempotencyKey;
+}
+async function createBackendActionFor(action,extra={}){
+  if(!invoke||!authSession||!action?.tool||action.backendAction||!toolMeta(action))return null;
+  const backendAction=await invoke('create_backend_action',{
+    toolName:action.tool,
+    params:actionParams(action),
+    idempotencyKey:makeIdempotencyKey(action)
+  });
+  action.backendAction=backendAction;
+  await auditToolEvent('action_created',action,{backend_action_id:backendAction.id,status:backendAction.status,...extra});
+  return backendAction;
+}
+async function confirmBackendActionFor(action){
+  if(!invoke||!authSession||!action?.tool||!toolMeta(action))return null;
+  const backendAction=action.backendAction||await createBackendActionFor(action,{created_during:'confirm'});
+  if(!backendAction?.requires_confirmation)return backendAction;
+  if(!backendAction.confirmation_token)throw new Error('Backend did not return a confirmation token for this action.');
+  const confirmed=await invoke('confirm_backend_action',{
+    actionId:backendAction.id,
+    confirmationToken:backendAction.confirmation_token
+  });
+  action.backendAction=confirmed;
+  await auditToolEvent('action_confirmed',action,{backend_action_id:confirmed.id,status:confirmed.status});
+  return confirmed;
+}
+async function rejectBackendActionFor(action){
+  if(!invoke||!authSession||!action?.backendAction?.id)return null;
+  try{
+    const rejected=await invoke('reject_backend_action',{actionId:action.backendAction.id});
+    action.backendAction=rejected;
+    await auditToolEvent('action_rejected',action,{backend_action_id:rejected.id,status:rejected.status});
+    return rejected;
+  }catch(error){
+    await auditToolEvent('action_reject_failed',action,{error:commandError(error)});
+    return null;
+  }
+}
+async function completeBackendActionFor(action,status,result){
+  if(!invoke||!authSession||!action?.backendAction?.id)return null;
+  try{
+    const completed=await invoke('complete_backend_action',{
+      actionId:action.backendAction.id,
+      status,
+      result
+    });
+    action.backendAction=completed;
+    await auditToolEvent(status==='done'?'action_completed':'action_failed',action,{backend_action_id:completed.id,status:completed.status,result});
+    return completed;
+  }catch(error){
+    await auditToolEvent('action_result_update_failed',action,{error:commandError(error),requested_status:status});
+    return null;
+  }
+}
+function languageName(code){
+  return {en:'English',es:'español',ru:'русский',uk:'українська',it:'italiano',fr:'français',de:'Deutsch',pt:'português'}[code]||code;
+}
+function setAuthStatus(text,tone='muted'){const el=document.getElementById('auth-status');el.textContent=text;if(tone==='error')el.style.color='var(--rose)';else if(tone==='ok')el.style.color='var(--gold)';else el.style.color='rgba(201,169,110,0.3)'}
+function commandError(error){if(error&&typeof error==='object'&&'message'in error)return `${error.kind||'error'}: ${error.message}`;return String(error)}
+function isAuthError(error){return error&&typeof error==='object'&&error.kind==='auth'}
+function authArgs(){return{backendUrl,email:document.getElementById('auth-email').value.trim(),password:document.getElementById('auth-password').value,localMemoryRoot}}
+function setAuthMode(mode){
+  authMode=mode;const isRegister=mode==='register';
+  document.getElementById('auth-heading').textContent=isRegister?'Begin your expansion':'Access your light';
+  document.getElementById('auth-primary').textContent=isRegister?'Create account →':'Align me →';
+  document.getElementById('auth-footer-text').textContent=isRegister?'Already aligned?':'First time here?';
+  const toggle=document.getElementById('auth-toggle');toggle.textContent=isRegister?'Return to login':'Begin your expansion';toggle.onclick=()=>setAuthMode(isRegister?'login':'register');
+  document.getElementById('forgot-row').style.display=isRegister?'none':'block';
+  document.getElementById('auth-social').style.display=isRegister?'none':'flex';
+  document.getElementById('auth-divider').style.display=isRegister?'none':'flex';
+  setAuthStatus(isRegister?'— create your ARI account first —':'— log in to use ARI —');
+}
+function submitAuth(){authMode==='register'?registerUser():loginUser()}
+function showScreen(id){if(id==='screen-chat'&&!authSession){setAuthStatus('— log in before opening ARI —','error');id='screen-login'}document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active')}
+function hydrateSession(auth){
+  authSession=auth;const email=document.getElementById('auth-email').value.trim();
+  document.getElementById('sidebar-user-name').textContent=email?email.split('@')[0]:'Local User';
+  document.getElementById('sidebar-user-email').textContent=email||auth.user_id;
+  document.getElementById('chat-meta').textContent=`ARI · workspace ${auth.default_workspace_id||'local'} · ${new Date().toLocaleDateString('en-US')}`;
+  document.getElementById('connection-label').textContent='CONNECTED';
+  setAuthStatus('— session active —','ok');
+  loadToolCatalog();
+  loadRecentQueries();
+}
+async function loginUser(){if(!invoke){setAuthStatus('Tauri IPC unavailable','error');return}setAuthStatus('— connecting —');try{const auth=await invoke('login',authArgs());hydrateSession(auth);showScreen('screen-chat')}catch(error){setAuthStatus(commandError(error),'error')}}
+async function registerUser(){if(!invoke){setAuthStatus('Tauri IPC unavailable','error');return}setAuthStatus('— creating account —');try{await invoke('register',authArgs());setAuthMode('login');setAuthStatus('— account created, log in now —','ok');document.getElementById('auth-password').focus()}catch(error){setAuthStatus(commandError(error),'error')}}
+async function logoutUser(){authSession=null;document.getElementById('connection-label').textContent='LOGIN';document.getElementById('sidebar-user-name').textContent='Signed out';document.getElementById('sidebar-user-email').textContent='Log in to use ARI';document.getElementById('chat-meta').textContent='ARI · login required';if(invoke){try{await invoke('clear_desktop_config')}catch(_error){}}setAuthMode('login');setAuthStatus('— session closed —');showScreen('screen-login')}
+async function loadDesktopSession(){if(!invoke)return;try{const config=await invoke('load_desktop_config');if(config){document.getElementById('connection-label').textContent='LOGIN';setAuthStatus('— log in to use ARI —')}}catch(_error){document.getElementById('connection-label').textContent='LOCAL'}}
+
+function autoResize(el){el.style.height='auto';el.style.height=Math.min(el.scrollHeight,110)+'px'}
+function handleKey(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMessage()}}
+function setMode(mode){
+  activeMode=mode;document.querySelectorAll('.mode').forEach(b=>b.classList.remove('active'));const btn=document.getElementById('mode-'+mode);if(btn)btn.classList.add('active');
+  document.getElementById('chat-input').placeholder=mode==='memory'?'Search your memory...':mode==='activity'?'Activity is read-only...':'Ask the sun...';
+  if(mode==='activity')loadActivityLog();
+}
+function escapeHtml(value){return String(value).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;').replace(/\n/g,'<br>')}
+function escapeAttr(value){return String(value).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;').replace(/\n/g,' ')}
+function addMessage(text,from){
+  const welcome=document.getElementById('welcome-state');if(welcome)welcome.remove();
+  currentConversationHasMessages=true;
+  const msgs=document.getElementById('messages'),div=document.createElement('div'),time=new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
+  div.className=`message ${from}`;
+  div.innerHTML=`<div class="msg-avatar">${from==='ai'?'☉':'◇'}</div><div><div class="bubble">${escapeHtml(text)}</div><div class="msg-time">${from==='ai'?'ARI':'YOU'} · ${time}</div></div>`;
+  msgs.appendChild(div);msgs.scrollTop=msgs.scrollHeight;
+}
+function showTyping(){const msgs=document.getElementById('messages'),div=document.createElement('div');div.className='message';div.id='typing-msg';div.innerHTML='<div class="msg-avatar">☉</div><div class="typing"><span></span><span></span><span></span></div>';msgs.appendChild(div);msgs.scrollTop=msgs.scrollHeight}
+function removeTyping(){const t=document.getElementById('typing-msg');if(t)t.remove()}
+function clearChat(){
+  currentConversationHasMessages=false;
+  document.getElementById('messages').innerHTML=`<div class="welcome" id="welcome-state"><div class="sun-wrap"><svg width="56" height="56" viewBox="0 0 56 56" fill="none"><circle cx="28" cy="28" r="9" stroke="#C9A96E" stroke-width=".7" opacity=".6"/><circle cx="28" cy="28" r="15" stroke="#C9A96E" stroke-width=".45" opacity=".3"/><circle cx="28" cy="28" r="21" stroke="#C9A96E" stroke-width=".35" opacity=".18"/><circle cx="28" cy="28" r="3" fill="#C9A96E" opacity=".22"/><circle cx="28" cy="28" r="1.5" fill="#C9A96E" opacity=".7"/></svg></div><div class="welcome-title">ARI is awake</div><div class="welcome-copy">A warm execution assistant for thought, memory and action.</div></div>`;
+  if(authSession)document.getElementById('chat-meta').textContent=`ARI · workspace ${authSession.default_workspace_id||'local'} · ${new Date().toLocaleDateString('en-US')}`;
+}
+function sendQuick(text){document.getElementById('chat-input').value=text;sendMessage()}
+function detectOpenUrlAction(text){
+  const lower=text.toLowerCase();
+  if(!/\b(open|abre|abrir|go to|visit|navega|navigate)\b/.test(lower))return null;
+  const match=text.match(/(https?:\/\/[^\s]+|(?:[a-z0-9-]+\.)+[a-z]{2,}(?:\/[^\s]*)?)/i);
+  if(!match)return null;
+  const raw=match[1].replace(/[),.;!?]+$/,'');
+  const url=raw.includes('://')?raw:`https://${raw}`;
+  return {tool:'open_browser_url',url};
+}
+function detectListCalendarsAction(text){
+  const lower=text.toLowerCase();
+  if(!/\b(calendar|calendars|calendario|calendarios|agenda)\b/.test(lower))return null;
+  if(!/\b(list|show|see|what|which|lista|listar|muestra|ver|cu[aá]les|que|qué)\b/.test(lower))return null;
+  return {tool:'list_calendars'};
+}
+function detectListReminderListsAction(text){
+  const lower=text.toLowerCase();
+  if(!/\b(reminder|reminders|recordatorio|recordatorios|lista|listas|tasks|tareas)\b/.test(lower))return null;
+  if(!/\b(list|show|see|what|which|lista|listar|muestra|ver|cu[aá]les|que|qué)\b/.test(lower))return null;
+  if(/\b(calendar|calendario|agenda)\b/.test(lower))return null;
+  return {tool:'list_reminder_lists'};
+}
+function detectWeatherAction(text){
+  const lower=text.toLowerCase();
+  const asksWeather=/\b(weather|temperature|temp|forecast|clima|tiempo|temperatura|grados|calor|fr[ií]o)\b/.test(lower);
+  const naturalWeather=/\b(qu[eé]\s+(?:temperatura|tiempo)\s+hace|how\s+(?:hot|cold)|what'?s\s+the\s+(?:weather|temperature))\b/i.test(lower);
+  if(!asksWeather&&!naturalWeather)return null;
+  return {tool:'get_weather',city:extractCity(text),language:replyLanguage(text)};
+}
+function detectDateAction(text){
+  const lower=text.toLowerCase().trim();
+  if(/\b(qu[eé]\s+d[ií]a\s+es\s+hoy|que\s+dia\s+es\s+hoy|fecha\s+de\s+hoy|what\s+day\s+is\s+it|what'?s\s+today'?s\s+date|what\s+date\s+is\s+it)\b/i.test(lower)){
+    return {tool:'get_current_date',language:replyLanguage(text)};
+  }
+  return null;
+}
+function detectPreferenceAction(text){
+  const lower=text.toLowerCase().trim();
+  const language=detectExplicitLanguage(text);
+  if(language&&/\b(responde|contesta|reply|answer|speak|habla|respond)\b/i.test(text)){
+    return {tool:'set_preference',key:'replyLanguage',value:language};
+  }
+  const calendar=text.match(/\b(?:mi\s+)?(?:calendario)\s+(?:por\s+defecto|predeterminado|principal)\s+(?:es|ser[aá]|=)\s+(.+)$/i)
+    || text.match(/\b(?:usa|usar|utiliza|establece|set|use)\s+(.+?)\s+(?:como|as)\s+(?:mi\s+)?(?:calendario)\s+(?:por\s+defecto|predeterminado|principal|default)\b/i);
+  if(calendar&&calendar[1]&&!isVagueLocalCalendarName(calendar[1]))return {tool:'set_preference',key:'defaultCalendar',value:calendar[1].trim().replace(/[.?!]+$/,'')};
+  const list=text.match(/\b(?:mi\s+)?(?:lista)\s+(?:de\s+recordatorios\s+)?(?:por\s+defecto|predeterminada|principal)\s+(?:es|ser[aá]|=)\s+(.+)$/i)
+    || text.match(/\b(?:usa|usar|utiliza|establece|set|use)\s+(.+?)\s+(?:como|as)\s+(?:mi\s+)?(?:lista)\s+(?:de\s+recordatorios\s+)?(?:por\s+defecto|predeterminada|principal|default)\b/i);
+  if(list&&list[1])return {tool:'set_preference',key:'defaultReminderList',value:list[1].trim().replace(/[.?!]+$/,'')};
+  if(/\b(olvida|borra|quita|clear|remove)\b.*\b(calendario|calendar)\b.*\b(defecto|default|predeterminado|principal)\b/i.test(text))return {tool:'clear_preference',key:'defaultCalendar'};
+  if(/\b(olvida|borra|quita|clear|remove)\b.*\b(lista|list|recordatorios|reminders)\b.*\b(defecto|default|predeterminada|principal)\b/i.test(text))return {tool:'clear_preference',key:'defaultReminderList'};
+  return null;
+}
+function extractCity(text){
+  const match=text.match(/\b(?:en|in)\s+([a-záéíóúñüç\s.-]{2,})$/i);
+  if(!match)return null;
+  const city=match[1].trim().replace(/[.?!]+$/,'');
+  if(/\b(mi|my|ubicaci[oó]n|location|dispositivo|device|ordenador|mac)\b/i.test(city))return null;
+  return city;
+}
+function detectLanguage(text){
+  return detectExplicitLanguage(text)||(/[ñáéíóú]|calendario|agenda|mañan|manana|hoy|reuni[oó]n|crea|creame|créame|tarea/i.test(text)?'es':'en');
+}
+function detectExplicitLanguage(text){
+  const lower=text.toLowerCase();
+  if(/\b(russian|ruso|русском|русский|по-русски)\b|[ёъыэ]/i.test(text))return 'ru';
+  if(/\b(ukrainian|ucraniano|ukraniano|українською|українська)\b|[іїєґ]/i.test(text))return 'uk';
+  if(/\b(italian|italiano|italiana)\b/.test(lower))return 'it';
+  if(/\b(french|franc[eé]s|frances|fran[çc]ais)\b/.test(lower))return 'fr';
+  if(/\b(german|alem[aá]n|aleman|deutsch)\b/.test(lower))return 'de';
+  if(/\b(portuguese|portugu[eé]s|portugues|portugu[eê]s)\b/.test(lower))return 'pt';
+  if(/\b(spanish|español|espanol|castellano)\b/.test(lower))return 'es';
+  if(/\b(english|ingl[eé]s|ingles)\b/.test(lower))return 'en';
+  return null;
+}
+function replyLanguage(text){return detectExplicitLanguage(text)||userPrefs.replyLanguage||detectLanguage(text)}
+function speaksSpanish(text){return detectLanguage(text)==='es'}
+function pad2(value){return String(value).padStart(2,'0')}
+function localDateString(date){return `${date.getFullYear()}-${pad2(date.getMonth()+1)}-${pad2(date.getDate())}`}
+function localDateTimeString(date){return `${localDateString(date)}T${pad2(date.getHours())}:${pad2(date.getMinutes())}:00`}
+function parseDateInfo(text){
+  const lower=text.toLowerCase();
+  const explicit=text.match(/\b(20\d{2})-(\d{2})-(\d{2})\b/);
+  if(explicit)return {date:explicit[0],label:explicit[0]};
+  const date=new Date();date.setHours(0,0,0,0);
+  if(/\b(tomorrow|mañana?|manana?)\b/.test(lower)){date.setDate(date.getDate()+1);return {date:localDateString(date),label:speaksSpanish(text)?'mañana':'tomorrow'}}
+  if(/\b(today|hoy)\b/.test(lower))return {date:localDateString(date),label:speaksSpanish(text)?'hoy':'today'};
+  return null;
+}
+function parseTimeInfo(text){
+  const clock=text.match(/\b(\d{1,2})[:.](\d{2})\s*(am|pm)?\b/i);
+  const loose=text.match(/\b(?:at|a las|sobre las|para las)\s+(\d{1,2})(?:\s*h|h|:|\.|\s+)?(\d{2})?\s*(am|pm)?\b/i);
+  const match=clock||loose;if(!match)return null;
+  let hour=Number(match[1]),minute=Number(match[2]||0);
+  const period=(match[3]||'').toLowerCase();
+  if(period==='pm'&&hour<12)hour+=12;
+  if(period==='am'&&hour===12)hour=0;
+  if(hour>23||minute>59)return null;
+  return {hour,minute,label:`${pad2(hour)}:${pad2(minute)}`};
+}
+function parseCalendarName(text,allowBare=false){
+  const trimmed=text.trim();
+  const withoutTitle=trimmed.replace(/\b(?:called|named|titled|with title|titulado|titulada|llamado|llamada|que se llame)\s+.+$/i,'').trim();
+  if(userPrefs.defaultCalendar&&/\b(default|defecto|predeterminado|principal|por defecto)\b/i.test(trimmed))return userPrefs.defaultCalendar;
+  const named=withoutTitle.match(/\b(?:in|en)\s+(?:el\s+|the\s+)?(?:calendar|calendario|agenda)\s+(.+)$/i);
+  if(named&&named[1].trim()){
+    const value=named[1].trim().replace(/[.?!]+$/,'');
+    if(!isVagueLocalCalendarName(value))return value;
+  }
+  const bare=withoutTitle.match(/\b(?:in|en)\s+([a-záéíóúñ0-9 _-]{2,})$/i);
+  if(bare&&bare[1].trim()&&!/\b(calendar|calendario|agenda)\b/i.test(bare[1])){
+    const value=bare[1].trim().replace(/[.?!]+$/,'');
+    if(!isVagueLocalCalendarName(value))return value;
+  }
+  if(allowBare&&trimmed.length>1&&!/\b(yes|no|si|sí|confirm|cancel|a las|at)\b/i.test(trimmed)&&!isVagueLocalCalendarName(trimmed))return trimmed.replace(/[.?!]+$/,'');
+  return null;
+}
+function isVagueLocalCalendarName(value){
+  return /\b(mi|m[ií]o|mio|el de|la de|el que|la que|ordenador|computador|computer|mac|default|defecto|principal|predeterminado|calendario)\b/i.test(value.trim());
+}
+function parseDurationMinutes(text){
+  const lower=text.toLowerCase();
+  const hours=lower.match(/\b(?:durante|dure|dura|for)\s+(\d+(?:[.,]\d+)?)\s*(?:h|hora|horas|hour|hours)\b/);
+  if(hours)return Math.max(1,Math.round(Number(hours[1].replace(',','.'))*60));
+  const minutes=lower.match(/\b(?:durante|dure|dura|for)\s+(\d+)\s*(?:m|min|mins|minuto|minutos|minute|minutes)\b/);
+  if(minutes)return Math.max(1,Number(minutes[1]));
+  return null;
+}
+function cleanActionTitle(value){
+  return value
+    .replace(/\b(?:today|hoy|tomorrow|mañana?|manana?)\b.*$/i,'')
+    .replace(/\b(?:at|a las|sobre las|para las)\s+\d{1,2}(?::\d{2})?\s*(?:am|pm)?\b.*$/i,'')
+    .replace(/\b(?:en|in)\s+(?:mi\s+|el\s+|la\s+|the\s+)?(?:calendar|calendario|agenda|list|lista)?\s*[a-záéíóúñ0-9 _-]+$/i,'')
+    .replace(/\b(?:durante|dure|dura|for)\s+.+$/i,'')
+    .trim();
+}
+function isBareTitleCandidate(text){
+  const trimmed=cleanActionTitle(text.trim());
+  if(!trimmed||trimmed.length<2)return false;
+  if(parseDateInfo(trimmed)||parseTimeInfo(trimmed)||parseCalendarName(trimmed,false))return false;
+  return !/\b(yes|no|si|sí|confirm|cancel|cancela|hazlo|do it|a las|at|en|in)\b/i.test(trimmed);
+}
+function extractEventTitle(text){
+  const lower=text.toLowerCase();
+  if(/\breuni[oó]n\b/.test(lower))return 'Reunión';
+  if(/\bmeeting\b/.test(lower))return 'Meeting';
+  const eventFor=text.match(/\b(?:crea|crear|cr[eé]ame|add|create|schedule)\s+(?:un\s+|una\s+|an?\s+)?(?:evento|event|cita|appointment)\s+(?:para|de|about|for)\s+([^.,;!?]+)/i);
+  if(eventFor&&cleanActionTitle(eventFor[1]))return cleanActionTitle(eventFor[1]);
+  const call=text.match(/\b(?:llamar|call)\s+(?:a\s+)?([^.,;!?]+)/i);
+  if(call)return `${speaksSpanish(text)?'Llamar a':'Call'} ${cleanActionTitle(call[1])}`;
+  const task=text.match(/\b(?:tarea|task)\s+(?:de\s+|to\s+)?([^.,;!?]+)/i);
+  if(task&&cleanActionTitle(task[1])&&!/^(en|in|para|for)\b/i.test(cleanActionTitle(task[1])))return cleanActionTitle(task[1]);
+  return null;
+}
+function parseReminderListName(text,allowBare=false){
+  const trimmed=text.trim();
+  if(userPrefs.defaultReminderList&&/\b(default|defecto|predeterminada|principal|por defecto)\b/i.test(trimmed))return userPrefs.defaultReminderList;
+  const named=trimmed.match(/\b(?:in|en)\s+(?:la\s+|the\s+)?(?:list|lista)\s+(.+)$/i);
+  if(named&&named[1].trim())return named[1].trim().replace(/[.?!]+$/,'');
+  const bare=trimmed.match(/\b(?:in|en)\s+([a-záéíóúñ0-9 _-]{2,})$/i);
+  if(bare&&bare[1].trim()&&!/\b(calendar|calendario|agenda|lista|list)\b/i.test(bare[1]))return bare[1].trim().replace(/[.?!]+$/,'');
+  if(allowBare&&trimmed.length>1&&!/\b(yes|no|si|sí|confirm|cancel|a las|at|mañana|manana|tomorrow|hoy|today)\b/i.test(trimmed))return trimmed.replace(/[.?!]+$/,'');
+  return null;
+}
+function cleanReminderTitle(value){
+  return value
+    .replace(/\b(?:today|hoy|tomorrow|mañana?|manana?)\b.*$/i,'')
+    .replace(/\b(?:at|a las|sobre las|para las)\s+\d{1,2}(?::\d{2})?\s*(?:am|pm)?\b.*$/i,'')
+    .replace(/\b(?:in|en)\s+(?:la\s+|the\s+)?(?:list|lista)?\s*[a-záéíóúñ0-9 _-]+$/i,'')
+    .trim();
+}
+function extractReminderTitle(text){
+  const patterns=[
+    /\b(?:recordarme|recu[eé]rdame|remind me to)\s+([^.,;!?]+)/i,
+    /\b(?:crea|crear|cr[eé]ame|add|create)\s+(?:una\s+|un\s+|a\s+)?(?:tarea|task|recordatorio|reminder)\s+(?:para|de|to)?\s*([^.,;!?]+)/i,
+    /\b(?:tarea|task|recordatorio|reminder)\s+(?:para|de|to)\s+([^.,;!?]+)/i
+  ];
+  for(const pattern of patterns){
+    const match=text.match(pattern);
+    if(match&&cleanReminderTitle(match[1]))return cleanReminderTitle(match[1]);
+  }
+  return null;
+}
+function buildReminderDraft(text,baseDraft={}){
+  const dateInfo=parseDateInfo(text),timeInfo=parseTimeInfo(text),list=parseReminderListName(text,baseDraft.missingList),title=extractReminderTitle(text);
+  const draft={...baseDraft};
+  draft.language=baseDraft.language||replyLanguage(text);
+  if(title)draft.title=title;
+  if(dateInfo){draft.date=dateInfo.date;draft.dateLabel=dateInfo.label}
+  if(timeInfo){draft.hour=timeInfo.hour;draft.minute=timeInfo.minute;draft.timeLabel=timeInfo.label}
+  if(list)draft.list=list;
+  const missing=[];
+  if(!draft.title)missing.push('title');
+  if(!draft.date)missing.push('date');
+  if(draft.hour===undefined||draft.minute===undefined)missing.push('time');
+  if(!draft.list)missing.push('list');
+  draft.missingList=missing.includes('list');
+  const dueDate=draft.date&&draft.hour!==undefined?new Date(`${draft.date}T${pad2(draft.hour)}:${pad2(draft.minute)}:00`):null;
+  if(dueDate)draft.due=localDateTimeString(dueDate);
+  return {tool:'create_reminder',draft,missing};
+}
+function detectCreateReminderAction(text){
+  const lower=text.toLowerCase();
+  if(/\b(calendar|calendario|agenda)\b/.test(lower))return null;
+  const hasCreate=/\b(create|add|schedule|put|remind|crea|crear|creame|cr[eé]ame|agrega|añade|anade|programa|pon|recordarme|recu[eé]rdame)\b/.test(lower);
+  const hasTask=/\b(task|todo|reminder|tarea|recordatorio)\b/.test(lower);
+  if(!(hasCreate&&hasTask))return null;
+  return buildReminderDraft(text);
+}
+function describeReminderDraft(action){
+  if(action.orchestratorReply)return action.orchestratorReply;
+  const d=action.draft,when=`${d.dateLabel||d.date} ${d.timeLabel}`;
+  return d.language==='es'
+    ? `Crearé la tarea "${d.title}" en la lista ${d.list}, para ${when}. ¿Confirmas?`
+    : `I will create the task "${d.title}" in ${d.list}, due ${when}. Confirm?`;
+}
+function reminderMissingQuestion(action){
+  if(action.orchestratorReply)return action.orchestratorReply;
+  const lang=action.draft.language||'en',missing=action.missing;
+  if(lang==='es'){
+    const parts=[];
+    if(missing.includes('title'))parts.push('qué tarea es');
+    if(missing.includes('date'))parts.push('qué día');
+    if(missing.includes('time'))parts.push('a qué hora');
+    if(missing.includes('list'))parts.push('en qué lista de Recordatorios');
+    return `Necesito ${parts.join(', ')}.`;
+  }
+  const parts=[];
+  if(missing.includes('title'))parts.push('what the task is');
+  if(missing.includes('date'))parts.push('which day');
+  if(missing.includes('time'))parts.push('what time');
+  if(missing.includes('list'))parts.push('which Reminders list');
+  return `I need ${parts.join(', ')}.`;
+}
+function handlePreferenceAction(action){
+  if(action.tool==='set_preference'){
+    userPrefs[action.key]=action.value;
+    saveUserPreferences();
+    if(action.key==='replyLanguage')return `Done. I will reply in ${languageName(action.value)} until you ask me to change.`;
+    if(action.key==='defaultCalendar')return `Done. I will use "${action.value}" when you explicitly ask for your default calendar.`;
+    if(action.key==='defaultReminderList')return `Done. I will use "${action.value}" when you explicitly ask for your default reminders list.`;
+  }
+  if(action.tool==='clear_preference'){
+    delete userPrefs[action.key];
+    saveUserPreferences();
+    if(action.key==='defaultCalendar')return 'Done. I removed the default calendar preference.';
+    if(action.key==='defaultReminderList')return 'Done. I removed the default reminders list preference.';
+  }
+  return 'Done.';
+}
+function detectMemoryWriteAction(text){
+  const lower=text.toLowerCase();
+  if(/\b(remind me|recu[eé]rdame|recordarme)\b/i.test(text))return null;
+  const hasMemoryVerb=/\b(remember|save|store|note that|write down|guarda|guardar|recuerda que|apunta|anota|memoriza)\b/i.test(text);
+  const hasMemoryTarget=/\b(memory|memoria|journal|diario)\b/i.test(text);
+  const explicitSection=/\b(task|tarea|decision|decisi[oó]n|pending|pendiente|note|nota)\b/i.test(text);
+  if(!hasMemoryVerb&&!hasMemoryTarget&&!explicitSection)return null;
+  let section='facts';
+  if(/\b(task|tasks|tarea|tareas)\b/i.test(text))section='tasks';
+  else if(/\b(decision|decisions|decisi[oó]n|decisiones|decidimos)\b/i.test(text))section='decisions';
+  else if(/\b(pending|pendiente|pendientes|todo|to-do)\b/i.test(text))section='pending';
+  let memoryText=text
+    .replace(/^\s*(please\s+)?(?:remember that|save(?: this)?(?: to memory)?|store(?: this)?(?: in memory)?|note that|write down|guarda(?: esto)?(?: en memoria)?|guardar(?: esto)?(?: en memoria)?|recuerda que|apunta(?: esto)?|anota(?: esto)?|memoriza(?: esto)?)[\s:,-]*/i,'')
+    .replace(/^\s*(?:task|tarea|decision|decisi[oó]n|pending|pendiente|note|nota)[\s:,-]+/i,'')
+    .trim();
+  if(!memoryText||memoryText.length<2)memoryText=text.trim();
+  const dateInfo=parseDateInfo(text);
+  return {tool:'append_journal_entry',section,text:memoryText,date:dateInfo?dateInfo.date:localDateString(new Date()),language:replyLanguage(text)};
+}
+function detectMemoryOverviewAction(text){
+  const lower=text.toLowerCase();
+  const asksMemory=/\b(memory|memoria|journal|diario)\b/.test(lower);
+  const asksOverview=/\b(overview|summary|resumen|qu[eé]\s+tengo|what\s+do\s+i\s+have|mu[eé]strame|show me|leer|read)\b/i.test(text);
+  if(!asksMemory||!asksOverview)return null;
+  const dateInfo=parseDateInfo(text);
+  return {tool:'read_journal_overview',date:dateInfo?dateInfo.date:localDateString(new Date()),language:replyLanguage(text)};
+}
+function formatMemoryOverview(overview,language='en'){
+  const sections=overview.sections||{};
+  const lines=[];
+  Object.entries(sections).forEach(([section,value])=>{
+    const items=Array.isArray(value)?value:[value];
+    const clean=items.map(item=>String(item).trim()).filter(Boolean);
+    if(clean.length)lines.push(`${section}\n${clean.map(item=>`- ${item}`).join('\n')}`);
+  });
+  if(lines.length)return lines.join('\n\n');
+  return language==='es'?'No hay memoria guardada para ese día.':'No memory entries are saved for that day.';
+}
+function memorySavedReply(action,result){
+  return action.language==='es'
+    ? `Guardado en memoria (${action.section}) para ${result.date}.`
+    : `Saved to memory (${action.section}) for ${result.date}.`;
+}
+function buildCalendarEventDraft(text,baseDraft={}){
+  const dateInfo=parseDateInfo(text),timeInfo=parseTimeInfo(text),calendar=parseCalendarName(text,baseDraft.missingCalendar);
+  const draft={...baseDraft};
+  draft.language=baseDraft.language||replyLanguage(text);
+  draft.userText=baseDraft.userText||text;
+  const title=extractEventTitle(text)||extractEventTitle(draft.userText)||(!baseDraft.title&&isBareTitleCandidate(text)&&!/\b(crea|crear|cr[eé]ame|create|add|schedule|evento|event|cita|appointment)\b/i.test(text)?cleanActionTitle(text):null);
+  if(title)draft.title=title;
+  const duration=parseDurationMinutes(text);
+  if(duration)draft.durationMinutes=duration;
+  if(dateInfo){draft.date=dateInfo.date;draft.dateLabel=dateInfo.label}
+  if(timeInfo){draft.hour=timeInfo.hour;draft.minute=timeInfo.minute;draft.timeLabel=timeInfo.label}
+  if(calendar)draft.calendar=calendar;
+  const missing=[];
+  if(!draft.title)missing.push('title');
+  if(!draft.date)missing.push('date');
+  if(draft.hour===undefined||draft.minute===undefined)missing.push('time');
+  if(!draft.calendar)missing.push('calendar');
+  draft.durationMinutes=draft.durationMinutes||30;
+  draft.missingCalendar=missing.includes('calendar');
+  const startDate=draft.date&&draft.hour!==undefined?new Date(`${draft.date}T${pad2(draft.hour)}:${pad2(draft.minute)}:00`):null;
+  if(startDate){
+    const endDate=new Date(startDate.getTime()+draft.durationMinutes*60*1000);
+    draft.start=localDateTimeString(startDate);
+    draft.end=localDateTimeString(endDate);
+  }
+  return {tool:'create_calendar_event',draft,missing};
+}
+function detectCreateCalendarEventAction(text){
+  const lower=text.toLowerCase();
+  const hasCalendar=/\b(calendar|calendario|agenda)\b/.test(lower);
+  const hasCreate=/\b(create|add|schedule|put|crea|crear|agrega|añade|anade|programa|pon)\b/.test(lower);
+  const hasEvent=/\b(event|meeting|appointment|task|evento|reuni[oó]n|cita|tarea)\b/.test(lower);
+  if(!(hasCalendar&&(hasCreate||hasEvent)))return null;
+  return buildCalendarEventDraft(text);
+}
+function describeCalendarDraft(action){
+  if(action.orchestratorReply)return action.orchestratorReply;
+  const d=action.draft;
+  const when=`${d.dateLabel||d.date} ${d.timeLabel}`;
+  return d.language==='es'
+    ? `Crearé "${d.title}" en ${d.calendar}, ${when}, durante ${d.durationMinutes} minutos. ¿Confirmas?`
+    : `I will create "${d.title}" in ${d.calendar}, ${when}, for ${d.durationMinutes} minutes. Confirm?`;
+}
+function calendarMissingQuestion(action){
+  if(action.orchestratorReply)return action.orchestratorReply;
+  const lang=action.draft.language||'en',missing=action.missing;
+  if(lang==='es'){
+    if(missing.includes('title')&&missing.includes('calendar'))return '¿Qué título quieres ponerle y qué calendario exacto quieres usar?';
+    if(missing.includes('title')&&missing.includes('time'))return '¿Qué título y hora quieres usar?';
+    if(missing.includes('title'))return '¿Qué título quieres ponerle?';
+    if(missing.includes('time')&&missing.includes('calendar'))return '¿A qué hora y en qué calendario quieres crearla?';
+    if(missing.includes('calendar'))return 'No tengo un calendario por defecto configurado. ¿Cuál calendario exacto quieres usar?';
+    if(missing.includes('time'))return '¿A qué hora quieres crearla?';
+    return '¿Qué fecha quieres usar?';
+  }
+  if(missing.includes('title')&&missing.includes('calendar'))return 'What title should I use, and which exact calendar should I use?';
+  if(missing.includes('time')&&missing.includes('calendar'))return 'What time and which calendar should I use?';
+  if(missing.includes('calendar'))return 'I do not have a default calendar configured. Which exact calendar should I use?';
+  if(missing.includes('time'))return 'What time should I use?';
+  return 'What date should I use?';
+}
+function isConfirmText(text){
+  const lower=text.trim().toLowerCase();
+  if(/^(yes|y|ok|okay|confirm|confirmed|do it|sí|si|dale|confirma|confirmo|hazlo)$/i.test(lower))return true;
+  return /\b(s[ií]|yes|confirmo|confirma|confirm|confirmed|hazlo|do it|adelante|dale)\b/i.test(lower)&&!/\b(no|cancel|cancela|cancelar|don't|dont)\b/i.test(lower);
+}
+function isCancelText(text){return /^(no|cancel|stop|never mind|cancela|cancelar)$/i.test(text.trim())}
+function getDevicePosition(){
+  return new Promise((resolve,reject)=>{
+    if(!navigator.geolocation){reject(new Error('location is not available on this device'));return}
+    navigator.geolocation.getCurrentPosition(
+      position=>resolve(position),
+      error=>{
+        if(error.code===error.PERMISSION_DENIED)reject(new Error('location permission was denied'));
+        else if(error.code===error.POSITION_UNAVAILABLE)reject(new Error('device location is unavailable'));
+        else if(error.code===error.TIMEOUT)reject(new Error('location request timed out'));
+        else reject(new Error('could not read device location'));
+      },
+      {enableHighAccuracy:false,timeout:9000,maximumAge:10*60*1000}
+    );
+  });
+}
+function weatherDescription(code){
+  const map={
+    0:{en:'clear sky',es:'cielo despejado',ru:'ясно',uk:'ясно',it:'cielo sereno',fr:'ciel dégagé',de:'klarer Himmel',pt:'céu limpo'},
+    1:{en:'mainly clear',es:'mayormente despejado',ru:'преимущественно ясно',uk:'переважно ясно',it:'prevalentemente sereno',fr:'plutôt dégagé',de:'überwiegend klar',pt:'predominantemente limpo'},
+    2:{en:'partly cloudy',es:'parcialmente nublado',ru:'переменная облачность',uk:'мінлива хмарність',it:'parzialmente nuvoloso',fr:'partiellement nuageux',de:'teilweise bewölkt',pt:'parcialmente nublado'},
+    3:{en:'overcast',es:'nublado',ru:'пасмурно',uk:'хмарно',it:'coperto',fr:'couvert',de:'bedeckt',pt:'encoberto'},
+    45:{en:'fog',es:'niebla',ru:'туман',uk:'туман',it:'nebbia',fr:'brouillard',de:'Nebel',pt:'nevoeiro'},
+    61:{en:'light rain',es:'lluvia ligera',ru:'слабый дождь',uk:'легкий дощ',it:'pioggia leggera',fr:'pluie légère',de:'leichter Regen',pt:'chuva fraca'},
+    63:{en:'rain',es:'lluvia',ru:'дождь',uk:'дощ',it:'pioggia',fr:'pluie',de:'Regen',pt:'chuva'},
+    65:{en:'heavy rain',es:'lluvia fuerte',ru:'сильный дождь',uk:'сильний дощ',it:'pioggia forte',fr:'forte pluie',de:'starker Regen',pt:'chuva forte'},
+    71:{en:'light snow',es:'nieve ligera',ru:'слабый снег',uk:'легкий сніг',it:'neve leggera',fr:'neige légère',de:'leichter Schnee',pt:'neve fraca'},
+    73:{en:'snow',es:'nieve',ru:'снег',uk:'сніг',it:'neve',fr:'neige',de:'Schnee',pt:'neve'},
+    75:{en:'heavy snow',es:'nieve fuerte',ru:'сильный снег',uk:'сильний сніг',it:'neve forte',fr:'forte neige',de:'starker Schnee',pt:'neve forte'},
+    80:{en:'light showers',es:'chubascos ligeros',ru:'небольшие ливни',uk:'невеликі зливи',it:'rovesci leggeri',fr:'averses légères',de:'leichte Schauer',pt:'aguaceiros fracos'},
+    81:{en:'showers',es:'chubascos',ru:'ливни',uk:'зливи',it:'rovesci',fr:'averses',de:'Schauer',pt:'aguaceiros'},
+    82:{en:'heavy showers',es:'chubascos fuertes',ru:'сильные ливни',uk:'сильні зливи',it:'rovesci forti',fr:'fortes averses',de:'starke Schauer',pt:'aguaceiros fortes'},
+    95:{en:'thunderstorm',es:'tormenta',ru:'гроза',uk:'гроза',it:'temporale',fr:'orage',de:'Gewitter',pt:'trovoada'}
+  };
+  return map[code]||{en:'current conditions',es:'condiciones actuales',ru:'текущие условия',uk:'поточні умови',it:'condizioni attuali',fr:'conditions actuelles',de:'aktuelle Bedingungen',pt:'condições atuais'};
+}
+function localText(language,key,vars={}){
+  const texts={
+    date:{en:'Today is {date}.',es:'Hoy es {date}.',ru:'Сегодня {date}.',uk:'Сьогодні {date}.',it:'Oggi è {date}.',fr:'Nous sommes le {date}.',de:'Heute ist {date}.',pt:'Hoje é {date}.'},
+    cityMissing:{en:'I cannot find "{city}". Which city should I use?',es:'No encuentro "{city}". ¿Qué ciudad quieres usar?',ru:'Я не нашла «{city}». Какой город использовать?',uk:'Я не знайшла «{city}». Яке місто використати?',it:'Non trovo "{city}". Quale città devo usare?',fr:'Je ne trouve pas « {city} ». Quelle ville dois-je utiliser ?',de:'Ich finde „{city}“ nicht. Welche Stadt soll ich verwenden?',pt:'Não encontrei "{city}". Que cidade devo usar?'},
+    locationDenied:{en:'I cannot read the device location: {error}. Tell me a city and I will continue with the weather.',es:'No puedo leer la ubicación del dispositivo: {error}. Dime una ciudad y sigo con el clima.',ru:'Я не могу прочитать местоположение устройства: {error}. Назови город, и я продолжу с погодой.',uk:'Я не можу прочитати місцезнаходження пристрою: {error}. Назви місто, і я продовжу з погодою.',it:'Non posso leggere la posizione del dispositivo: {error}. Dimmi una città e continuo con il meteo.',fr:'Je ne peux pas lire la position de l’appareil : {error}. Donne-moi une ville et je continue avec la météo.',de:'Ich kann den Gerätestandort nicht lesen: {error}. Nenne mir eine Stadt, dann mache ich mit dem Wetter weiter.',pt:'Não consigo ler a localização do dispositivo: {error}. Diz-me uma cidade e continuo com o clima.'},
+    currentLocation:{en:'your current location',es:'tu ubicación actual',ru:'твоём текущем местоположении',uk:'твоєму поточному місцезнаходженні',it:'la tua posizione attuale',fr:'ta position actuelle',de:'deinem aktuellen Standort',pt:'a tua localização atual'},
+    weather:{en:'Right now in {label}, it is {temp}{tempUnit}, feeling like {feels}{feelsUnit}. Conditions are {description}; humidity {humidity}{humidityUnit} and wind {wind} {windUnit}.',es:'Ahora mismo en {label}, hace {temp}{tempUnit} y se siente como {feels}{feelsUnit}. El cielo está {description}; humedad {humidity}{humidityUnit} y viento {wind} {windUnit}.',ru:'Сейчас в {label}: {temp}{tempUnit}, ощущается как {feels}{feelsUnit}. Условия: {description}; влажность {humidity}{humidityUnit}, ветер {wind} {windUnit}.',uk:'Зараз у {label}: {temp}{tempUnit}, відчувається як {feels}{feelsUnit}. Умови: {description}; вологість {humidity}{humidityUnit}, вітер {wind} {windUnit}.',it:'Adesso a {label} ci sono {temp}{tempUnit}, percepiti {feels}{feelsUnit}. Condizioni: {description}; umidità {humidity}{humidityUnit} e vento {wind} {windUnit}.',fr:'En ce moment à {label}, il fait {temp}{tempUnit}, ressenti {feels}{feelsUnit}. Conditions : {description} ; humidité {humidity}{humidityUnit} et vent {wind} {windUnit}.',de:'Aktuell in {label}: {temp}{tempUnit}, gefühlt {feels}{feelsUnit}. Bedingungen: {description}; Luftfeuchtigkeit {humidity}{humidityUnit} und Wind {wind} {windUnit}.',pt:'Agora em {label}, estão {temp}{tempUnit}, sensação de {feels}{feelsUnit}. Condições: {description}; humidade {humidity}{humidityUnit} e vento {wind} {windUnit}.'}
+  };
+  let value=(texts[key]&&texts[key][language])||(texts[key]&&texts[key].en)||'';
+  Object.entries(vars).forEach(([name,val])=>{value=value.replaceAll(`{${name}}`,String(val))});
+  return value;
+}
+function currentDateReply(language){
+  const now=new Date();
+  const locale={es:'es-ES',ru:'ru-RU',uk:'uk-UA',it:'it-IT',fr:'fr-FR',de:'de-DE',pt:'pt-PT',en:'en-US'}[language]||'en-US';
+  const formatted=new Intl.DateTimeFormat(locale,{weekday:'long',year:'numeric',month:'long',day:'numeric'}).format(now);
+  return localText(language,'date',{date:formatted});
+}
+async function geocodeCity(city){
+  const url=`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city)}&count=1&language=es&format=json`;
+  const response=await fetch(url);
+  if(!response.ok)throw new Error(`geocoding service returned ${response.status}`);
+  const data=await response.json();
+  if(!data.results||!data.results.length)return null;
+  const result=data.results[0];
+  return {
+    latitude: result.latitude,
+    longitude: result.longitude,
+    label: [result.name,result.admin1,result.country].filter(Boolean).join(', ')
+  };
+}
+async function getWeatherReply(action){
+  const lang=action.language||'en';
+  let latitude,longitude,label;
+  if(action.city){
+    const place=await geocodeCity(action.city);
+    if(!place){
+      pendingAction={tool:'weather_city',language:lang};
+      return localText(lang,'cityMissing',{city:action.city});
+    }
+    latitude=place.latitude;longitude=place.longitude;label=place.label;
+  }else{
+    let position;
+    try{position=await getDevicePosition()}catch(error){
+      pendingAction={tool:'weather_city',language:lang};
+      return localText(lang,'locationDenied',{error:error.message});
+    }
+    latitude=position.coords.latitude;longitude=position.coords.longitude;
+    label=localText(lang,'currentLocation');
+  }
+  return await getWeatherByCoordinates({latitude,longitude,label,language:lang});
+}
+async function getWeatherByCoordinates({latitude,longitude,label,language}){
+  const lang=language||'en';
+  const url=`https://api.open-meteo.com/v1/forecast?latitude=${encodeURIComponent(latitude.toFixed(4))}&longitude=${encodeURIComponent(longitude.toFixed(4))}&current=temperature_2m,apparent_temperature,relative_humidity_2m,wind_speed_10m,weather_code&timezone=auto`;
+  const response=await fetch(url);
+  if(!response.ok)throw new Error(`weather service returned ${response.status}`);
+  const data=await response.json(),current=data.current||{},units=data.current_units||{};
+  const temp=Math.round(Number(current.temperature_2m));
+  const feels=Math.round(Number(current.apparent_temperature));
+  const humidity=current.relative_humidity_2m;
+  const wind=Math.round(Number(current.wind_speed_10m));
+  const description=weatherDescription(Number(current.weather_code));
+  return localText(lang,'weather',{label,temp,tempUnit:units.temperature_2m||'°C',feels,feelsUnit:units.apparent_temperature||'°C',description:description[lang]||description.en,humidity,humidityUnit:units.relative_humidity_2m||'%',wind,windUnit:units.wind_speed_10m||'km/h'});
+}
+const TOOL_REGISTRY=[
+  {name:'preferences',detect:detectPreferenceAction,confirm:false,run:async action=>handlePreferenceAction(action)},
+  {name:'current_date',detect:detectDateAction,confirm:false,run:async action=>currentDateReply(action.language)},
+  {name:'weather',detect:detectWeatherAction,confirm:false,run:getWeatherReply},
+  {name:'calendar_event',detect:detectCreateCalendarEventAction,confirm:true,missing:action=>action.missing&&action.missing.length,missingReply:calendarMissingQuestion,confirmReply:describeCalendarDraft},
+  {name:'reminder',detect:detectCreateReminderAction,confirm:true,missing:action=>action.missing&&action.missing.length,missingReply:reminderMissingQuestion,confirmReply:describeReminderDraft},
+  {name:'memory_overview',detect:detectMemoryOverviewAction,confirm:false,run:async action=>{
+    const overview=await invoke('read_journal_overview',{date:action.date});
+    return formatMemoryOverview(overview,action.language);
+  }},
+  {name:'memory_write',detect:detectMemoryWriteAction,confirm:false,run:async action=>{
+    const result=await invoke('append_journal_entry',{section:action.section,text:action.text,timestamp:new Date().toISOString(),date:action.date});
+    return memorySavedReply(action,result);
+  }},
+  {name:'list_calendars',detect:detectListCalendarsAction,confirm:true,confirmReply:action=>`I can list your Mac calendars (${toolRiskLabel(action)} risk). Confirm?`},
+  {name:'list_reminder_lists',detect:detectListReminderListsAction,confirm:true,confirmReply:action=>`I can list your Mac Reminders lists (${toolRiskLabel(action)} risk). Confirm?`},
+  {name:'open_url',detect:detectOpenUrlAction,confirm:true,confirmReply:action=>`I can open ${action.url} (${toolRiskLabel(action)} risk). Confirm?`}
+];
+function detectRegisteredToolAction(text){
+  for(const spec of TOOL_REGISTRY){
+    const action=spec.detect(text);
+    if(action)return {spec,action};
+  }
+  return null;
+}
+async function handleRegisteredToolAction(spec,action,shouldCreateRecentQuery,text){
+  removeTyping();
+  action.userText=action.userText||text;
+  await auditToolEvent('tool_detected',action,{user_text:text,registry_name:spec.name,model_interpreted:Boolean(action.modelInterpreted)});
+  if(spec.missing&&spec.missing(action)){
+    pendingAction=action;
+    addMessage(spec.missingReply(action),'ai');
+  }else if(missingRequiredToolFields(action).length){
+    pendingAction=action;
+    addMessage(`I still need: ${missingRequiredToolFields(action).join(', ')}.`,'ai');
+  }else if(toolRequiresConfirmation(action,Boolean(spec.confirm))){
+    await createBackendActionFor(action,{user_text:text,registry_name:spec.name});
+    pendingAction=action;
+    addMessage(spec.confirmReply(action),'ai');
+  }else{
+    showTyping();
+    await createBackendActionFor(action,{user_text:text,registry_name:spec.name});
+    try{
+      const reply=await spec.run(action);
+      await completeBackendActionFor(action,'done',{reply});
+      await auditToolEvent('tool_completed',action,{result:{reply}});
+      removeTyping();
+      addMessage(reply,'ai');
+    }catch(error){
+      await completeBackendActionFor(action,'failed',{error:commandError(error)});
+      throw error;
+    }
+  }
+  if(shouldCreateRecentQuery){addRecentQuery(text);setTimeout(loadRecentQueries,400)}
+  return true;
+}
+async function runPendingAction(){
+  if(!pendingAction)return false;
+  const action=pendingAction;pendingAction=null;showTyping();
+  await auditToolEvent('tool_confirmed',action);
+  try{
+    await confirmBackendActionFor(action);
+    if(action.tool==='open_browser_url'){
+      const result=await invoke('open_browser_url',{url:action.url});
+      await completeBackendActionFor(action,'done',result);
+      await auditToolEvent('tool_completed',action,{result});
+      removeTyping();addMessage(`Done. I opened ${result.url}.`,'ai');
+      return true;
+    }
+    if(action.tool==='list_calendars'){
+      const result=await invoke('list_calendars');
+      await completeBackendActionFor(action,'done',result);
+      await auditToolEvent('tool_completed',action,{result});
+      removeTyping();
+      const names=(result.calendars||[]).join(', ');
+      addMessage(names?`I found these calendars: ${names}.`:'I could not find any calendars.','ai');
+      return true;
+    }
+    if(action.tool==='list_reminder_lists'){
+      const result=await invoke('list_reminder_lists');
+      await completeBackendActionFor(action,'done',result);
+      await auditToolEvent('tool_completed',action,{result});
+      removeTyping();
+      const names=(result.lists||[]).join(', ');
+      addMessage(names?`I found these Reminders lists: ${names}.`:'I could not find any Reminders lists.','ai');
+      return true;
+    }
+    if(action.tool==='create_calendar_event'){
+      const d=action.draft;
+      const result=await invoke('create_calendar_event',{calendar:d.calendar,title:d.title,start:d.start,end:d.end});
+      await completeBackendActionFor(action,'done',result);
+      await auditToolEvent('tool_completed',action,{result});
+      removeTyping();
+      addMessage(d.language==='es'
+        ? `Hecho. Creé "${result.title}" en ${result.calendar}.`
+        : `Done. I created "${result.title}" in ${result.calendar}.`,'ai');
+      return true;
+    }
+    if(action.tool==='create_reminder'){
+      const d=action.draft;
+      const result=await invoke('create_reminder',{list:d.list,title:d.title,due:d.due});
+      await completeBackendActionFor(action,'done',result);
+      await auditToolEvent('tool_completed',action,{result});
+      removeTyping();
+      addMessage(d.language==='es'
+        ? `Hecho. Creé la tarea "${result.title}" en ${result.list}.`
+        : `Done. I created the task "${result.title}" in ${result.list}.`,'ai');
+      return true;
+    }
+    removeTyping();addMessage(`I do not know how to run ${action.tool} yet.`,'ai');
+    return true;
+  }catch(error){
+    removeTyping();
+    const message=commandError(error);
+    await completeBackendActionFor(action,'failed',{error:message});
+    await auditToolEvent('tool_failed',action,{error:message});
+    if(action.tool==='create_calendar_event'&&/Calendar not found/i.test(message)){
+      action.draft.calendar='';
+      action.draft.missingCalendar=true;
+      action.missing=['calendar'];
+      pendingAction=action;
+      try{
+        const result=await invoke('list_calendars');
+        const names=(result.calendars||[]).join(', ');
+        addMessage(names?`No encuentro ese calendario. Tienes estos calendarios: ${names}. ¿Cuál uso?`:'No encuentro ese calendario. ¿Cuál es el nombre exacto del calendario?','ai');
+      }catch(_listError){
+        addMessage('No encuentro ese calendario. ¿Cuál es el nombre exacto del calendario?','ai');
+      }
+      return true;
+    }
+    addMessage(message,'ai');return true
+  }
+}
+async function handleOrchestrationResult(result,shouldCreateRecentQuery,text){
+  if(!result)return false;
+  removeTyping();
+  if(result.mode==='reply'||(!result.action&&result.mode!=='ask')){
+    addMessage(result.reply||'I am here. Tell me what you want to do.','ai');
+    if(shouldCreateRecentQuery){addRecentQuery(text);setTimeout(loadRecentQueries,400)}
+    return true;
+  }
+  if(result.action){
+    const action=result.action;
+    if(result.mode==='ask'||(action.missing&&action.missing.length)){
+      pendingAction=action;
+      addMessage(result.reply||action.orchestratorReply||'I need one more detail.','ai');
+      if(shouldCreateRecentQuery){addRecentQuery(text);setTimeout(loadRecentQueries,400)}
+      return true;
+    }
+    const spec=TOOL_REGISTRY.find(item=>item.name===toolSpecNameForAction(action));
+    if(spec){
+      action.orchestratorReply=result.reply||action.orchestratorReply;
+      await handleRegisteredToolAction(spec,action,shouldCreateRecentQuery,text);
+      return true;
+    }
+  }
+  addMessage(result.reply||'I need one more detail.','ai');
+  if(shouldCreateRecentQuery){addRecentQuery(text);setTimeout(loadRecentQueries,400)}
+  return true;
+}
+async function sendMessage(){
+  if(!authSession){showScreen('screen-login');setAuthStatus('— log in before sending a query —','error');return}
+  if(activeMode==='activity'){setAuthStatus('— activity is read-only; switch to Text to chat —','error');return}
+  const input=document.getElementById('chat-input'),text=input.value.trim();if(!text)return;
+  const shouldCreateRecentQuery=!currentConversationHasMessages;
+  addMessage(text,'user');input.value='';input.style.height='auto';showTyping();
+  if(!invoke){setTimeout(()=>{removeTyping();addMessage('Design preview loaded. Open the Tauri app to use ARI.','ai')},500);return}
+  try{
+    if(pendingAction){
+      removeTyping();
+      if(isConfirmText(text)){await runPendingAction();return}
+      if(isCancelText(text)){await rejectBackendActionFor(pendingAction);await auditToolEvent('tool_cancelled',pendingAction);pendingAction=null;addMessage('Cancelled.','ai');return}
+      try{
+        showTyping();
+        const orchestration=await orchestrateUserMessage(text);
+        if(await handleOrchestrationResult(orchestration,shouldCreateRecentQuery,text))return;
+      }catch(_orchestrationError){removeTyping()}
+      if(pendingAction.tool==='weather_city'){
+        const city=extractCity(text)||text.trim().replace(/[.?!]+$/,'');
+        const language=pendingAction.language||replyLanguage(text);
+        pendingAction=null;
+        showTyping();
+        const reply=await getWeatherReply({tool:'get_weather',city,language});
+        removeTyping();addMessage(reply,'ai');return;
+      }
+      if(pendingAction.tool==='create_calendar_event'&&pendingAction.missing&&pendingAction.missing.length){
+        pendingAction=buildCalendarEventDraft(text,pendingAction.draft);
+        if(pendingAction.missing.length){addMessage(calendarMissingQuestion(pendingAction),'ai');return}
+        await createBackendActionFor(pendingAction,{completed_missing_fields:true});
+        addMessage(describeCalendarDraft(pendingAction),'ai');return;
+      }
+      if(pendingAction.tool==='create_reminder'&&pendingAction.missing&&pendingAction.missing.length){
+        pendingAction=buildReminderDraft(text,pendingAction.draft);
+        if(pendingAction.missing.length){addMessage(reminderMissingQuestion(pendingAction),'ai');return}
+        await createBackendActionFor(pendingAction,{completed_missing_fields:true});
+        addMessage(describeReminderDraft(pendingAction),'ai');return;
+      }
+      addMessage('Please confirm or cancel the pending action first.','ai');return;
+    }
+    try{
+      const orchestration=await orchestrateUserMessage(text);
+      if(await handleOrchestrationResult(orchestration,shouldCreateRecentQuery,text))return;
+    }catch(_orchestrationError){removeTyping();showTyping()}
+    const registered=detectRegisteredToolAction(text);
+    if(registered){await handleRegisteredToolAction(registered.spec,registered.action,shouldCreateRecentQuery,text);return}
+    if(activeMode==='memory'){const results=await invoke('search_memory',{query:text,limit:8});removeTyping();addMessage(results.length?formatSearchResults(results):'No memory entries matched that query.','ai');return}
+    const response=await invoke('chat_with_ari',{message:text,useMemory:true,memoryLimit:8});removeTyping();addMessage(response.reply||'ARI did not return a response.','ai');if(shouldCreateRecentQuery){addRecentQuery(text);setTimeout(loadRecentQueries,400)}
+  }catch(error){removeTyping();addMessage(commandError(error),'ai');if(isAuthError(error))setTimeout(logoutUser,700)}
+}
+function formatSearchResults(results){return results.map(item=>`${item.date} · line ${item.line_number}\n${item.line}`).join('\n\n')}
+function summarizeAuditPayload(payload={}){
+  const params=payload.params||{},result=payload.result||{},bits=[];
+  if(params.title)bits.push(`title: ${params.title}`);
+  if(params.calendar)bits.push(`calendar: ${params.calendar}`);
+  if(params.list)bits.push(`list: ${params.list}`);
+  if(params.url)bits.push(`url: ${params.url}`);
+  if(params.section)bits.push(`section: ${params.section}`);
+  if(params.text)bits.push(`text: ${String(params.text).slice(0,90)}`);
+  if(payload.error)bits.push(`error: ${payload.error}`);
+  if(result.title)bits.push(`result: ${result.title}`);
+  if(result.url)bits.push(`result: ${result.url}`);
+  if(!bits.length&&payload.user_text)bits.push(`request: ${payload.user_text}`);
+  return bits.length?bits.join(' · '):JSON.stringify(payload).slice(0,220);
+}
+function renderActivityLog(events){
+  const msgs=document.getElementById('messages');
+  currentConversationHasMessages=true;
+  document.getElementById('chat-meta').textContent=`ARI · activity · ${events.length} events`;
+  const cards=events.map(event=>{
+    const payload=event.payload||{},tool=payload.tool_name||payload.tool||'system';
+    const time=new Date(event.created_at).toLocaleString([], {month:'short',day:'2-digit',hour:'2-digit',minute:'2-digit'});
+    const hash=String(event.hash_current||'').slice(0,16);
+    return `<div class="activity-card">
+      <div>
+        <div class="activity-type">${escapeHtml(event.event_type)}</div>
+        <div class="activity-time">${escapeHtml(time)}</div>
+      </div>
+      <div>
+        <div class="activity-tool">${escapeHtml(tool)}</div>
+        <div class="activity-time">${escapeHtml(payload.risk_level||'')}</div>
+      </div>
+      <div>
+        <div class="activity-payload">${escapeHtml(summarizeAuditPayload(payload))}</div>
+        <div class="activity-hash">hash ${escapeHtml(hash)}</div>
+      </div>
+    </div>`;
+  }).join('');
+  msgs.innerHTML=`<div class="activity-view">
+    <div class="activity-head">
+      <div>
+        <div class="activity-title">Activity log</div>
+        <div class="activity-sub">Tool detection, confirmation and execution trail</div>
+      </div>
+      <button class="cta activity-refresh" onclick="loadActivityLog()">Refresh</button>
+    </div>
+    ${cards||'<div class="activity-card"><div class="activity-type">empty</div><div class="activity-tool">No events yet</div><div class="activity-payload">Run a tool action and it will appear here.</div></div>'}
+  </div>`;
+}
+async function loadActivityLog(){
+  if(!invoke||!authSession)return;
+  const msgs=document.getElementById('messages');
+  msgs.innerHTML='<div class="welcome"><div class="welcome-title">Reading activity...</div></div>';
+  try{
+    const events=await invoke('list_audit_events',{limit:50});
+    renderActivityLog(events);
+  }catch(error){
+    msgs.innerHTML='';
+    addMessage(commandError(error),'ai');
+  }
+}
+function renderRecentQueries(items){
+  const container=document.getElementById('recent-queries'),glyphs=['☉','✦','⊹','◇','☽'];
+  if(!items.length){container.innerHTML='<div class="recent-item active"><span class="glyph">☉</span>No queries yet</div>';return}
+  container.innerHTML=items.map((item,index)=>`<div class="recent-item ${index===0?'active':''}" data-query="${escapeAttr(item.title)}" data-date="${escapeAttr(item.date||'')}" data-line="${item.line_number||''}" onclick="openConversation(this)"><span class="glyph">${glyphs[index%glyphs.length]}</span>${escapeHtml(item.title)}</div>`).join('');
+}
+function addRecentQuery(title){const container=document.getElementById('recent-queries');const existing=Array.from(container.querySelectorAll('.recent-item')).map(item=>item.textContent.trim()).filter(item=>item&&item!=='No queries yet'&&item!==title);renderRecentQueries([{title},...existing.slice(0,7).map(item=>({title:item}))])}
+async function loadRecentQueries(){if(!invoke||!authSession)return;try{const items=await invoke('list_recent_messages',{limit:8});renderRecentQueries(items)}catch(_error){renderRecentQueries([])}}
+async function openConversation(el){
+  if(!invoke||!authSession)return;const date=el.dataset.date,lineNumber=Number(el.dataset.line);
+  if(!date||!lineNumber){sendQuick(el.dataset.query||el.textContent.trim());return}
+  try{const conversation=await invoke('read_conversation',{date,lineNumber});renderConversation(conversation);document.querySelectorAll('#recent-queries .recent-item').forEach(item=>item.classList.remove('active'));el.classList.add('active')}catch(error){addMessage(commandError(error),'ai')}
+}
+function renderConversation(conversation){const msgs=document.getElementById('messages');msgs.innerHTML='';currentConversationHasMessages=false;conversation.messages.forEach(message=>addMessage(message.content,message.role==='assistant'?'ai':'user'));currentConversationHasMessages=true;document.getElementById('chat-meta').textContent=`ARI · ${conversation.date} · line ${conversation.line_number}`;showScreen('screen-chat')}
+loadDesktopSession();
+</script>
+</body>
+</html>

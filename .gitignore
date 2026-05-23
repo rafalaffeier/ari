@@ -1,0 +1,39 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+dist/
+*.egg-info/
+
+# Env
+.env
+*.env.local
+infra/docker/.env.staging
+infra/docker/.env.plesk
+infra/docker/certs/*.pem
+infra/docker/backups/*
+!infra/docker/backups/.gitkeep
+
+# Node
+node_modules/
+.expo/
+
+# Rust / Tauri
+target/
+desktop/target/
+
+# Lockfiles
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# DB
+*.sqlite
+backend/data/
+
+# IDE
+.vscode/
+.idea/
+*.DS_Store
