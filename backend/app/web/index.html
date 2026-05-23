@@ -1,2293 +1,1197 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>ARI - Solara</title>
-  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@1,500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
-  <style>
-    :root {
-      --cream: #F7F2EC;
-      --rose: #C4836A;
-      --gold: #D99A3D;
-      --dark: #0B0805;
-      --soft: #FFF8F0;
-      --soft-2: rgba(255,248,240,0.86);
-      --soft-3: rgba(255,248,240,0.72);
-      --border: rgba(201,169,110,0.18);
-      --panel: rgba(20,12,4,0.72);
-      --danger: #E8A18E;
-    }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ARI — Asistente</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@1,500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+<style>
+/* ── RESET & BASE ─────────────────────────────── */
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    html, body { min-height: 100%; background: var(--dark); }
-    body {
-      min-height: 100vh;
-      overflow: hidden;
-      color: var(--cream);
-      font-family: "Inter", system-ui, sans-serif;
-      font-weight: 300;
-    }
+:root {
+  --bg:        #0B0805;
+  --panel:     #120D08;
+  --elevated:  #1A120B;
+  --border-c:  rgba(217,154,61,.28);
+  --gold:      #D99A3D;
+  --gold-lt:   #F0B85A;
+  --gold-dim:  #5C3F1D;
+  --t1:        #F4EFE7;
+  --t2:        #A89A88;
+  --t3:        #6F604D;
+  --shadow-panel: 0 24px 80px rgba(0,0,0,.55);
+  --glow:      0 0 24px rgba(217,154,61,.35);
+  --sb-closed: 72px;
+  --sb-open:   300px;
+  --font-ui:   'Inter', sans-serif;
+  --font-msg:  'Cormorant Garamond', serif;
+  --radius-panel: 24px;
+  --radius-btn:   14px;
+}
 
-    canvas {
-      position: fixed;
-      inset: 0;
-      z-index: 0;
-      pointer-events: none;
-    }
+html, body {
+  width: 100%; height: 100%;
+  font-family: var(--font-ui);
+  background: var(--bg);
+  color: var(--t1);
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+}
 
-    button, input, textarea { font: inherit; }
-    button { cursor: pointer; }
+/* ── LAYOUT ROOT ──────────────────────────────── */
+#app {
+  display: flex;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  position: relative;
+}
 
-    .screen {
-      position: fixed;
-      inset: 0;
-      z-index: 2;
-      display: none;
-    }
+/* ── SIDEBAR OVERLAY (mobile) ─────────────────── */
+#sb-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(8,5,3,.72);
+  z-index: 40;
+  opacity: 0;
+  transition: opacity .3s ease;
+}
+#sb-overlay.visible { display: block; }
+#sb-overlay.active  { opacity: 1; }
 
-    .screen.active { display: flex; }
+/* ── SIDEBAR ──────────────────────────────────── */
+#sidebar {
+  width: var(--sb-closed);
+  flex-shrink: 0;
+  background: var(--panel);
+  border-right: 1px solid var(--border-c);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  overflow: hidden;
+  transition: width .32s cubic-bezier(.4,0,.2,1);
+  z-index: 50;
+  position: relative;
+}
+#sidebar.open { width: var(--sb-open); align-items: flex-start; }
 
-    .scene {
-      align-items: center;
-      justify-content: center;
-      padding: 22px;
-    }
+/* Logo strip */
+.sb-logo {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 24px 12px 20px;
+  flex-shrink: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  min-height: 88px;
+}
+.sb-logo-icon {
+  width: 48px; height: 48px; flex-shrink: 0;
+  background: linear-gradient(145deg, #231508, #160e06);
+  border-radius: 14px;
+  border: 1.5px solid var(--gold);
+  box-shadow: var(--glow);
+  display: flex; align-items: center; justify-content: center;
+}
+.sb-logo-icon svg { width: 22px; height: 22px; color: var(--gold); }
+.sb-logo-text { overflow: hidden; }
+.sb-logo-text h1 { font-size: 16px; font-weight: 700; color: var(--gold); letter-spacing: 2px; line-height: 1.1; }
+.sb-logo-text p  { font-size: 10px; color: var(--t3); margin-top: 2px; font-weight: 400; }
 
-    .card {
-      width: min(420px, 100%);
-      background: rgba(20,12,4,0.84);
-      border: 1px solid var(--border);
-      border-radius: 2px;
-      backdrop-filter: blur(30px);
-      box-shadow: 0 0 60px rgba(201,169,110,0.07), 0 40px 80px rgba(0,0,0,0.55), inset 0 1px 0 rgba(201,169,110,0.12);
-      overflow: hidden;
-    }
+/* Sidebar toggle button */
+#sb-toggle {
+  width: 48px; height: 48px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; border-radius: var(--radius-btn);
+  color: var(--t2); transition: background .2s, color .2s;
+  border: none; background: transparent;
+  margin: 0 12px 8px;
+  align-self: flex-start;
+}
+#sb-toggle:hover { background: var(--elevated); color: var(--gold-lt); }
+#sb-toggle svg { width: 22px; height: 22px; }
 
-    .card-top-bar {
-      height: 2px;
-      background: linear-gradient(90deg, transparent 5%, var(--rose) 30%, var(--gold) 60%, transparent 95%);
-      opacity: .75;
-    }
+/* Sidebar conversations button */
+.sb-conv-btn {
+  margin: 0 12px 12px;
+  width: calc(100% - 24px);
+  background: linear-gradient(135deg, #221508, #1a1208);
+  border: 1px solid var(--border-c);
+  border-radius: var(--radius-btn);
+  padding: 10px 14px;
+  display: flex; align-items: center; gap: 10px;
+  cursor: pointer; color: var(--gold);
+  font-size: 13px; font-weight: 500;
+  font-family: var(--font-ui);
+  white-space: nowrap; overflow: hidden;
+  position: relative; flex-shrink: 0;
+}
+.sb-conv-btn svg { flex-shrink: 0; width: 18px; height: 18px; }
+.sb-conv-btn .odot {
+  width: 7px; height: 7px; background: var(--gold); border-radius: 50%;
+  position: absolute; right: 14px; box-shadow: var(--glow);
+  flex-shrink: 0;
+}
 
-    .card-inner { padding: 46px 42px 38px; }
-    .card-bottom-rule { height: 1px; background: linear-gradient(90deg, transparent, var(--border), transparent); margin: 0 42px; }
-    .card-footer { padding: 18px 42px 24px; text-align: center; font-size: 10px; color: rgba(201,169,110,0.34); }
+/* Section label */
+.sb-sec {
+  font-size: 9px; font-weight: 600; color: var(--t3);
+  letter-spacing: 1.4px; text-transform: uppercase;
+  padding: 4px 20px 6px;
+  white-space: nowrap; overflow: hidden;
+  align-self: flex-start; width: 100%;
+}
 
-    .brand-block { text-align: center; margin-bottom: 34px; }
-    .sun-wrap { width: 56px; height: 56px; margin: 0 auto 16px; position: relative; display: flex; align-items: center; justify-content: center; }
-    .sun-wrap svg { animation: sunrot 24s linear infinite; }
-    @keyframes sunrot { to { transform: rotate(360deg); } }
+/* Search */
+.sb-search {
+  margin: 0 12px 8px;
+  width: calc(100% - 24px);
+  background: var(--elevated);
+  border: 1px solid var(--border-c);
+  border-radius: 10px;
+  padding: 8px 12px;
+  display: flex; align-items: center; gap: 8px;
+  flex-shrink: 0;
+}
+.sb-search svg { width: 14px; height: 14px; color: var(--t3); flex-shrink: 0; }
+.sb-search input {
+  background: none; border: none; color: var(--t2);
+  font-size: 12px; outline: none; width: 100%;
+  font-family: var(--font-ui); white-space: nowrap;
+}
+.sb-search input::placeholder { color: var(--t3); }
 
-    .brand-name {
-      font-family: "Cormorant Garamond", serif;
-      font-size: 42px;
-      font-weight: 300;
-      font-style: italic;
-      letter-spacing: 6px;
-      line-height: 1;
-      color: var(--cream);
-    }
+/* Conversation list */
+#conv-list {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 0 8px 8px;
+  width: 100%;
+}
+#conv-list::-webkit-scrollbar { width: 3px; }
+#conv-list::-webkit-scrollbar-thumb { background: var(--border-c); border-radius: 2px; }
 
-    .brand-name span { color: var(--gold); }
-    .brand-sub { margin-top: 7px; font-size: 8px; font-weight: 300; letter-spacing: 4px; color: rgba(201,169,110,0.42); text-transform: uppercase; }
-    .heading { font-family: "Cormorant Garamond", serif; font-size: 21px; font-weight: 300; font-style: italic; text-align: center; margin-bottom: 4px; }
-    .sub-h { min-height: 14px; margin-bottom: 28px; color: rgba(201,169,110,0.36); font-size: 8px; letter-spacing: 3px; text-align: center; text-transform: uppercase; }
-    .sub-h.error { color: var(--danger); }
-    .sub-h.ok { color: var(--gold); }
+.ci {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  cursor: pointer;
+  position: relative;
+  margin-bottom: 2px;
+  transition: background .15s;
+  overflow: hidden;
+  white-space: nowrap;
+}
+.ci:hover { background: var(--elevated); }
+.ci.active { background: rgba(217,154,61,.12); }
+.ci.active::before {
+  content: '';
+  position: absolute; left: 0; top: 50%; transform: translateY(-50%);
+  width: 3px; height: 60%;
+  background: var(--gold); border-radius: 0 2px 2px 0;
+}
+.ci-icon {
+  width: 36px; height: 36px; border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.ci-icon svg { width: 16px; height: 16px; }
+.ic-chat    { background: rgba(217,154,61,.14); }
+.ic-chat svg { color: var(--gold); }
+.ic-cal     { background: rgba(60,120,220,.18); }
+.ic-cal svg  { color: #6090e0; }
+.ic-doc     { background: rgba(120,60,200,.18); }
+.ic-doc svg  { color: #a070e0; }
+.ic-plane   { background: rgba(60,170,220,.18); }
+.ic-plane svg { color: #50b8e0; }
+.ic-folder  { background: rgba(180,100,30,.18); }
+.ic-folder svg { color: #c87830; }
+.ic-term    { background: rgba(60,185,100,.18); }
+.ic-term svg { color: #40c070; }
+.ic-task    { background: rgba(215,60,75,.18); }
+.ic-task svg { color: #e04050; }
+.ic-notes   { background: rgba(100,60,210,.18); }
+.ic-notes svg { color: #8060d0; }
 
-    .tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 24px; }
-    .tab {
-      padding: 10px 12px;
-      border: 1px solid rgba(201,169,110,0.16);
-      background: transparent;
-      color: rgba(201,169,110,0.42);
-      font-size: 8px;
-      letter-spacing: 3px;
-      text-transform: uppercase;
-    }
-    .tab.active, .tab:hover { border-color: rgba(201,169,110,0.44); color: var(--cream); background: rgba(201,169,110,0.05); }
+.ci-body { min-width: 0; overflow: hidden; }
+.ci-top  { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px; }
+.ci-name { font-size: 12px; font-weight: 600; color: var(--t1); overflow: hidden; text-overflow: ellipsis; }
+.ci-time { font-size: 9px; color: var(--t3); flex-shrink: 0; margin-left: 6px; }
+.ci-sub  { font-size: 10px; color: var(--t2); overflow: hidden; text-overflow: ellipsis; display: block; }
+.ci.active .ci-name { color: var(--gold); }
+.ci.active .ci-time { color: var(--gold); }
+.ci-dot  { width: 7px; height: 7px; background: var(--gold); border-radius: 50%; flex-shrink: 0; box-shadow: var(--glow); }
 
-    .fg { margin-bottom: 18px; position: relative; }
-    .fg label { display: block; margin-bottom: 8px; color: rgba(201,169,110,0.42); font-size: 8px; letter-spacing: 3px; text-transform: uppercase; }
-    .fg input, .composer textarea {
-      width: 100%;
-      border: 0;
-      border-bottom: 1px solid rgba(201,169,110,0.16);
-      background: transparent;
-      color: var(--cream);
-      outline: none;
-      font-family: "Cormorant Garamond", serif;
-      font-size: 18px;
-      font-style: italic;
-      font-weight: 300;
-      letter-spacing: .5px;
-    }
-    .fg input { padding: 10px 0; }
-    .fg.has-toggle input { padding-right: 44px; }
-    .fg input:focus, .composer textarea:focus { border-bottom-color: rgba(201,169,110,0.55); }
-    .fg input::placeholder, .composer textarea::placeholder { color: rgba(201,169,110,0.2); }
-    .password-toggle {
-      position: absolute;
-      right: 0;
-      bottom: 11px;
-      border: 0;
-      background: transparent;
-      color: rgba(201,169,110,0.52);
-      line-height: 0;
-      padding: 4px;
-    }
-    .password-toggle:hover { color: var(--gold); }
-    .password-toggle svg { width: 20px; height: 20px; stroke: currentColor; }
+/* Sidebar icon-only mode (collapsed) */
+#sidebar:not(.open) .sb-logo-text,
+#sidebar:not(.open) .sb-conv-btn span,
+#sidebar:not(.open) .sb-conv-btn .odot,
+#sidebar:not(.open) .sb-sec,
+#sidebar:not(.open) .sb-search,
+#sidebar:not(.open) #conv-list,
+#sidebar:not(.open) .sb-foot-label,
+#sidebar:not(.open) .sb-foot-arrow { display: none; }
 
-    .cta {
-      width: 100%;
-      margin-top: 8px;
-      padding: 15px 22px;
-      border: 1px solid rgba(201,169,110,0.32);
-      border-radius: 1px;
-      background: transparent;
-      color: var(--cream);
-      font-family: "Cormorant Garamond", serif;
-      font-size: 17px;
-      font-style: italic;
-      letter-spacing: 3px;
-      transition: all .25s;
-    }
-    .cta:hover { border-color: rgba(201,169,110,0.58); box-shadow: 0 0 28px rgba(201,169,110,0.1); background: rgba(201,169,110,0.045); }
-    .cta:disabled { opacity: .45; cursor: not-allowed; }
+#sidebar:not(.open) .sb-conv-btn {
+  width: 48px; padding: 0;
+  justify-content: center;
+  border-radius: var(--radius-btn);
+}
+#sidebar:not(.open) .ci { padding: 10px; justify-content: center; }
+#sidebar:not(.open) .ci-body { display: none; }
+#sidebar:not(.open) .ci-dot { display: none; }
+#sidebar:not(.open) .ci::before { display: none; }
+#sidebar:not(.open) .ci.active { background: rgba(217,154,61,.15); border: 1px solid var(--border-c); }
+#sidebar:not(.open) #conv-list { display: flex; flex-direction: column; align-items: center; padding: 0 0 8px; }
 
-    .link {
-      border: 0;
-      background: transparent;
-      color: rgba(201,169,110,0.58);
-      text-decoration: underline;
-      text-underline-offset: 4px;
-    }
-    .link:hover { color: var(--gold); }
-    .auth-secondary { margin-top: 16px; text-align: center; font-size: 10px; letter-spacing: 2px; text-transform: uppercase; }
+/* Sidebar footer */
+.sb-foot {
+  width: 100%;
+  padding: 10px 12px 16px;
+  border-top: 1px solid var(--border-c);
+  flex-shrink: 0;
+  display: flex; flex-direction: column; gap: 2px;
+}
+.sb-foot-row {
+  display: flex; align-items: center;
+  padding: 6px 8px; border-radius: 10px;
+  font-size: 11px; color: var(--t2);
+  cursor: pointer; gap: 8px; white-space: nowrap; overflow: hidden;
+  transition: background .15s;
+}
+.sb-foot-row:hover { background: var(--elevated); }
+.sb-foot-row svg   { flex-shrink: 0; width: 16px; height: 16px; color: var(--t3); }
+.sb-foot-arrow     { margin-left: auto; }
+.sb-foot-arrow svg { width: 12px; height: 12px; }
 
-    .social {
-      width: 100%;
-      min-height: 44px;
-      margin-bottom: 18px;
-      border: 1px solid rgba(201,169,110,0.2);
-      background: rgba(201,169,110,0.035);
-      color: var(--soft-2);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 10px;
-      font-size: 9px;
-      letter-spacing: 3px;
-      text-transform: uppercase;
-    }
-    .social:hover { border-color: rgba(201,169,110,0.48); color: var(--cream); }
-    .s-pulse { width: 8px; height: 8px; border-radius: 50%; background: var(--gold); box-shadow: 0 0 14px var(--gold); }
-    .orn-div { display: flex; align-items: center; gap: 12px; margin-bottom: 18px; color: rgba(201,169,110,.28); font-size: 9px; letter-spacing: 3px; justify-content: center; }
+/* ── MAIN CHAT AREA ───────────────────────────── */
+#main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+  position: relative;
+  overflow: hidden;
+}
 
-    .app {
-      width: 100%;
-      height: 100%;
-      display: grid;
-      grid-template-columns: 310px minmax(0,1fr);
-      background: rgba(20,12,4,.34);
-      backdrop-filter: blur(14px);
-    }
+/* Decorative gold arcs */
+.deco-svg {
+  position: absolute; top: 0; right: 0;
+  width: min(40%, 360px); height: min(40%, 360px);
+  pointer-events: none; z-index: 0; opacity: .9;
+}
 
-    .sidebar {
-      min-height: 0;
-      border-right: 1px solid var(--border);
-      background: rgba(20,12,4,.64);
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-    }
+/* Chat header */
+#chat-header {
+  height: 96px; flex-shrink: 0;
+  padding: 0 20px;
+  display: flex; flex-direction: column; justify-content: center;
+  gap: 8px; position: relative; z-index: 2;
+  border-bottom: 1px solid var(--border-c);
+}
+.ch-top {
+  display: flex; align-items: center; gap: 14px;
+}
+.ch-menu-btn {
+  width: 40px; height: 40px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; border-radius: 12px;
+  color: var(--t2); border: none; background: transparent;
+  transition: background .2s, color .2s; flex-shrink: 0;
+}
+.ch-menu-btn:hover { background: var(--elevated); color: var(--gold-lt); }
+.ch-menu-btn svg { width: 20px; height: 20px; }
+.ch-title { font-size: clamp(15px, 2vw, 18px); font-weight: 600; color: var(--t1); }
+.ch-more  {
+  margin-left: auto;
+  width: 36px; height: 36px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; border-radius: 10px; color: var(--t2);
+  border: none; background: transparent; transition: background .2s;
+}
+.ch-more:hover { background: var(--elevated); }
+.ch-more svg { width: 18px; height: 18px; }
+.voice-pill {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: var(--elevated); border: 1px solid var(--border-c);
+  border-radius: 20px; padding: 5px 14px;
+  font-size: 11px; color: var(--t2); width: fit-content;
+}
+.voice-pill svg { width: 12px; height: 12px; color: var(--t3); }
+.vp-sep { color: var(--t3); }
 
-    .side-brand { padding: 38px 34px 30px; border-bottom: 1px solid var(--border); display: flex; align-items: baseline; gap: 18px; min-width: 0; }
-    .side-brand .brand-name { font-size: 36px; margin-bottom: 0; flex: 0 0 auto; }
-    .side-brand .brand-sub { letter-spacing: 4px; white-space: nowrap; }
-    .side-section { padding: 28px 26px 0; min-height: 0; }
-    .side-label { margin-bottom: 14px; color: rgba(201,169,110,.35); font-size: 8px; letter-spacing: 5px; text-transform: uppercase; }
-    .recent-list { display: flex; flex-direction: column; gap: 8px; }
-    .recent-item {
-      min-height: 42px;
-      padding: 11px 12px;
-      border: 1px solid transparent;
-      color: var(--soft-3);
-      font-family: "Cormorant Garamond", serif;
-      font-size: 16px;
-      font-style: italic;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-    .recent-item:hover, .recent-item.active { border-color: var(--border); background: rgba(201,169,110,.05); color: var(--cream); }
-    .glyph { color: rgba(201,169,110,.55); font-family: "Inter", sans-serif; font-size: 11px; margin-right: 10px; }
-    .side-footer { margin-top: auto; padding: 22px 26px; border-top: 1px solid var(--border); }
-    .user-card { display: flex; align-items: center; gap: 12px; min-width: 0; }
-    .avatar { width: 38px; height: 38px; border: 1px solid rgba(201,169,110,.28); display: flex; align-items: center; justify-content: center; color: var(--gold); flex: 0 0 auto; }
-    .user-name { font-family: "Cormorant Garamond", serif; font-size: 17px; font-style: italic; color: var(--cream); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .user-email { font-size: 9px; letter-spacing: 1px; color: rgba(201,169,110,.38); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* Messages scroll area */
+#messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px 20px 12px;
+  display: flex; flex-direction: column; gap: 20px;
+  position: relative; z-index: 1;
+}
+#messages::-webkit-scrollbar { width: 4px; }
+#messages::-webkit-scrollbar-thumb { background: var(--border-c); border-radius: 2px; }
 
-    .main { height: 100vh; min-width: 0; display: grid; grid-template-rows: auto minmax(0,1fr) auto; overflow: hidden; }
-    .topbar { height: 92px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 0 42px; background: rgba(20,12,4,.44); }
-    .chat-title { font-family: "Cormorant Garamond", serif; font-size: 26px; font-style: italic; font-weight: 300; letter-spacing: 3px; }
-    .chat-meta { margin-top: 5px; color: rgba(201,169,110,.38); font-size: 9px; letter-spacing: 3px; }
-    .actions { display: flex; align-items: center; gap: 12px; }
-    .badge { height: 34px; padding: 0 16px; border: 1px solid rgba(201,169,110,.22); display: flex; align-items: center; gap: 10px; color: var(--soft-2); font-size: 9px; letter-spacing: 3px; text-transform: uppercase; white-space: nowrap; }
-    .badge-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--gold); box-shadow: 0 0 12px var(--gold); }
-    .icon-btn { width: 38px; height: 38px; border: 1px solid rgba(201,169,110,.18); background: rgba(201,169,110,.03); color: rgba(201,169,110,.62); }
-    .icon-btn:hover { border-color: rgba(201,169,110,.48); color: var(--cream); }
-    .language-select {
-      height: 34px;
-      border: 1px solid rgba(201,169,110,.22);
-      background: rgba(20,12,4,.58);
-      color: var(--soft-2);
-      font-size: 9px;
-      letter-spacing: 2px;
-      text-transform: uppercase;
-      padding: 0 10px;
-      outline: none;
-    }
+.msg-row {
+  display: flex; align-items: flex-start; gap: 10px;
+}
+.avatar {
+  width: 32px; height: 32px; flex-shrink: 0;
+  border-radius: 50%;
+  border: 1.5px solid var(--gold);
+  background: var(--panel);
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: var(--glow);
+}
+.av-dot {
+  width: 10px; height: 10px; border-radius: 50%;
+  background: var(--gold); box-shadow: 0 0 6px var(--gold);
+}
+.msg-arrow {
+  margin-top: 8px; flex-shrink: 0;
+  color: rgba(217,154,61,.45);
+}
+.msg-arrow svg { width: 14px; height: 14px; }
+.msg-body { flex: 1; min-width: 0; }
+.bubble {
+  background: var(--elevated);
+  border: 1px solid var(--border-c);
+  border-radius: 4px 16px 16px 16px;
+  padding: 14px 18px;
+  margin-bottom: 8px;
+}
+.bubble p {
+  font-family: var(--font-msg);
+  font-size: clamp(14px, 1.8vw, 17px);
+  font-style: italic;
+  font-weight: 500;
+  color: var(--t1);
+  line-height: 1.6;
+}
+.msg-meta {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 10px; color: var(--t3);
+}
+.msg-check {
+  width: 16px; height: 16px;
+  border: 1.5px solid var(--t3); border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+}
+.msg-check svg { width: 9px; height: 9px; }
+.msg-connector {
+  display: flex; flex-direction: column; align-items: center;
+}
+.mc-line {
+  width: 1px; height: 20px;
+  background: linear-gradient(to bottom, rgba(217,154,61,.2), transparent);
+  margin-top: 3px;
+}
 
-    .messages { min-height: 0; overflow: auto; padding: 42px; display: flex; flex-direction: column; gap: 24px; }
-    .messages::-webkit-scrollbar { width: 6px; }
-    .messages::-webkit-scrollbar-thumb { background: rgba(201,169,110,.18); }
-    .welcome { margin: auto; max-width: 560px; text-align: center; color: var(--soft-3); }
-    .welcome .sun-wrap { margin-bottom: 24px; }
-    .welcome-title { margin-bottom: 8px; font-family: "Cormorant Garamond", serif; font-size: 34px; font-style: italic; font-weight: 300; letter-spacing: 2px; color: var(--cream); }
-    .welcome-copy { font-family: "Cormorant Garamond", serif; font-size: 19px; font-style: italic; line-height: 1.55; color: var(--soft-3); }
+/* ── BOTTOM SHEET ─────────────────────────────── */
+#bottom-sheet {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  background: var(--panel);
+  border-top: 1px solid var(--border-c);
+  border-radius: var(--radius-panel) var(--radius-panel) 0 0;
+  box-shadow: var(--shadow-panel);
+  z-index: 10;
+  display: flex; flex-direction: column;
+  transition: height .32s cubic-bezier(.4,0,.2,1);
+  will-change: height;
+  overflow: hidden;
+}
 
-    .quick-row { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 12px; margin-top: 34px; }
-    .quick { min-height: 84px; border: 1px solid rgba(201,169,110,.14); background: rgba(201,169,110,.035); padding: 14px 12px; text-align: left; color: var(--soft-3); }
-    .quick:hover { border-color: rgba(201,169,110,.4); color: var(--cream); }
-    .quick b { display: block; margin: 6px 0; font-family: "Cormorant Garamond", serif; font-size: 16px; font-style: italic; font-weight: 300; color: var(--cream); }
-    .quick span { font-size: 9px; line-height: 1.4; color: rgba(201,169,110,.42); }
+/* Snap heights as CSS custom properties updated via JS */
+.bs-handle-bar {
+  width: 40px; height: 4px;
+  background: var(--gold-dim); border-radius: 2px;
+  margin: 10px auto 6px; flex-shrink: 0; cursor: grab;
+}
+.bs-handle-bar:active { cursor: grabbing; }
 
-    .message { display: flex; gap: 14px; max-width: 78%; animation: msgin .25s ease; }
-    .message.user { align-self: flex-end; flex-direction: row-reverse; }
-    @keyframes msgin { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
-    .msg-avatar { width: 34px; height: 34px; border: 1px solid rgba(201,169,110,.24); display: flex; align-items: center; justify-content: center; color: var(--gold); flex: 0 0 auto; }
-    .bubble { border: 1px solid rgba(201,169,110,.16); background: rgba(20,12,4,.68); padding: 16px 18px; color: var(--soft); font-family: "Cormorant Garamond", serif; font-size: 18px; font-style: italic; line-height: 1.5; white-space: pre-wrap; overflow-wrap: anywhere; box-shadow: 0 18px 40px rgba(0,0,0,.22); }
-    .message.user .bubble { background: rgba(201,169,110,.08); border-color: rgba(201,169,110,.28); color: var(--cream); }
-    .msg-time { margin-top: 8px; color: rgba(201,169,110,.3); font-size: 8px; letter-spacing: 3px; text-transform: uppercase; }
-    .flight-card { width: min(760px, 100%); border: 1px solid rgba(201,169,110,.18); background: rgba(20,12,4,.7); padding: 18px; box-shadow: 0 18px 40px rgba(0,0,0,.22); }
-    .flight-head { display: flex; justify-content: space-between; gap: 16px; align-items: flex-start; border-bottom: 1px solid rgba(201,169,110,.12); padding-bottom: 12px; margin-bottom: 12px; }
-    .flight-kicker { color: rgba(201,169,110,.42); font-size: 8px; letter-spacing: 3px; text-transform: uppercase; }
-    .flight-title { margin-top: 5px; font-family: "Cormorant Garamond", serif; font-size: 24px; font-style: italic; color: var(--cream); }
-    .flight-count { color: rgba(201,169,110,.5); font-size: 10px; letter-spacing: 2px; text-transform: uppercase; white-space: nowrap; }
-    .flight-list { display: grid; gap: 10px; }
-    .flight-offer { border: 1px solid rgba(201,169,110,.14); background: rgba(201,169,110,.035); padding: 14px; }
-    .flight-offer-top { display: flex; justify-content: space-between; gap: 14px; align-items: baseline; margin-bottom: 10px; }
-    .flight-airline { font-family: "Cormorant Garamond", serif; font-size: 19px; font-style: italic; color: var(--soft); }
-    .flight-price { color: var(--gold); font-size: 13px; letter-spacing: 2px; text-transform: uppercase; }
-    .flight-slices { display: grid; gap: 8px; color: rgba(255,248,240,.76); font-size: 12px; line-height: 1.5; }
-    .flight-segment { display: flex; flex-wrap: wrap; gap: 7px; }
-    .flight-segment b { color: var(--cream); font-weight: 400; }
-    .flight-note { color: rgba(201,169,110,.42); font-size: 10px; line-height: 1.5; }
-    .typing { display: flex; gap: 6px; border: 1px solid rgba(201,169,110,.16); background: rgba(20,12,4,.58); padding: 15px 18px; width: 86px; }
-    .typing span { width: 6px; height: 6px; border-radius: 50%; background: var(--gold); animation: type 1s infinite ease-in-out; }
-    .typing span:nth-child(2) { animation-delay: .15s; }
-    .typing span:nth-child(3) { animation-delay: .3s; }
-    @keyframes type { 0%,60%,100% { opacity: .25; transform: translateY(0); } 30% { opacity: 1; transform: translateY(-5px); } }
+/* Expand arrow */
+.bs-expand-row {
+  display: flex; justify-content: center;
+  padding: 0 0 6px;
+}
+.bs-expand-btn {
+  width: 32px; height: 20px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; color: var(--gold); border: none; background: transparent;
+  transition: transform .2s;
+}
+.bs-expand-btn svg { width: 16px; height: 16px; }
 
-    .composer-wrap { border-top: 1px solid var(--border); padding: 20px 42px 28px; background: rgba(20,12,4,.58); }
-    .modes { display: flex; gap: 10px; margin-bottom: 14px; flex-wrap: wrap; }
-    .mode { padding: 9px 16px; border: 1px solid rgba(201,169,110,.16); background: transparent; color: rgba(201,169,110,.42); font-size: 8px; letter-spacing: 3px; text-transform: uppercase; }
-    .mode.active, .mode:hover { border-color: rgba(201,169,110,.42); color: var(--cream); background: rgba(201,169,110,.05); }
-    .composer { display: grid; grid-template-columns: 1fr 46px 46px; gap: 14px; align-items: end; border: 1px solid rgba(201,169,110,.22); padding: 10px 16px; background: rgba(20,12,4,.44); }
-    .composer textarea { min-height: 44px; max-height: 120px; resize: none; border-bottom: 0; padding: 10px 0 6px; }
-    .send { height: 46px; border: 1px solid rgba(201,169,110,.35); background: rgba(201,169,110,.06); color: var(--gold); font-size: 18px; }
-    .voice-btn { height: 46px; border: 1px solid rgba(201,169,110,.22); background: rgba(201,169,110,.035); color: rgba(201,169,110,.68); font-size: 17px; display: flex; align-items: center; justify-content: center; }
-    .voice-icon { width: 18px; height: 18px; display: block; }
-    .voice-btn:hover, .voice-btn.active { border-color: rgba(201,169,110,.55); color: var(--cream); box-shadow: 0 0 22px rgba(201,169,110,.1); }
-    .voice-btn.listening { color: var(--danger); border-color: rgba(232,161,142,.58); box-shadow: 0 0 24px rgba(232,161,142,.16); }
+/* Tabs */
+.bs-tabs {
+  display: flex; gap: 6px;
+  padding: 0 20px 10px;
+  flex-shrink: 0;
+}
+.bs-tab {
+  display: flex; align-items: center; gap: 7px;
+  padding: 7px 16px; border-radius: 20px;
+  font-size: 12px; font-weight: 500;
+  cursor: pointer; border: none; font-family: var(--font-ui);
+  transition: all .2s;
+}
+.bs-tab.on {
+  background: rgba(217,154,61,.15);
+  color: var(--t1);
+  border: 1px solid var(--border-c);
+}
+.bs-tab.off {
+  background: transparent; color: var(--t2);
+  border: 1px solid transparent;
+}
+.bs-tab:hover:not(.on) { color: var(--t1); background: var(--elevated); }
+.bs-tab svg { width: 14px; height: 14px; }
 
-    .app {
-      grid-template-columns: minmax(340px, 410px) minmax(0,1fr);
-      background:
-        radial-gradient(circle at 92% 2%, rgba(245,142,37,.16), transparent 28%),
-        radial-gradient(circle at 18% 100%, rgba(201,169,110,.08), transparent 34%),
-        linear-gradient(135deg, rgba(5,5,5,.97), rgba(24,16,9,.94));
-      border: 1px solid rgba(255,248,240,.11);
-      border-radius: 38px;
-      box-shadow: 0 30px 90px rgba(0,0,0,.62), inset 0 1px 0 rgba(255,248,240,.05);
-      overflow: hidden;
-    }
-    .sidebar {
-      padding: 30px 24px;
-      background: linear-gradient(180deg, rgba(8,8,8,.95), rgba(17,12,8,.94));
-      border-right: 1px solid rgba(255,248,240,.11);
-      gap: 26px;
-    }
-    .side-brand {
-      border-bottom: 0;
-      padding: 0;
-      align-items: center;
-      gap: 18px;
-    }
-    .brand-icon {
-      width: 72px;
-      height: 72px;
-      border: 1px solid rgba(245,171,67,.44);
-      border-radius: 20px;
-      background: linear-gradient(145deg, rgba(249,166,45,.16), rgba(255,248,240,.02));
-      box-shadow: 0 0 28px rgba(245,151,35,.1), inset 0 1px 0 rgba(255,248,240,.08);
-      color: #F0B85A;
-      display: grid;
-      place-items: center;
-      flex: 0 0 auto;
-    }
-    .brand-icon svg { width: 34px; height: 34px; stroke: currentColor; }
-    .side-brand .brand-name {
-      font-family: "Inter", system-ui, sans-serif;
-      font-size: 28px;
-      font-style: normal;
-      letter-spacing: .5px;
-      line-height: 1.05;
-    }
-    .side-brand .brand-sub {
-      color: rgba(255,248,240,.62);
-      font-size: 14px;
-      letter-spacing: .4px;
-      margin-top: 5px;
-      text-transform: none;
-    }
-    .side-nav {
-      display: grid;
-      gap: 12px;
-    }
-    .side-nav-item {
-      min-height: 72px;
-      border: 1px solid rgba(201,169,110,.16);
-      border-radius: 22px;
-      background: linear-gradient(90deg, rgba(249,154,39,.18), rgba(201,169,110,.05));
-      color: #F3AA45;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 0 22px;
-      box-shadow: inset 0 1px 0 rgba(255,248,240,.04);
-    }
-    .side-nav-main { display: flex; align-items: center; gap: 14px; font-size: 18px; font-weight: 400; }
-    .nav-icon, .query-icon {
-      width: 46px;
-      height: 46px;
-      border: 1px solid rgba(249,166,45,.24);
-      border-radius: 14px;
-      display: grid;
-      place-items: center;
-      color: #F0B85A;
-      background: rgba(249,166,45,.08);
-      flex: 0 0 auto;
-    }
-    .nav-dot { width: 10px; height: 10px; border-radius: 50%; background: #F0B85A; box-shadow: 0 0 16px rgba(244,170,69,.8); }
-    .side-section { padding: 0; overflow: visible; }
-    .side-label {
-      color: rgba(255,248,240,.56);
-      font-size: 12px;
-      letter-spacing: .8px;
-      margin-bottom: 14px;
-    }
-    .search-shell {
-      height: 52px;
-      border: 1px solid rgba(255,248,240,.13);
-      border-radius: 18px;
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      padding: 0 18px;
-      color: rgba(255,248,240,.55);
-      background: rgba(0,0,0,.18);
-      margin-bottom: 18px;
-    }
-    .search-shell input {
-      min-width: 0;
-      flex: 1;
-      border: 0;
-      outline: 0;
-      background: transparent;
-      color: var(--cream);
-      font-size: 14px;
-    }
-    .search-shell input::placeholder { color: rgba(255,248,240,.42); }
-    .new-chat-btn {
-      width: 100%;
-      min-height: 52px;
-      display: grid;
-      grid-template-columns: 34px 1fr;
-      align-items: center;
-      gap: 12px;
-      border: 1px solid rgba(244,170,69,.28);
-      border-radius: 18px;
-      background: linear-gradient(90deg, rgba(244,142,32,.18), rgba(244,142,32,.04));
-      color: var(--cream);
-      font-family: "Inter", system-ui, sans-serif;
-      font-size: 12px;
-      letter-spacing: 2px;
-      text-transform: uppercase;
-      padding: 0 16px;
-      margin-bottom: 14px;
-      text-align: left;
-    }
-    .new-chat-btn:hover { border-color: rgba(244,170,69,.5); box-shadow: 0 14px 28px rgba(0,0,0,.18); }
-    .new-chat-btn .lucide { width: 18px; height: 18px; color: #F0B85A; }
-    .recent-list { gap: 10px; overflow: auto; padding-right: 2px; }
-    .recent-item {
-      min-height: 84px;
-      display: grid;
-      grid-template-columns: 48px minmax(0,1fr) auto;
-      align-items: center;
-      gap: 14px;
-      border: 1px solid rgba(255,248,240,.08);
-      border-radius: 22px;
-      background: rgba(255,248,240,.025);
-      color: rgba(255,248,240,.82);
-      font-family: "Inter", system-ui, sans-serif;
-      font-size: 15px;
-      font-style: normal;
-      padding: 12px 14px;
-      text-align: left;
-      width: 100%;
-    }
-    .recent-item:hover, .recent-item.active {
-      border-color: rgba(244,170,69,.42);
-      background: linear-gradient(90deg, rgba(244,142,32,.26), rgba(244,142,32,.08));
-      box-shadow: 0 16px 34px rgba(0,0,0,.2), inset 4px 0 0 #F0B85A;
-    }
-    .recent-title, .recent-sub { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .recent-title { color: var(--cream); font-weight: 400; }
-    .recent-sub { color: rgba(255,248,240,.48); font-size: 12px; margin-top: 5px; }
-    .recent-time { color: rgba(255,248,240,.52); font-size: 12px; white-space: nowrap; }
-    .glyph { margin: 0; }
-    .side-footer {
-      border-top: 1px solid rgba(255,248,240,.1);
-      display: grid;
-      gap: 10px;
-      margin-top: auto;
-      padding: 22px 0 0;
-    }
-    .side-control {
-      min-height: 56px;
-      border: 1px solid rgba(255,248,240,.1);
-      border-radius: 16px;
-      background: rgba(255,248,240,.025);
-      display: flex;
-      align-items: center;
-      gap: 14px;
-      padding: 0 18px;
-      color: rgba(255,248,240,.82);
-    }
-    .language-select.side-control-select {
-      width: 100%;
-      height: 56px;
-      border-radius: 16px;
-      padding: 0 18px 0 50px;
-      background: rgba(255,248,240,.025);
-      font-size: 14px;
-      letter-spacing: .2px;
-      text-transform: none;
-    }
-    .main {
-      position: relative;
-      background:
-        radial-gradient(circle at 96% 4%, rgba(244,142,32,.12), transparent 24%),
-        radial-gradient(circle at 78% 94%, rgba(244,142,32,.12), transparent 26%),
-        linear-gradient(145deg, rgba(5,5,5,.9), rgba(24,16,9,.72));
-    }
-    .main::before, .main::after {
-      content: "";
-      position: absolute;
-      pointer-events: none;
-      border: 1px solid rgba(244,142,32,.12);
-      border-left-color: transparent;
-      border-bottom-color: transparent;
-      opacity: .6;
-    }
-    .main::before { width: 360px; height: 360px; right: -120px; top: -150px; border-radius: 50%; }
-    .main::after { width: 520px; height: 260px; right: -120px; bottom: -70px; border-radius: 50%; transform: rotate(-18deg); }
-    .topbar {
-      position: relative;
-      z-index: 1;
-      height: 148px;
-      align-items: flex-start;
-      border-bottom: 0;
-      padding: 44px 48px 0;
-      background: transparent;
-    }
-    .chat-title {
-      font-family: "Inter", system-ui, sans-serif;
-      font-size: 34px;
-      font-style: normal;
-      letter-spacing: .2px;
-      line-height: 1.1;
-    }
-    .chat-meta {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      min-height: 34px;
-      margin-top: 14px;
-      border: 1px solid rgba(255,248,240,.11);
-      border-radius: 999px;
-      background: rgba(255,248,240,.035);
-      color: rgba(255,248,240,.64);
-      font-size: 13px;
-      letter-spacing: .2px;
-      padding: 0 16px;
-      text-transform: none;
-    }
-    .actions { gap: 10px; }
-    .actions .language-select { display: none; }
-    .badge {
-      border-radius: 999px;
-      height: 36px;
-      letter-spacing: .6px;
-      text-transform: none;
-      background: rgba(255,248,240,.035);
-    }
-    .icon-btn {
-      width: 46px;
-      height: 46px;
-      border-radius: 14px;
-      background: rgba(255,248,240,.035);
-      color: rgba(255,248,240,.72);
-    }
-    .messages {
-      position: relative;
-      z-index: 1;
-      padding: 28px 72px 34px 108px;
-      gap: 40px;
-    }
-    .welcome { margin: 36px auto auto; }
-    .quick { border-radius: 16px; background: rgba(255,248,240,.03); }
-    .message {
-      position: relative;
-      display: block;
-      max-width: min(640px, 82%);
-      margin-left: 68px;
-    }
-    .message:not(.user)::before {
-      content: "";
-      position: absolute;
-      left: -70px;
-      top: 17px;
-      width: 46px;
-      height: 46px;
-      border-radius: 50%;
-      border: 1px solid rgba(244,170,69,.5);
-      background: radial-gradient(circle, #F0B85A 0 5px, rgba(244,170,69,.22) 6px 14px, rgba(0,0,0,.42) 15px);
-      box-shadow: 0 0 24px rgba(244,170,69,.14);
-    }
-    .message:not(.user)::after {
-      content: "";
-      position: absolute;
-      left: -48px;
-      top: 63px;
-      width: 1px;
-      height: calc(100% + 32px);
-      background: linear-gradient(rgba(244,170,69,.42), rgba(244,170,69,.08));
-    }
-    .message.user { align-self: flex-end; margin-left: 0; max-width: min(620px, 86%); }
-    .msg-avatar { display: none; }
-    .bubble {
-      border-color: rgba(244,170,69,.26);
-      border-radius: 18px;
-      background: linear-gradient(145deg, rgba(255,248,240,.075), rgba(20,12,4,.62));
-      box-shadow: 0 24px 54px rgba(0,0,0,.28), inset 0 1px 0 rgba(255,248,240,.05);
-      font-size: 25px;
-      line-height: 1.6;
-      padding: 28px 34px;
-    }
-    .msg-time {
-      color: rgba(244,170,69,.72);
-      font-size: 14px;
-      letter-spacing: 3px;
-      margin: 16px 0 0 4px;
-    }
-    .composer-wrap {
-      position: relative;
-      z-index: 2;
-      border: 1px solid rgba(255,248,240,.11);
-      border-radius: 30px;
-      background: linear-gradient(180deg, rgba(20,12,4,.78), rgba(10,10,10,.78));
-      box-shadow: 0 -18px 60px rgba(0,0,0,.28), inset 0 1px 0 rgba(255,248,240,.05);
-      margin: 0 28px 28px;
-      padding: 20px 20px 22px;
-    }
-    .modes {
-      justify-content: center;
-      background: rgba(255,248,240,.03);
-      border: 1px solid rgba(255,248,240,.09);
-      border-radius: 18px;
-      margin: 0 auto 18px;
-      max-width: 540px;
-      padding: 5px;
-    }
-    .mode {
-      border-radius: 14px;
-      border-color: transparent;
-      font-size: 13px;
-      letter-spacing: .2px;
-      min-height: 42px;
-      text-transform: none;
-    }
-    .mode.active, .mode:hover {
-      background: linear-gradient(135deg, rgba(244,142,32,.28), rgba(244,142,32,.08));
-      border-color: rgba(244,170,69,.24);
-      color: var(--cream);
-      box-shadow: 0 12px 28px rgba(244,142,32,.12);
-    }
-    .composer {
-      border-color: rgba(244,170,69,.2);
-      border-radius: 18px;
-      background: rgba(255,248,240,.035);
-      grid-template-columns: 1fr 62px 62px;
-      padding: 14px 16px 14px 22px;
-    }
-    .composer textarea {
-      font-family: "Inter", system-ui, sans-serif;
-      font-size: 18px;
-      font-style: normal;
-      line-height: 1.5;
-    }
-    .send, .voice-btn {
-      height: 62px;
-      border-radius: 50%;
-      font-size: 24px;
-    }
-    .send {
-      background: linear-gradient(135deg, #F8B24B, #D28322);
-      color: #0B0805;
-      border-color: transparent;
-      box-shadow: 0 12px 32px rgba(244,142,32,.28);
-    }
-    .voice-btn { background: rgba(0,0,0,.22); border-color: rgba(255,248,240,.12); }
+/* Input box */
+.bs-input-wrap {
+  padding: 0 20px 12px; flex-shrink: 0;
+}
+.bs-input-box {
+  background: var(--elevated);
+  border: 1px solid var(--border-c);
+  border-radius: 16px;
+  padding: 12px 14px;
+  display: flex; align-items: flex-end; gap: 10px;
+}
+.bs-textarea {
+  flex: 1; background: none; border: none;
+  color: var(--t1); font-size: 13px;
+  outline: none; resize: none;
+  font-family: var(--font-ui); line-height: 1.5;
+  min-height: 22px; max-height: 96px;
+  overflow-y: auto;
+}
+.bs-textarea::placeholder { color: var(--t3); }
+.bs-mic, .bs-send {
+  width: 36px; height: 36px; flex-shrink: 0;
+  border-radius: 50%; border: none;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; transition: all .2s;
+}
+.bs-mic {
+  background: transparent; color: var(--t2);
+}
+.bs-mic:hover { background: var(--elevated); color: var(--gold-lt); }
+.bs-mic svg { width: 18px; height: 18px; }
+.bs-send {
+  background: var(--gold);
+  box-shadow: var(--glow);
+  color: #0B0805;
+}
+.bs-send:hover { background: var(--gold-lt); }
+.bs-send svg { width: 16px; height: 16px; }
 
-    @media (max-width: 900px) {
-      body { overflow: hidden; }
-      .screen { position: fixed; min-height: 100vh; }
-      .app {
-        grid-template-columns: 86px minmax(0,1fr);
-        min-height: 100vh;
-        border-radius: 0;
-        border: 0;
-      }
-      .sidebar {
-        display: flex;
-        padding: 24px 12px;
-        align-items: center;
-      }
-      .side-brand { justify-content: center; }
-      .brand-icon { width: 56px; height: 56px; border-radius: 16px; }
-      .side-brand > div:last-child, .side-nav-main span, .nav-dot, .side-label, .search-shell, .recent-item .recent-copy, .recent-time, .user-card > div:not(.avatar) { display: none; }
-      .side-nav-item { width: 56px; min-height: 56px; padding: 0; justify-content: center; border-radius: 16px; }
-      .nav-icon, .query-icon { width: 44px; height: 44px; border-radius: 14px; }
-      .side-section { width: 100%; }
-      .recent-list { align-items: center; max-height: 48vh; }
-      .recent-item {
-        width: 56px;
-        min-height: 56px;
-        display: grid;
-        grid-template-columns: 1fr;
-        place-items: center;
-        padding: 0;
-        border-radius: 16px;
-      }
-      .side-footer { width: 100%; padding-top: 18px; align-items: center; }
-      .side-control, .language-select.side-control-select { display: none; }
-      .avatar { width: 48px; height: 48px; border-radius: 14px; }
-      .main { min-height: 100vh; grid-template-rows: auto minmax(0,1fr) auto; }
-      .topbar { height: auto; min-height: 132px; padding: 38px 18px 0; }
-      .chat-title { font-size: 28px; }
-      .chat-meta { font-size: 12px; max-width: 100%; }
-      .actions { align-items: flex-start; }
-      .actions .badge { display: none; }
-      .icon-btn { width: 42px; height: 42px; border-radius: 13px; }
-      .messages { padding: 22px 18px 22px 54px; gap: 34px; }
-      .welcome { margin-top: 12px; }
-      .quick-row { grid-template-columns: repeat(2,minmax(0,1fr)); }
-      .message { max-width: 94%; margin-left: 38px; }
-      .message:not(.user)::before { left: -48px; width: 38px; height: 38px; }
-      .message:not(.user)::after { left: -30px; top: 55px; }
-      .bubble { font-size: 21px; padding: 22px 24px; }
-      .composer-wrap { margin: 0 12px 16px; border-radius: 24px; padding: 14px; }
-      .modes { justify-content: flex-start; overflow-x: auto; flex-wrap: nowrap; }
-      .mode { white-space: nowrap; }
-      .composer { grid-template-columns: 1fr 54px 54px; gap: 10px; padding: 12px; }
-      .send, .voice-btn { height: 54px; }
-    }
+/* Action chips (mid/open snap) */
+.bs-chips {
+  display: flex; gap: 8px; flex-wrap: wrap;
+  padding: 0 20px 14px; flex-shrink: 0;
+  overflow: hidden;
+  max-height: 0;
+  transition: max-height .3s ease, opacity .3s ease, padding .3s ease;
+  opacity: 0;
+}
+.bs-chips.visible { max-height: 80px; opacity: 1; }
+.chip {
+  display: flex; align-items: center; gap: 6px;
+  background: var(--elevated); border: 1px solid var(--border-c);
+  border-radius: 20px; padding: 6px 14px;
+  font-size: 11px; color: var(--t2);
+  cursor: pointer; white-space: nowrap;
+  transition: background .2s, color .2s;
+}
+.chip:hover { background: rgba(217,154,61,.1); color: var(--t1); }
+.chip svg { width: 12px; height: 12px; }
 
-    @media (max-width: 560px) {
-      .app { grid-template-columns: 68px minmax(0,1fr); }
-      .sidebar { padding: 18px 8px; }
-      .brand-icon, .side-nav-item, .recent-item { width: 48px; min-height: 48px; }
-      .brand-icon { height: 48px; }
-      .topbar { padding: 28px 14px 0; min-height: 118px; }
-      .chat-title { font-size: 25px; }
-      .chat-meta { padding: 0 12px; min-height: 30px; }
-      .messages { padding: 18px 12px 18px 44px; }
-      .quick-row { display: none; }
-      .bubble { font-size: 19px; padding: 20px; }
-      .msg-time { font-size: 11px; letter-spacing: 2px; }
-      .composer-wrap { margin: 0 8px 10px; }
-      .modes { display: none; }
-      .composer { grid-template-columns: 1fr 50px 50px; }
-      .composer textarea { font-size: 16px; }
-      .send, .voice-btn { height: 50px; }
-    }
+/* Extended content (open snap) */
+.bs-extended {
+  flex: 1; overflow-y: auto;
+  padding: 0 20px 8px;
+  max-height: 0; overflow: hidden;
+  transition: max-height .3s ease, opacity .3s ease;
+  opacity: 0;
+}
+.bs-extended.visible { max-height: 300px; opacity: 1; overflow-y: auto; }
+.bs-ext-title {
+  font-size: 11px; font-weight: 600; color: var(--t3);
+  letter-spacing: 1px; text-transform: uppercase;
+  margin-bottom: 10px;
+}
+.bs-ext-card {
+  background: var(--elevated); border: 1px solid var(--border-c);
+  border-radius: 12px; padding: 12px 14px; margin-bottom: 8px;
+  cursor: pointer; transition: background .2s;
+}
+.bs-ext-card:hover { background: rgba(217,154,61,.08); }
+.bs-ext-card-title { font-size: 12px; font-weight: 500; color: var(--t1); margin-bottom: 3px; }
+.bs-ext-card-sub   { font-size: 10px; color: var(--t2); }
 
-    :root {
-      --cream: #F4EFE7;
-      --gold: #D99A3D;
-      --gold-light: #F0B85A;
-      --dark: #0B0805;
-      --soft: #F4EFE7;
-      --soft-2: #A89A88;
-      --soft-3: #6F604D;
-      --border: rgba(217,154,61,.28);
-      --panel: #120D08;
-    }
-    body { font-family: "Inter", system-ui, sans-serif; font-weight: 400; }
-    .app {
-      background: radial-gradient(circle at 92% 2%, rgba(217,154,61,.14), transparent 28%), radial-gradient(circle at 18% 100%, rgba(217,154,61,.08), transparent 34%), linear-gradient(135deg,#0B0805,#120D08);
-      border-color: rgba(217,154,61,.28);
-      box-shadow: 0 24px 80px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,248,240,.04);
-    }
-    .sidebar { background: linear-gradient(180deg,#0B0805,#120D08); border-right-color: rgba(217,154,61,.18); }
-    .brand-icon { border-color: rgba(217,154,61,.28); border-radius: 18px; background: linear-gradient(145deg,rgba(217,154,61,.16),rgba(255,248,240,.02)); box-shadow: 0 0 24px rgba(217,154,61,.18), inset 0 1px 0 rgba(255,248,240,.08); color: var(--gold-light); }
-    .side-brand .brand-name, .chat-title, .composer textarea, .recent-item { font-family: "Inter", system-ui, sans-serif; }
-    .chat-title { font-weight: 500; }
-    .side-nav-item { border-color: rgba(217,154,61,.28); border-radius: 18px; background: linear-gradient(90deg,rgba(217,154,61,.18),rgba(217,154,61,.05)); color: var(--gold-light); box-shadow: 0 0 24px rgba(217,154,61,.16), inset 0 1px 0 rgba(255,248,240,.04); }
-    .nav-icon, .query-icon { border-color: rgba(217,154,61,.28); color: var(--gold-light); background: rgba(217,154,61,.08); }
-    .nav-dot { background: var(--gold); box-shadow: 0 0 24px rgba(217,154,61,.35); }
-    .search-shell { border-color: rgba(217,154,61,.18); color: var(--soft-2); background: rgba(18,13,8,.7); }
-    .recent-item { border-color: rgba(217,154,61,.12); border-radius: 18px; background: #120D08; color: var(--soft-2); box-shadow: 0 24px 80px rgba(0,0,0,.18); }
-    .recent-item:hover, .recent-item.active { border-color: rgba(217,154,61,.28); background: linear-gradient(90deg,rgba(217,154,61,.22),rgba(217,154,61,.07)); box-shadow: 0 24px 80px rgba(0,0,0,.35), 0 0 24px rgba(217,154,61,.35), inset 4px 0 0 var(--gold); }
-    .side-control, .language-select.side-control-select { border-color: rgba(217,154,61,.18); background: #120D08; }
-    .main { background: radial-gradient(circle at 96% 4%,rgba(217,154,61,.12),transparent 24%), radial-gradient(circle at 78% 94%,rgba(217,154,61,.12),transparent 26%), linear-gradient(145deg,#0B0805,#120D08); }
-    .icon-btn { width: 48px; height: 48px; display: grid; place-items: center; background: #120D08; color: var(--soft-2); }
-    .bubble { border-color: rgba(217,154,61,.28); background: linear-gradient(145deg,rgba(26,18,11,.96),rgba(18,13,8,.82)); box-shadow: 0 24px 80px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,248,240,.05); font-family: "Cormorant Garamond", serif; font-style: italic; font-weight: 500; }
-    .composer-wrap { border-color: rgba(217,154,61,.28); border-radius: 24px; background: #120D08; box-shadow: 0 24px 80px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,248,240,.05); }
-    .send { background: linear-gradient(135deg,var(--gold-light),var(--gold)); color: #0B0805; box-shadow: 0 0 24px rgba(217,154,61,.35); }
-    .lucide { width: 20px; height: 20px; display: block; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
-    .send .lucide, .voice-btn .lucide { width: 22px; height: 22px; }
-    .activity-payload, .glyph { font-family: "Inter", system-ui, sans-serif; }
-    .message:not(.user)::before { border-color: rgba(217,154,61,.28); background: radial-gradient(circle,var(--gold-light) 0 5px,rgba(217,154,61,.22) 6px 14px,rgba(0,0,0,.42) 15px); box-shadow: 0 0 24px rgba(217,154,61,.35); }
-    @media (max-width: 900px) {
-      .app { grid-template-columns: 72px minmax(0,1fr); }
-      .sidebar { padding: 20px 12px; }
-      .brand-icon, .side-nav-item, .recent-item, .nav-icon, .query-icon { width: 48px; min-height: 48px; border-radius: 14px; }
-      .topbar { height: 96px; min-height: 96px; padding: 20px; }
-      .icon-btn { width: 48px; height: 48px; border-radius: 14px; }
-      .messages { padding: 22px 20px 22px 56px; }
-      .bubble { width: min(260px,100%); min-height: 128px; }
-      .composer-wrap { min-height: 190px; margin: 0 20px 20px; }
-      .composer textarea { min-height: 64px; }
-    }
-    @media (max-width: 560px) {
-      .app { grid-template-columns: 72px minmax(0,1fr); }
-      .sidebar { padding: 20px 12px; }
-      .topbar { min-height: 96px; padding: 20px; }
-      .messages { padding: 18px 20px 18px 44px; }
-      .bubble { width: min(240px,100%); }
-      .composer-wrap { min-height: 180px; margin: 0 20px 20px; }
-    }
-  </style>
+/* ── SCROLLBAR GLOBAL ────────────────────────── */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(217,154,61,.2); border-radius: 2px; }
+
+/* ── RESPONSIVE TWEAKS ───────────────────────── */
+@media (max-width: 600px) {
+  #sidebar { position: fixed; top: 0; left: 0; height: 100vh; z-index: 50; }
+  #sidebar:not(.open) { width: 0; border: none; }
+  #main { width: 100%; }
+}
+</style>
 </head>
 <body>
-  <canvas id="cv"></canvas>
 
-  <section class="screen scene active" id="screen-login">
-    <div class="card">
-      <div class="card-top-bar"></div>
-      <div class="card-inner">
-        <div class="brand-block">
-          <div class="sun-wrap" aria-hidden="true">
-            <svg width="56" height="56" viewBox="0 0 56 56" fill="none">
-              <circle cx="28" cy="28" r="9" stroke="#D99A3D" stroke-width=".7" opacity=".6"/>
-              <circle cx="28" cy="28" r="15" stroke="#D99A3D" stroke-width=".45" opacity=".3"/>
-              <circle cx="28" cy="28" r="21" stroke="#D99A3D" stroke-width=".35" opacity=".18"/>
-              <line x1="28" y1="2" x2="28" y2="8" stroke="#D99A3D" stroke-width=".8" opacity=".5"/>
-              <line x1="28" y1="48" x2="28" y2="54" stroke="#D99A3D" stroke-width=".8" opacity=".5"/>
-              <line x1="2" y1="28" x2="8" y2="28" stroke="#D99A3D" stroke-width=".8" opacity=".5"/>
-              <line x1="48" y1="28" x2="54" y2="28" stroke="#D99A3D" stroke-width=".8" opacity=".5"/>
-              <line x1="8" y1="8" x2="13" y2="13" stroke="#D99A3D" stroke-width=".65" opacity=".4"/>
-              <line x1="48" y1="8" x2="43" y2="13" stroke="#D99A3D" stroke-width=".65" opacity=".4"/>
-              <line x1="8" y1="48" x2="13" y2="43" stroke="#D99A3D" stroke-width=".65" opacity=".4"/>
-              <line x1="48" y1="48" x2="43" y2="43" stroke="#D99A3D" stroke-width=".65" opacity=".4"/>
-              <circle cx="28" cy="28" r="3" fill="#D99A3D" opacity=".22"/>
-              <circle cx="28" cy="28" r="1.5" fill="#D99A3D" opacity=".7"/>
-            </svg>
-          </div>
-          <div class="brand-name"><span>A</span>ri</div>
-          <div class="brand-sub">Solara · Quantum Intelligent</div>
+<div id="app">
+
+  <!-- ── SIDEBAR OVERLAY ── -->
+  <div id="sb-overlay" onclick="closeSidebar()"></div>
+
+  <!-- ══════════════════════════════════
+       SIDEBAR
+  ══════════════════════════════════ -->
+  <aside id="sidebar">
+
+    <!-- Logo -->
+    <div class="sb-logo">
+      <div class="sb-logo-icon">
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect x="3"  y="9"  width="2.2" height="6"  rx="1" fill="#D99A3D"/>
+          <rect x="7"  y="6"  width="2.2" height="12" rx="1" fill="#D99A3D"/>
+          <rect x="11" y="3"  width="2.2" height="18" rx="1" fill="#D99A3D"/>
+          <rect x="15" y="6"  width="2.2" height="12" rx="1" fill="#D99A3D"/>
+          <rect x="19" y="9"  width="2.2" height="6"  rx="1" fill="#D99A3D"/>
+        </svg>
+      </div>
+      <div class="sb-logo-text">
+        <h1>ARI</h1>
+        <p>Asistente</p>
+      </div>
+    </div>
+
+    <!-- Toggle (hamburger/close) -->
+    <button id="sb-toggle" onclick="toggleSidebar()" title="Menú">
+      <i data-lucide="menu"></i>
+    </button>
+
+    <!-- Conversations button -->
+    <button class="sb-conv-btn">
+      <i data-lucide="message-circle"></i>
+      <span>Conversaciones</span>
+      <span class="odot"></span>
+    </button>
+
+    <!-- Section label -->
+    <p class="sb-sec">Todas las conversaciones</p>
+
+    <!-- Search -->
+    <div class="sb-search">
+      <i data-lucide="search"></i>
+      <input type="text" placeholder="Buscar conversación…">
+    </div>
+
+    <!-- Conversation list -->
+    <div id="conv-list">
+
+      <div class="ci active" onclick="selectConv(this)">
+        <div class="ci-icon ic-chat"><i data-lucide="message-circle"></i></div>
+        <div class="ci-body">
+          <div class="ci-top"><span class="ci-name">Consulta activa</span><span class="ci-time">17:15</span></div>
+          <span class="ci-sub">Último mensaje</span>
         </div>
+        <span class="ci-dot"></span>
+      </div>
 
-        <div class="heading" id="authHeading">Access your light</div>
-        <div class="sub-h" id="status">— log in to use ARI —</div>
-
-        <div class="tabs">
-          <button class="tab active" id="loginTab" type="button">Login</button>
-          <button class="tab" id="registerTab" type="button">Create</button>
-        </div>
-
-        <form id="authForm">
-          <div class="fg">
-            <label for="email">Email</label>
-            <input id="email" type="email" autocomplete="email" placeholder="soul@ari.ai" required>
-          </div>
-          <div class="fg has-toggle">
-            <label for="password">Password</label>
-            <input id="password" type="password" autocomplete="current-password" placeholder="••••••••" required minlength="8">
-            <button class="password-toggle" id="passwordToggle" type="button" aria-controls="password" aria-pressed="false" aria-label="Show password"></button>
-          </div>
-          <button class="social" id="googleBtn" type="button">
-            <span class="s-pulse"></span>
-            Continue with Google
-          </button>
-
-          <div class="orn-div" id="authDivider">✦ or ✦</div>
-          <button class="cta" id="authBtn" type="submit">Align me →</button>
-        </form>
-        <div class="auth-secondary">
-          <button class="link" id="forgotBtn" type="button">Forgot password?</button>
+      <div class="ci" onclick="selectConv(this)">
+        <div class="ci-icon ic-cal"><i data-lucide="calendar"></i></div>
+        <div class="ci-body">
+          <div class="ci-top"><span class="ci-name">Reunión mañana</span><span class="ci-time">16:40</span></div>
+          <span class="ci-sub">Crear evento en calendario</span>
         </div>
       </div>
 
-      <div class="card-bottom-rule"></div>
-      <div class="card-footer">
-        <span id="authFooterText">First time here?</span>
-        <button class="link" id="authToggle" type="button">Begin your expansion</button>
+      <div class="ci" onclick="selectConv(this)">
+        <div class="ci-icon ic-doc"><i data-lucide="file-text"></i></div>
+        <div class="ci-body">
+          <div class="ci-top"><span class="ci-name">Resumen documento</span><span class="ci-time">15:22</span></div>
+          <span class="ci-sub">Análisis del PDF proyecto</span>
+        </div>
+      </div>
+
+      <div class="ci" onclick="selectConv(this)">
+        <div class="ci-icon ic-plane"><i data-lucide="send"></i></div>
+        <div class="ci-body">
+          <div class="ci-top"><span class="ci-name">Viaje a Madrid</span><span class="ci-time">14:05</span></div>
+          <span class="ci-sub">Buscar vuelos y hoteles</span>
+        </div>
+      </div>
+
+      <div class="ci" onclick="selectConv(this)">
+        <div class="ci-icon ic-folder"><i data-lucide="folder"></i></div>
+        <div class="ci-body">
+          <div class="ci-top"><span class="ci-name">Archivos importantes</span><span class="ci-time">13:11</span></div>
+          <span class="ci-sub">Encontrar y organizar</span>
+        </div>
+      </div>
+
+      <div class="ci" onclick="selectConv(this)">
+        <div class="ci-icon ic-term"><i data-lucide="terminal"></i></div>
+        <div class="ci-body">
+          <div class="ci-top"><span class="ci-name">Script automatización</span><span class="ci-time">Ayer</span></div>
+          <span class="ci-sub">Ejecutar comando en Mac</span>
+        </div>
+      </div>
+
+      <div class="ci" onclick="selectConv(this)">
+        <div class="ci-icon ic-task"><i data-lucide="check-square"></i></div>
+        <div class="ci-body">
+          <div class="ci-top"><span class="ci-name">Tareas pendientes</span><span class="ci-time">Ayer</span></div>
+          <span class="ci-sub">Lista de pendientes</span>
+        </div>
+      </div>
+
+      <div class="ci" onclick="selectConv(this)">
+        <div class="ci-icon ic-notes"><i data-lucide="book-open"></i></div>
+        <div class="ci-body">
+          <div class="ci-top"><span class="ci-name">Notas personales</span><span class="ci-time">Lunes</span></div>
+          <span class="ci-sub">Ideas y recordatorios</span>
+        </div>
+      </div>
+
+    </div><!-- /conv-list -->
+
+    <!-- Footer -->
+    <div class="sb-foot">
+      <div class="sb-foot-row">
+        <i data-lucide="globe-2"></i>
+        <span class="sb-foot-label">Español</span>
+        <span class="sb-foot-arrow"><i data-lucide="chevron-down"></i></span>
+      </div>
+      <div class="sb-foot-row">
+        <i data-lucide="volume-x"></i>
+        <span class="sb-foot-label">Voz desactivada</span>
+      </div>
+      <div class="sb-foot-row">
+        <i data-lucide="rotate-ccw"></i>
+        <span class="sb-foot-label">Restablecer</span>
       </div>
     </div>
-  </section>
 
-  <section class="screen" id="screen-chat">
-    <div class="app">
-      <aside class="sidebar">
-        <div class="side-brand">
-          <div class="brand-icon" aria-hidden="true">
-            <svg viewBox="0 0 24 24" fill="none">
-              <path d="M4 13v-2M7 17V7M10 20V4M13 17V7M16 15V9M20 13v-2" stroke-width="1.8" stroke-linecap="round"/>
-            </svg>
+  </aside>
+
+  <!-- ══════════════════════════════════
+       MAIN CHAT
+  ══════════════════════════════════ -->
+  <main id="main">
+
+    <!-- Decorative gold arcs -->
+    <svg class="deco-svg" viewBox="0 0 400 400" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M400 0 Q280 140 160 210 Q60 265 0 400" stroke="rgba(217,154,61,0.16)" stroke-width="1.5" fill="none"/>
+      <path d="M400 50 Q270 175 165 245 Q70 295 5 400" stroke="rgba(217,154,61,0.09)" stroke-width="1"   fill="none"/>
+      <path d="M400 100 Q285 210 175 275 Q85 320 15 400" stroke="rgba(217,154,61,0.05)" stroke-width="1" fill="none"/>
+      <circle cx="370" cy="25"  r="3"   fill="rgba(217,154,61,0.2)"/>
+      <circle cx="350" cy="10"  r="1.8" fill="rgba(217,154,61,0.14)"/>
+      <circle cx="390" cy="60"  r="2.2" fill="rgba(217,154,61,0.12)"/>
+      <circle cx="360" cy="80"  r="1.2" fill="rgba(217,154,61,0.1)"/>
+      <circle cx="330" cy="45"  r="1.5" fill="rgba(217,154,61,0.09)"/>
+    </svg>
+
+    <!-- Chat header -->
+    <header id="chat-header">
+      <div class="ch-top">
+        <button class="ch-menu-btn" onclick="toggleSidebar()" title="Menú">
+          <i data-lucide="menu"></i>
+        </button>
+        <span class="ch-title" id="chat-title">Consulta activa</span>
+        <button class="ch-more" title="Más opciones">
+          <i data-lucide="more-vertical"></i>
+        </button>
+      </div>
+      <div class="voice-pill">
+        <i data-lucide="volume-x"></i>
+        <span>ARI</span>
+        <span class="vp-sep">•</span>
+        <span>Voz desactivada</span>
+      </div>
+    </header>
+
+    <!-- Messages -->
+    <div id="messages">
+
+      <div class="msg-row">
+        <div class="msg-connector">
+          <div class="avatar"><div class="av-dot"></div></div>
+          <div class="mc-line"></div>
+        </div>
+        <div class="msg-arrow"><i data-lucide="chevron-right"></i></div>
+        <div class="msg-body">
+          <div class="bubble">
+            <p>Memory search will be expanded here next.</p>
           </div>
-          <div>
-            <div class="brand-name">ARI</div>
-            <div class="brand-sub">Asistente</div>
+          <div class="msg-meta">
+            <span>ARI</span>
+            <span>•</span>
+            <span>05:15 PM</span>
+            <div class="msg-check"><i data-lucide="check"></i></div>
           </div>
         </div>
-        <div class="side-nav" aria-label="Primary">
-          <div class="side-nav-item">
-            <div class="side-nav-main">
-              <span class="nav-icon" aria-hidden="true"><svg class="lucide" viewBox="0 0 24 24"><path d="M21 15a4 4 0 0 1-4 4H7l-4 4V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"/></svg></span>
-              <span>Conversaciones</span>
-            </div>
-            <span class="nav-dot" aria-hidden="true"></span>
+      </div>
+
+      <div class="msg-row">
+        <div class="msg-connector">
+          <div class="avatar"><div class="av-dot"></div></div>
+        </div>
+        <div class="msg-arrow"><i data-lucide="chevron-right"></i></div>
+        <div class="msg-body">
+          <div class="bubble">
+            <p>Activity view will be expanded here next.</p>
+          </div>
+          <div class="msg-meta">
+            <span>ARI</span>
+            <span>•</span>
+            <span>05:15 PM</span>
+            <div class="msg-check"><i data-lucide="check"></i></div>
           </div>
         </div>
-        <div class="side-section">
-          <div class="side-label">Todas las conversaciones</div>
-          <button class="new-chat-btn" id="newChatBtn" type="button">
-            <span aria-hidden="true"><svg class="lucide" viewBox="0 0 24 24"><path d="M12 5v14"/><path d="M5 12h14"/></svg></span>
-            <span id="newChatLabel">Nuevo chat</span>
+      </div>
+
+    </div><!-- /messages -->
+
+    <!-- ════════════════════════════════
+         BOTTOM SHEET
+    ════════════════════════════════ -->
+    <div id="bottom-sheet">
+
+      <!-- Drag handle -->
+      <div class="bs-handle-bar" id="bs-handle"></div>
+
+      <!-- Expand arrow -->
+      <div class="bs-expand-row">
+        <button class="bs-expand-btn" id="bs-expand-btn" onclick="cycleSnap()">
+          <i data-lucide="chevron-up" id="bs-expand-icon"></i>
+        </button>
+      </div>
+
+      <!-- Tabs -->
+      <div class="bs-tabs">
+        <button class="bs-tab on" onclick="setTab(this)">
+          <i data-lucide="message-circle"></i> Texto
+        </button>
+        <button class="bs-tab off" onclick="setTab(this)">
+          <i data-lucide="brain"></i> Memoria
+        </button>
+        <button class="bs-tab off" onclick="setTab(this)">
+          <i data-lucide="trending-up"></i> Actividad
+        </button>
+      </div>
+
+      <!-- Action chips (visible at mid/open) -->
+      <div class="bs-chips" id="bs-chips">
+        <div class="chip">
+          <i data-lucide="search"></i> Buscar en memoria
+        </div>
+        <div class="chip">
+          <i data-lucide="calendar"></i> Crear evento
+        </div>
+        <div class="chip">
+          <i data-lucide="file-text"></i> Resumir doc…
+        </div>
+      </div>
+
+      <!-- Input -->
+      <div class="bs-input-wrap">
+        <div class="bs-input-box">
+          <textarea
+            class="bs-textarea"
+            id="bs-input"
+            placeholder="Escribe un mensaje…"
+            rows="1"
+            oninput="autoResize(this)"
+            onkeydown="handleKey(event)"
+          >me dirías qué día es hoy por favor</textarea>
+          <button class="bs-mic" title="Micrófono">
+            <i data-lucide="mic"></i>
           </button>
-          <label class="search-shell" for="conversationSearch">
-            <span aria-hidden="true"><svg class="lucide" viewBox="0 0 24 24"><path d="m21 21-4.3-4.3"/><circle cx="11" cy="11" r="8"/></svg></span>
-            <input id="conversationSearch" type="search" placeholder="Buscar conversación">
-          </label>
-          <div class="recent-list" id="recentQueries">
-            <div class="recent-item active">
-              <span class="query-icon"><svg class="lucide" viewBox="0 0 24 24"><path d="M21 15a4 4 0 0 1-4 4H7l-4 4V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"/></svg></span>
-              <span class="recent-copy"><span class="recent-title">No queries yet</span><span class="recent-sub">ARI</span></span>
-              <span class="recent-time">Ahora</span>
-            </div>
-          </div>
+          <button class="bs-send" onclick="sendMessage()" title="Enviar">
+            <i data-lucide="send"></i>
+          </button>
         </div>
-        <div class="side-footer">
-          <div class="side-control">
-            <span aria-hidden="true"><svg class="lucide" viewBox="0 0 24 24"><path d="M16 9a5 5 0 0 1 0 6M19.4 5.6a10 10 0 0 1 0 12.8"/><path d="M11 5 6 9H2v6h4l5 4z"/><path d="m22 2-20 20"/></svg></span>
-            <span id="sideVoiceStatus">Voz desactivada</span>
-          </div>
-          <div style="position:relative">
-            <span aria-hidden="true" style="position:absolute;left:18px;top:18px;color:#F0B85A;z-index:1"><svg class="lucide" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 0 20"/><path d="M12 2a15.3 15.3 0 0 0 0 20"/></svg></span>
-            <select class="language-select side-control-select" id="appLanguage" aria-label="Language"></select>
-          </div>
-          <div class="user-card">
-            <div class="avatar">☉</div>
-            <div style="min-width:0">
-              <div class="user-name" id="sidebarUserName">Signed in</div>
-              <div class="user-email" id="sidebarUserEmail">ARI web</div>
-            </div>
-          </div>
+      </div>
+
+      <!-- Extended content (open snap) -->
+      <div class="bs-extended" id="bs-extended">
+        <p class="bs-ext-title">Sugerencias recientes</p>
+        <div class="bs-ext-card">
+          <div class="bs-ext-card-title">¿Qué hay en mi calendario hoy?</div>
+          <div class="bs-ext-card-sub">Última consulta · hace 2 horas</div>
         </div>
-      </aside>
+        <div class="bs-ext-card">
+          <div class="bs-ext-card-title">Resume el documento del proyecto</div>
+          <div class="bs-ext-card-sub">Última consulta · ayer</div>
+        </div>
+        <div class="bs-ext-card">
+          <div class="bs-ext-card-title">Busca vuelos a Madrid para el viernes</div>
+          <div class="bs-ext-card-sub">Última consulta · ayer</div>
+        </div>
+      </div>
 
-      <main class="main">
-        <header class="topbar">
-          <div>
-            <div class="chat-title">Active query</div>
-            <div class="chat-meta" id="chatMeta">ARI · login required</div>
-          </div>
-          <div class="actions">
-            <div class="badge"><span class="badge-dot"></span><span id="connectionLabel">LOGIN</span></div>
-            <button class="icon-btn" id="clearBtn" type="button" title="Clear chat" aria-label="Reset"><svg class="lucide" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 3v6h6"/></svg></button>
-            <button class="icon-btn" id="logoutBtn" type="button" title="Logout" aria-label="Cerrar"><svg class="lucide" viewBox="0 0 24 24"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button>
-          </div>
-        </header>
+    </div><!-- /bottom-sheet -->
 
-        <section class="messages" id="messages">
-          <div class="welcome" id="welcomeState">
-            <div class="sun-wrap" aria-hidden="true">
-              <svg width="56" height="56" viewBox="0 0 56 56" fill="none">
-                <circle cx="28" cy="28" r="9" stroke="#D99A3D" stroke-width=".7" opacity=".6"/>
-                <circle cx="28" cy="28" r="15" stroke="#D99A3D" stroke-width=".45" opacity=".3"/>
-                <circle cx="28" cy="28" r="21" stroke="#D99A3D" stroke-width=".35" opacity=".18"/>
-                <circle cx="28" cy="28" r="3" fill="#D99A3D" opacity=".22"/>
-                <circle cx="28" cy="28" r="1.5" fill="#D99A3D" opacity=".7"/>
-              </svg>
-            </div>
-            <div class="welcome-title">ARI is awake</div>
-            <div class="welcome-copy">A warm execution assistant for thought, memory and action.</div>
-            <div class="quick-row">
-              <button class="quick" type="button" data-prompt="Help me organize my next three priorities">☉<b>Priorities</b><span>Shape the day into actions</span></button>
-              <button class="quick" type="button" data-prompt="Write a concise professional email">✦<b>Writing</b><span>Draft with a clean tone</span></button>
-              <button class="quick" type="button" data-prompt="Summarize this idea into a product plan">⊹<b>Product</b><span>Turn ideas into structure</span></button>
-              <button class="quick" type="button" data-prompt="Search my memory for launch plan">◇<b>Memory</b><span>Recover useful context</span></button>
-            </div>
-          </div>
-        </section>
+  </main>
+</div>
 
-        <footer class="composer-wrap">
-          <div class="modes">
-            <button class="mode active" type="button">Text</button>
-            <button class="mode" type="button" data-note="Memory search will be expanded here next.">Memory</button>
-            <button class="mode" type="button" data-note="Activity view will be expanded here next.">Activity</button>
-            <button class="mode" id="voiceModeBtn" type="button">Voice</button>
-          </div>
-          <form class="composer" id="chatForm">
-            <textarea id="messageInput" rows="1" placeholder="Ask the sun..." required></textarea>
-            <button class="voice-btn" id="voiceBtn" type="button" title="Speak to ARI" aria-label="Voice input">
-              <svg class="voice-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                <path d="M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3Z"/>
-                <path d="M5 11a7 7 0 0 0 14 0M12 18v3M9 21h6"/>
-              </svg>
-            </button>
-            <button class="send" id="sendBtn" type="submit" aria-label="Enviar"><svg class="lucide" viewBox="0 0 24 24"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg></button>
-          </form>
-        </footer>
-      </main>
-    </div>
-  </section>
+<script>
+// ── LUCIDE INIT ───────────────────────────────
+lucide.createIcons();
 
-  <script>
-    const state = {
-      mode: "login",
-      token: localStorage.getItem("ari.token") || "",
-      workspaceId: localStorage.getItem("ari.workspaceId") || "",
-      userId: localStorage.getItem("ari.userId") || "",
-      email: localStorage.getItem("ari.email") || "",
-      threads: [],
-      currentThreadId: localStorage.getItem("ari.currentThreadId") || "",
-      spokenReplies: localStorage.getItem("ari.spokenReplies") === "true",
-      language: localStorage.getItem("ari.appLanguage") || "",
-      listening: false,
-      resetToken: "",
-    };
+// ── ARI REAL SESSION FLOW ─────────────────────
+const ari = {
+  token: localStorage.getItem('ari.token') || '',
+  workspaceId: localStorage.getItem('ari.workspaceId') || '',
+  currentThreadId: localStorage.getItem('ari.currentThreadId') || '',
+  spokenReplies: localStorage.getItem('ari.spokenReplies') === 'true',
+  threads: [],
+};
 
-    const LANGUAGES = [
-      ["en", "English"],
-      ["ru", "Русский"],
-      ["uk", "Українська"],
-      ["es", "Español"],
-      ["de", "Deutsch"],
-      ["it", "Italiano"],
-      ["pt", "Português"],
-    ];
-    const I18N = {
-      en: {
-        activeQuery: "Active query",
-        alignMe: "Align me ->",
-        activity: "Activity",
-        askPlaceholder: "Ask the sun...",
-        authCreateStatus: "— create your private account —",
-        authLoginStatus: "— log in to use ARI —",
-        authForgotStatus: "— we will send a recovery link —",
-        authResetStatus: "— choose a new password —",
-        begin: "Begin your expansion",
-        connected: "ONLINE",
-        continueGoogle: "Continue with Google",
-        create: "Create",
-        createLight: "Create light ->",
-        divider: "✦ or ✦",
-        firstTime: "First time here?",
-        forgotPassword: "Forgot password?",
-        heading: "Access your light",
-        login: "Login",
-        loginRequired: "ARI · login required",
-        logout: "Logout",
-        memory: "Memory",
-        memoryReady: "ARI · memory active",
-        memorySearch: "Memory search will be expanded here next.",
-        modelFallback: "ARI did not return a response.",
-        newChat: "New chat",
-        newQuery: "New query ->",
-        noQueries: "No queries yet",
-        privateSession: "Private session",
-        product: "Product",
-        productCopy: "Turn ideas into structure",
-        promptMemory: "Search my memory for launch plan",
-        promptPriorities: "Help me organize my next three priorities",
-        promptProduct: "Summarize this idea into a product plan",
-        promptWriting: "Write a concise professional email",
-        priorities: "Priorities",
-        prioritiesCopy: "Shape the day into actions",
-        recent: "Recent queries",
-        returnLogin: "Return to login",
-        resetPassword: "Reset password ->",
-        sendRecovery: "Send recovery ->",
-        sessionActive: "— session active —",
-        recoverySent: "— recovery email sent —",
-        passwordUpdated: "— password updated —",
-        hidePassword: "Hide",
-        hidePasswordLabel: "Hide password",
-        showPassword: "Show",
-        showPasswordLabel: "Show password",
-        text: "Text",
-        voice: "Voice",
-        voiceOff: "ARI · voice replies off",
-        voiceOn: "ARI · voice replies on",
-        voiceOnSpeech: "Voice replies are on.",
-        voiceTitle: "Speak to ARI",
-        voiceUnsupported: "Voice input is not supported in this browser",
-        welcomeCopy: "A warm execution assistant for thought, memory and action.",
-        welcomeTitle: "ARI is awake",
-        writing: "Writing",
-        writingCopy: "Draft with a clean tone",
-      },
-      es: {
-        activeQuery: "Consulta activa",
-        alignMe: "Entrar ->",
-        activity: "Actividad",
-        askPlaceholder: "Pregunta al sol...",
-        authCreateStatus: "— crea tu cuenta privada —",
-        authLoginStatus: "— inicia sesion para usar ARI —",
-        authForgotStatus: "— enviaremos un enlace de recuperacion —",
-        authResetStatus: "— elige una contrasena nueva —",
-        begin: "Comienza tu expansion",
-        connected: "EN LINEA",
-        continueGoogle: "Continuar con Google",
-        create: "Crear",
-        createLight: "Crear luz ->",
-        divider: "✦ o ✦",
-        firstTime: "Primera vez aqui?",
-        forgotPassword: "Olvidaste tu contrasena?",
-        heading: "Accede a tu luz",
-        login: "Entrar",
-        loginRequired: "ARI · acceso requerido",
-        logout: "Cerrar sesion",
-        memory: "Memoria",
-        memoryReady: "ARI · memoria activa",
-        memorySearch: "La busqueda de memoria se ampliara aqui pronto.",
-        modelFallback: "ARI no devolvio una respuesta.",
-        newChat: "Nuevo chat",
-        newQuery: "Nueva consulta ->",
-        noQueries: "Sin consultas todavia",
-        privateSession: "Sesion privada",
-        product: "Producto",
-        productCopy: "Convierte ideas en estructura",
-        promptMemory: "Busca en mi memoria el plan de lanzamiento",
-        promptPriorities: "Ayudame a organizar mis tres proximas prioridades",
-        promptProduct: "Resume esta idea en un plan de producto",
-        promptWriting: "Escribe un email profesional conciso",
-        priorities: "Prioridades",
-        prioritiesCopy: "Ordena el dia en acciones",
-        recent: "Consultas recientes",
-        returnLogin: "Volver al acceso",
-        resetPassword: "Cambiar contrasena ->",
-        sendRecovery: "Enviar recuperacion ->",
-        sessionActive: "— sesion activa —",
-        recoverySent: "— email de recuperacion enviado —",
-        passwordUpdated: "— contrasena actualizada —",
-        hidePassword: "Ocultar",
-        hidePasswordLabel: "Ocultar contrasena",
-        showPassword: "Mostrar",
-        showPasswordLabel: "Mostrar contrasena",
-        text: "Texto",
-        voice: "Voz",
-        voiceOff: "ARI · respuestas de voz apagadas",
-        voiceOn: "ARI · respuestas de voz activas",
-        voiceOnSpeech: "Las respuestas de voz estan activas.",
-        voiceTitle: "Hablar con ARI",
-        voiceUnsupported: "La entrada de voz no esta soportada en este navegador",
-        welcomeCopy: "Un asistente calido de ejecucion para pensamiento, memoria y accion.",
-        welcomeTitle: "ARI esta despierta",
-        writing: "Escritura",
-        writingCopy: "Redacta con un tono limpio",
-      },
-      ru: {
-        activeQuery: "Активный запрос",
-        alignMe: "Войти ->",
-        activity: "Активность",
-        askPlaceholder: "Спросите солнце...",
-        authCreateStatus: "— создайте свой приватный аккаунт —",
-        authLoginStatus: "— войдите, чтобы использовать ARI —",
-        begin: "Начать расширение",
-        connected: "ОНЛАЙН",
-        continueGoogle: "Продолжить с Google",
-        create: "Создать",
-        createLight: "Создать свет ->",
-        divider: "✦ или ✦",
-        firstTime: "Впервые здесь?",
-        heading: "Откройте свой свет",
-        login: "Войти",
-        loginRequired: "ARI · требуется вход",
-        logout: "Выйти",
-        memory: "Память",
-        memoryReady: "ARI · память активна",
-        memorySearch: "Поиск по памяти скоро будет расширен здесь.",
-        modelFallback: "ARI не вернула ответ.",
-        newChat: "Новый чат",
-        newQuery: "Новый запрос ->",
-        noQueries: "Запросов пока нет",
-        privateSession: "Приватная сессия",
-        product: "Продукт",
-        productCopy: "Превратить идеи в структуру",
-        promptMemory: "Найди в моей памяти план запуска",
-        promptPriorities: "Помоги организовать мои три ближайшие приоритета",
-        promptProduct: "Суммируй эту идею в продуктовый план",
-        promptWriting: "Напиши краткое профессиональное письмо",
-        priorities: "Приоритеты",
-        prioritiesCopy: "Превратить день в действия",
-        recent: "Недавние запросы",
-        returnLogin: "Вернуться ко входу",
-        sessionActive: "— сессия активна —",
-        text: "Текст",
-        voice: "Голос",
-        voiceOff: "ARI · голосовые ответы выключены",
-        voiceOn: "ARI · голосовые ответы включены",
-        voiceOnSpeech: "Голосовые ответы включены.",
-        voiceTitle: "Говорить с ARI",
-        voiceUnsupported: "Голосовой ввод не поддерживается в этом браузере",
-        welcomeCopy: "Теплый ассистент выполнения для мыслей, памяти и действий.",
-        welcomeTitle: "ARI проснулась",
-        writing: "Письмо",
-        writingCopy: "Черновик с чистым тоном",
-      },
-      uk: {
-        activeQuery: "Активний запит",
-        alignMe: "Увійти ->",
-        activity: "Активність",
-        askPlaceholder: "Запитайте сонце...",
-        authCreateStatus: "— створіть свій приватний акаунт —",
-        authLoginStatus: "— увійдіть, щоб використовувати ARI —",
-        begin: "Почати розширення",
-        connected: "ОНЛАЙН",
-        continueGoogle: "Продовжити з Google",
-        create: "Створити",
-        createLight: "Створити світло ->",
-        divider: "✦ або ✦",
-        firstTime: "Вперше тут?",
-        heading: "Відкрийте своє світло",
-        login: "Увійти",
-        loginRequired: "ARI · потрібен вхід",
-        logout: "Вийти",
-        memory: "Пам'ять",
-        memoryReady: "ARI · пам'ять активна",
-        memorySearch: "Пошук пам'яті скоро буде розширено тут.",
-        modelFallback: "ARI не повернула відповідь.",
-        newChat: "Новий чат",
-        newQuery: "Новий запит ->",
-        noQueries: "Запитів поки немає",
-        privateSession: "Приватна сесія",
-        product: "Продукт",
-        productCopy: "Перетвори ідеї на структуру",
-        promptMemory: "Знайди в моїй пам'яті план запуску",
-        promptPriorities: "Допоможи організувати мої три найближчі пріоритети",
-        promptProduct: "Підсумуй цю ідею в продуктовий план",
-        promptWriting: "Напиши короткий професійний лист",
-        priorities: "Пріоритети",
-        prioritiesCopy: "Перетвори день на дії",
-        recent: "Нещодавні запити",
-        returnLogin: "Повернутися до входу",
-        sessionActive: "— сесія активна —",
-        text: "Текст",
-        voice: "Голос",
-        voiceOff: "ARI · голосові відповіді вимкнено",
-        voiceOn: "ARI · голосові відповіді увімкнено",
-        voiceOnSpeech: "Голосові відповіді увімкнено.",
-        voiceTitle: "Говорити з ARI",
-        voiceUnsupported: "Голосове введення не підтримується в цьому браузері",
-        welcomeCopy: "Теплий асистент виконання для думок, пам'яті й дій.",
-        welcomeTitle: "ARI прокинулась",
-        writing: "Письмо",
-        writingCopy: "Чернетка з чистим тоном",
-      },
-      de: {
-        activeQuery: "Aktive Anfrage",
-        alignMe: "Einloggen ->",
-        activity: "Aktivität",
-        askPlaceholder: "Frag die Sonne...",
-        authCreateStatus: "— erstelle dein privates Konto —",
-        authLoginStatus: "— melde dich an, um ARI zu nutzen —",
-        begin: "Beginne deine Erweiterung",
-        connected: "ONLINE",
-        continueGoogle: "Mit Google fortfahren",
-        create: "Erstellen",
-        createLight: "Licht erstellen ->",
-        divider: "✦ oder ✦",
-        firstTime: "Zum ersten Mal hier?",
-        heading: "Greife auf dein Licht zu",
-        login: "Login",
-        loginRequired: "ARI · Login erforderlich",
-        logout: "Abmelden",
-        memory: "Speicher",
-        memoryReady: "ARI · Speicher aktiv",
-        memorySearch: "Die Speichersuche wird hier bald erweitert.",
-        modelFallback: "ARI hat keine Antwort zurückgegeben.",
-        newChat: "Neuer Chat",
-        newQuery: "Neue Anfrage ->",
-        noQueries: "Noch keine Anfragen",
-        privateSession: "Private Sitzung",
-        product: "Produkt",
-        productCopy: "Ideen in Struktur verwandeln",
-        promptMemory: "Suche in meinem Speicher nach dem Launch-Plan",
-        promptPriorities: "Hilf mir, meine nächsten drei Prioritäten zu organisieren",
-        promptProduct: "Fasse diese Idee als Produktplan zusammen",
-        promptWriting: "Schreibe eine kurze professionelle E-Mail",
-        priorities: "Prioritäten",
-        prioritiesCopy: "Den Tag in Aktionen formen",
-        recent: "Letzte Anfragen",
-        returnLogin: "Zurück zum Login",
-        sessionActive: "— Sitzung aktiv —",
-        text: "Text",
-        voice: "Stimme",
-        voiceOff: "ARI · Sprachantworten aus",
-        voiceOn: "ARI · Sprachantworten an",
-        voiceOnSpeech: "Sprachantworten sind aktiviert.",
-        voiceTitle: "Mit ARI sprechen",
-        voiceUnsupported: "Spracheingabe wird in diesem Browser nicht unterstützt",
-        welcomeCopy: "Ein warmer Ausführungsassistent für Gedanken, Speicher und Aktionen.",
-        welcomeTitle: "ARI ist wach",
-        writing: "Schreiben",
-        writingCopy: "Entwurf mit klarem Ton",
-      },
-      it: {
-        activeQuery: "Query attiva",
-        alignMe: "Entra ->",
-        activity: "Attività",
-        askPlaceholder: "Chiedi al sole...",
-        authCreateStatus: "— crea il tuo account privato —",
-        authLoginStatus: "— accedi per usare ARI —",
-        begin: "Inizia la tua espansione",
-        connected: "ONLINE",
-        continueGoogle: "Continua con Google",
-        create: "Crea",
-        createLight: "Crea luce ->",
-        divider: "✦ oppure ✦",
-        firstTime: "Prima volta qui?",
-        heading: "Accedi alla tua luce",
-        login: "Accesso",
-        loginRequired: "ARI · accesso richiesto",
-        logout: "Esci",
-        memory: "Memoria",
-        memoryReady: "ARI · memoria attiva",
-        memorySearch: "La ricerca nella memoria sarà ampliata qui.",
-        modelFallback: "ARI non ha restituito una risposta.",
-        newChat: "Nuova chat",
-        newQuery: "Nuova query ->",
-        noQueries: "Ancora nessuna query",
-        privateSession: "Sessione privata",
-        product: "Prodotto",
-        productCopy: "Trasforma idee in struttura",
-        promptMemory: "Cerca nella mia memoria il piano di lancio",
-        promptPriorities: "Aiutami a organizzare le mie prossime tre priorità",
-        promptProduct: "Riassumi questa idea in un piano prodotto",
-        promptWriting: "Scrivi una email professionale concisa",
-        priorities: "Priorità",
-        prioritiesCopy: "Dai forma alla giornata in azioni",
-        recent: "Query recenti",
-        returnLogin: "Torna all'accesso",
-        sessionActive: "— sessione attiva —",
-        text: "Testo",
-        voice: "Voce",
-        voiceOff: "ARI · risposte vocali disattivate",
-        voiceOn: "ARI · risposte vocali attive",
-        voiceOnSpeech: "Le risposte vocali sono attive.",
-        voiceTitle: "Parla con ARI",
-        voiceUnsupported: "L'input vocale non è supportato in questo browser",
-        welcomeCopy: "Un assistente caldo di esecuzione per pensiero, memoria e azione.",
-        welcomeTitle: "ARI è sveglia",
-        writing: "Scrittura",
-        writingCopy: "Bozza con un tono pulito",
-      },
-      pt: {
-        activeQuery: "Consulta ativa",
-        alignMe: "Entrar ->",
-        activity: "Atividade",
-        askPlaceholder: "Pergunte ao sol...",
-        authCreateStatus: "— crie sua conta privada —",
-        authLoginStatus: "— entre para usar ARI —",
-        begin: "Comece sua expansão",
-        connected: "ONLINE",
-        continueGoogle: "Continuar com Google",
-        create: "Criar",
-        createLight: "Criar luz ->",
-        divider: "✦ ou ✦",
-        firstTime: "Primeira vez aqui?",
-        heading: "Acesse sua luz",
-        login: "Entrar",
-        loginRequired: "ARI · login necessário",
-        logout: "Sair",
-        memory: "Memória",
-        memoryReady: "ARI · memória ativa",
-        memorySearch: "A busca na memória será ampliada aqui.",
-        modelFallback: "ARI não retornou uma resposta.",
-        newChat: "Novo chat",
-        newQuery: "Nova consulta ->",
-        noQueries: "Ainda sem consultas",
-        privateSession: "Sessão privada",
-        product: "Produto",
-        productCopy: "Transforme ideias em estrutura",
-        promptMemory: "Busque na minha memória o plano de lançamento",
-        promptPriorities: "Ajude-me a organizar minhas próximas três prioridades",
-        promptProduct: "Resuma esta ideia em um plano de produto",
-        promptWriting: "Escreva um email profissional conciso",
-        priorities: "Prioridades",
-        prioritiesCopy: "Transforme o dia em ações",
-        recent: "Consultas recentes",
-        returnLogin: "Voltar ao login",
-        sessionActive: "— sessão ativa —",
-        text: "Texto",
-        voice: "Voz",
-        voiceOff: "ARI · respostas de voz desligadas",
-        voiceOn: "ARI · respostas de voz ativas",
-        voiceOnSpeech: "As respostas de voz estão ativas.",
-        voiceTitle: "Falar com ARI",
-        voiceUnsupported: "Entrada de voz não suportada neste navegador",
-        welcomeCopy: "Um assistente caloroso de execução para pensamento, memória e ação.",
-        welcomeTitle: "ARI está desperta",
-        writing: "Escrita",
-        writingCopy: "Rascunho com tom limpo",
-      },
-    };
+function authHeaders(extra = {}) {
+  return {
+    ...(ari.token ? { Authorization: `Bearer ${ari.token}` } : {}),
+    ...extra,
+  };
+}
 
-    function normalizeLanguage(value) {
-      return String(value || "en").toLowerCase().replace("_", "-").split("-")[0] || "en";
-    }
-    function detectDeviceLanguage() {
-      const languages = (navigator.languages && navigator.languages.length ? navigator.languages : [navigator.language]).filter(Boolean);
-      const normalized = languages.map(normalizeLanguage);
-      return normalized.find((code) => I18N[code]) || normalized[0] || "en";
-    }
-    state.language = detectDeviceLanguage();
-    function translationLanguage() {
-      return I18N[state.language] ? state.language : "en";
-    }
-    function tr(key) {
-      const uiLanguage = translationLanguage();
-      return (I18N[uiLanguage] && I18N[uiLanguage][key]) || I18N.en[key] || key;
-    }
-    function languageLocale() {
-      const localeByLanguage = {
-        ar: "ar-SA",
-        de: "de-DE",
-        en: "en-US",
-        es: "es-ES",
-        hi: "hi-IN",
-        it: "it-IT",
-        ja: "ja-JP",
-        ko: "ko-KR",
-        nl: "nl-NL",
-        pl: "pl-PL",
-        pt: "pt-PT",
-        ru: "ru-RU",
-        tr: "tr-TR",
-        uk: "uk-UA",
-        zh: "zh-CN",
-      };
-      return localeByLanguage[state.language] || state.language || "en-US";
-    }
-    function lucideIcon(name) {
-      const icons = {
-        message: '<svg class="lucide" viewBox="0 0 24 24"><path d="M21 15a4 4 0 0 1-4 4H7l-4 4V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"/></svg>',
-        brain: '<svg class="lucide" viewBox="0 0 24 24"><path d="M12 5a3 3 0 0 0-5.6-1.5A3.5 3.5 0 0 0 3 7a3 3 0 0 0 1 2.2A4 4 0 0 0 4 16a4 4 0 0 0 4 4h1"/><path d="M12 5a3 3 0 0 1 5.6-1.5A3.5 3.5 0 0 1 21 7a3 3 0 0 1-1 2.2A4 4 0 0 1 20 16a4 4 0 0 1-4 4h-1"/><path d="M12 5v16"/><path d="M8 8h.01"/><path d="M16 8h.01"/></svg>',
-        trend: '<svg class="lucide" viewBox="0 0 24 24"><path d="m3 17 6-6 4 4 8-8"/><path d="M14 7h7v7"/></svg>',
-        calendar: '<svg class="lucide" viewBox="0 0 24 24"><path d="M8 2v4"/><path d="M16 2v4"/><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M3 10h18"/></svg>',
-        plane: '<svg class="lucide" viewBox="0 0 24 24"><path d="M17.8 19.2 16 11l3.5-3.5c1.4-1.4 1.4-3.6 0-5s-3.6-1.4-5 0L11 6 2.8 4.2 2 5l6 4-4 4-3-.5-.5.5 3.5 3.5L7.5 20l.5-.5-.5-3 4-4 4 6z"/></svg>',
-        file: '<svg class="lucide" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M16 13H8"/><path d="M16 17H8"/><path d="M10 9H8"/></svg>',
-        folder: '<svg class="lucide" viewBox="0 0 24 24"><path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.7-.9L9.6 3.9A2 2 0 0 0 7.9 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/></svg>',
-        terminal: '<svg class="lucide" viewBox="0 0 24 24"><path d="m7 11 3-3-3-3"/><path d="M11 13h4"/><rect x="3" y="4" width="18" height="16" rx="2"/></svg>',
-        task: '<svg class="lucide" viewBox="0 0 24 24"><path d="m9 11 3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>',
-        notes: '<svg class="lucide" viewBox="0 0 24 24"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>',
-      };
-      return icons[name] || icons.message;
-    }
-    function iconForTask(text) {
-      const value = normalizeText(text);
-      if (/\b(calendar|agenda|meeting|reunion|reunión|evento|cita|mañana|manana|schedule)\b/.test(value)) return "calendar";
-      if (/\b(viaje|travel|flight|vuelo|hotel|madrid|airport|aeropuerto|trip)\b/.test(value)) return "plane";
-      if (/\b(document|documento|pdf|resumen|summar|analisis|análisis|doc)\b/.test(value)) return "file";
-      if (/\b(file|archivo|folder|carpeta|organizar|important)\b/.test(value)) return "folder";
-      if (/\b(script|terminal|command|comando|automatizacion|automatización|shell|mac)\b/.test(value)) return "terminal";
-      if (/\b(task|tarea|pendiente|todo|checklist|lista)\b/.test(value)) return "task";
-      if (/\b(note|nota|personal|idea|recordatorio)\b/.test(value)) return "notes";
-      if (/\b(memory|memoria|remember|recuerda|recuerdo)\b/.test(value)) return "brain";
-      if (/\b(activity|actividad|log|registro|progreso)\b/.test(value)) return "trend";
-      return "message";
-    }
-    function normalizeText(value) {
-      return String(value || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-    }
-    function formatActiveDate(date = new Date()) {
-      if (translationLanguage() === "es") {
-        const weekday = new Intl.DateTimeFormat("es-ES", { weekday: "short" }).format(date).replace(".", "").normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-        const day = new Intl.DateTimeFormat("es-ES", { day: "numeric" }).format(date);
-        const month = new Intl.DateTimeFormat("es-ES", { month: "long" }).format(date);
-        const year = new Intl.DateTimeFormat("es-ES", { year: "numeric" }).format(date);
-        return `${weekday.charAt(0).toUpperCase()}${weekday.slice(1)} ${day} de ${month} ${year}`;
-      }
-      return new Intl.DateTimeFormat(languageLocale(), { weekday: "short", day: "numeric", month: "long", year: "numeric" }).format(date).replace(/\./g, "");
-    }
-    function activeQueryMeta() {
-      return formatActiveDate();
-    }
-    function languageText(key) {
-      const texts = {
-        flightSearch: { en: "I will search flights inside ARI.", ru: "Я поищу рейсы внутри ARI.", uk: "Я пошукаю рейси всередині ARI.", es: "Busco vuelos dentro de ARI.", de: "Ich suche Flüge innerhalb von ARI.", it: "Cercherò voli dentro ARI.", pt: "Vou buscar voos dentro da ARI." },
-        flightNeedsRoute: { en: "I need a fixed origin and destination to search flights.", ru: "Мне нужны точные пункт отправления и назначения для поиска рейсов.", uk: "Мені потрібні точні пункт відправлення й призначення для пошуку рейсів.", es: "Necesito un origen y destino concretos para buscar vuelos.", de: "Ich brauche einen festen Abflug- und Zielort, um Flüge zu suchen.", it: "Mi servono origine e destinazione precise per cercare voli.", pt: "Preciso de origem e destino concretos para buscar voos." },
-        noFlightResults: { en: "No results found for that route and date.", ru: "Для этого маршрута и даты результатов нет.", uk: "Для цього маршруту й дати результатів немає.", es: "No encontre resultados para esa ruta y fecha.", de: "Für diese Route und dieses Datum wurden keine Ergebnisse gefunden.", it: "Nessun risultato per quella rotta e data.", pt: "Nenhum resultado para essa rota e data." },
-        outbound: { en: "Outbound", ru: "Туда", uk: "Туди", es: "Ida", de: "Hinflug", it: "Andata", pt: "Ida" },
-        returnTrip: { en: "Return", ru: "Обратно", uk: "Назад", es: "Vuelta", de: "Rückflug", it: "Ritorno", pt: "Volta" },
-        flightShown: { en: "Results shown inside ARI. No booking has been created.", ru: "Результаты показаны внутри ARI. Бронирование не создано.", uk: "Результати показано всередині ARI. Бронювання не створено.", es: "Resultados mostrados dentro de ARI. No se ha creado ninguna reserva.", de: "Ergebnisse werden in ARI angezeigt. Es wurde keine Buchung erstellt.", it: "Risultati mostrati dentro ARI. Nessuna prenotazione è stata creata.", pt: "Resultados mostrados dentro da ARI. Nenhuma reserva foi criada." },
-        transcribing: { en: "ARI · transcribing", ru: "ARI · расшифровка", uk: "ARI · транскрибування", es: "ARI · transcribiendo", de: "ARI · transkribiert", it: "ARI · trascrizione", pt: "ARI · transcrevendo" },
-        listening: { en: "ARI · listening", ru: "ARI · слушает", uk: "ARI · слухає", es: "ARI · escuchando", de: "ARI · hört zu", it: "ARI · ascolta", pt: "ARI · ouvindo" },
-        googleActive: { en: "— Google session active —", ru: "— сессия Google активна —", uk: "— сесія Google активна —", es: "— sesion de Google activa —", de: "— Google-Sitzung aktiv —", it: "— sessione Google attiva —", pt: "— sessão do Google ativa —" },
-      };
-      return (texts[key] && texts[key][state.language]) || (texts[key] && texts[key].en) || key;
-    }
+async function readError(response) {
+  try {
+    const data = await response.json();
+    return data.detail || data.message || JSON.stringify(data);
+  } catch {
+    return response.statusText || 'Error';
+  }
+}
 
-    const loginScreen = document.getElementById("screen-login");
-    const chatScreen = document.getElementById("screen-chat");
-    const statusEl = document.getElementById("status");
-    const loginTab = document.getElementById("loginTab");
-    const registerTab = document.getElementById("registerTab");
-    const authBtn = document.getElementById("authBtn");
-    const authForm = document.getElementById("authForm");
-    const authFooterText = document.getElementById("authFooterText");
-    const authToggle = document.getElementById("authToggle");
-    const forgotBtn = document.getElementById("forgotBtn");
-    const passwordToggle = document.getElementById("passwordToggle");
-    const googleBtn = document.getElementById("googleBtn");
-    const authDivider = document.getElementById("authDivider");
-    const chatMeta = document.getElementById("chatMeta");
-    const connectionLabel = document.getElementById("connectionLabel");
-    const sidebarUserName = document.getElementById("sidebarUserName");
-    const sidebarUserEmail = document.getElementById("sidebarUserEmail");
-    const sideVoiceStatus = document.getElementById("sideVoiceStatus");
-    const messagesEl = document.getElementById("messages");
-    const welcomeState = document.getElementById("welcomeState");
-    const messageInput = document.getElementById("messageInput");
-    const sendBtn = document.getElementById("sendBtn");
-    const voiceBtn = document.getElementById("voiceBtn");
-    const voiceModeBtn = document.getElementById("voiceModeBtn");
-    const recentQueries = document.getElementById("recentQueries");
-    const newChatBtn = document.getElementById("newChatBtn");
-    const newChatLabel = document.getElementById("newChatLabel");
-    const appLanguage = document.getElementById("appLanguage");
-    let mediaRecorder = null;
-    let voiceChunks = [];
+function normalizeTaskText(value) {
+  return String(value || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+}
 
-    function buildLanguageSelect(select) {
-      const options = LANGUAGES.some(([code]) => code === state.language)
-        ? LANGUAGES
-        : [[state.language, state.language.toUpperCase()], ...LANGUAGES];
-      select.innerHTML = options.map(([code, label]) => `<option value="${code}">${label}</option>`).join("") + '<option value="__custom">Other...</option>';
-      select.value = state.language;
-      select.addEventListener("change", () => {
-        if (select.value === "__custom") {
-          const custom = prompt("Language code, for example sv, ro, id, ca");
-          setAppLanguage(custom || state.language);
-          return;
-        }
-        setAppLanguage(select.value);
-      });
-    }
+function iconNameForTask(text) {
+  const value = normalizeTaskText(text);
+  if (/\b(calendar|agenda|meeting|reunion|evento|cita|manana|schedule)\b/.test(value)) return 'calendar';
+  if (/\b(viaje|travel|flight|vuelo|hotel|madrid|airport|aeropuerto|trip)\b/.test(value)) return 'send';
+  if (/\b(document|documento|pdf|resumen|summar|analisis|doc)\b/.test(value)) return 'file-text';
+  if (/\b(file|archivo|folder|carpeta|organizar|important)\b/.test(value)) return 'folder';
+  if (/\b(script|terminal|command|comando|automatizacion|shell|mac)\b/.test(value)) return 'terminal';
+  if (/\b(task|tarea|pendiente|todo|checklist|lista)\b/.test(value)) return 'check-square';
+  if (/\b(note|nota|personal|idea|recordatorio)\b/.test(value)) return 'book-open';
+  if (/\b(memory|memoria|remember|recuerda|recuerdo)\b/.test(value)) return 'brain';
+  if (/\b(activity|actividad|log|registro|progreso)\b/.test(value)) return 'trending-up';
+  return 'message-circle';
+}
 
-    function setAppLanguage(language) {
-      state.language = normalizeLanguage(language);
-      localStorage.setItem("ari.appLanguage", state.language);
-      applyTranslations();
-    }
+function iconClassForTask(icon) {
+  if (icon === 'calendar') return 'ic-cal';
+  if (icon === 'send') return 'ic-plane';
+  if (icon === 'file-text') return 'ic-doc';
+  if (icon === 'folder') return 'ic-folder';
+  if (icon === 'terminal') return 'ic-term';
+  if (icon === 'check-square') return 'ic-task';
+  if (icon === 'book-open') return 'ic-notes';
+  if (icon === 'brain') return 'ic-doc';
+  if (icon === 'trending-up') return 'ic-term';
+  return 'ic-chat';
+}
 
-    function applyTranslations() {
-      document.documentElement.lang = state.language;
-      appLanguage.value = state.language;
-      document.getElementById("authHeading").textContent = tr("heading");
-      loginTab.textContent = tr("login");
-      registerTab.textContent = tr("create");
-      googleBtn.lastChild.textContent = ` ${tr("continueGoogle")}`;
-      authDivider.textContent = tr("divider");
-      authBtn.textContent = state.mode === "login" ? tr("alignMe") : tr("createLight");
-      forgotBtn.textContent = tr("forgotPassword");
-      newChatLabel.textContent = tr("newChat");
-      updatePasswordToggle();
-      document.querySelector(".chat-title").textContent = tr("activeQuery");
-      document.querySelector(".side-label").textContent = state.language === "es" ? "Todas las conversaciones" : tr("recent");
-      document.querySelectorAll(".mode")[0].textContent = tr("text");
-      document.querySelectorAll(".mode")[1].textContent = tr("memory");
-      document.querySelectorAll(".mode")[2].textContent = tr("activity");
-      voiceModeBtn.textContent = tr("voice");
-      sideVoiceStatus.textContent = state.spokenReplies ? tr("voiceOn").replace(/^ARI ·\s*/i, "") : tr("voiceOff").replace(/^ARI ·\s*/i, "");
-      messageInput.placeholder = tr("askPlaceholder");
-      voiceBtn.title = window.MediaRecorder ? tr("voiceTitle") : tr("voiceUnsupported");
-      renderThreads();
-      clearChat();
-      syncSession();
-      setAuthMode(state.mode);
-    }
+// ── SIDEBAR ───────────────────────────────────
+const sidebar   = document.getElementById('sidebar');
+const overlay   = document.getElementById('sb-overlay');
+const toggleBtn = document.getElementById('sb-toggle');
+let sbOpen = false;
 
-    function setStatus(text, tone = "muted") {
-      statusEl.textContent = text;
-      statusEl.className = `sub-h ${tone === "error" ? "error" : tone === "ok" ? "ok" : ""}`;
-    }
+function openSidebar() {
+  sbOpen = true;
+  sidebar.classList.add('open');
+  overlay.classList.add('visible');
+  requestAnimationFrame(() => overlay.classList.add('active'));
+  updateToggleIcon();
+}
+function closeSidebar() {
+  sbOpen = false;
+  sidebar.classList.remove('open');
+  overlay.classList.remove('active');
+  setTimeout(() => overlay.classList.remove('visible'), 300);
+  updateToggleIcon();
+}
+function toggleSidebar() { sbOpen ? closeSidebar() : openSidebar(); }
+function updateToggleIcon() {
+  const icon = toggleBtn.querySelector('i');
+  icon.setAttribute('data-lucide', sbOpen ? 'x' : 'menu');
+  lucide.createIcons();
+}
 
-    function setAuthMode(mode) {
-      state.mode = mode;
-      const emailInput = document.getElementById("email");
-      const passwordInput = document.getElementById("password");
-      const emailGroup = emailInput.closest(".fg");
-      const passwordGroup = passwordInput.closest(".fg");
-      loginTab.classList.toggle("active", mode === "login");
-      registerTab.classList.toggle("active", mode === "register");
-      authBtn.textContent = mode === "login"
-        ? tr("alignMe")
-        : mode === "register"
-          ? tr("createLight")
-          : mode === "forgot"
-            ? tr("sendRecovery")
-            : tr("resetPassword");
-      authFooterText.textContent = mode === "login" ? tr("firstTime") : "Already aligned?";
-      authToggle.textContent = mode === "login" ? tr("begin") : tr("returnLogin");
-      emailGroup.style.display = mode === "reset" ? "none" : "block";
-      passwordGroup.style.display = mode === "forgot" ? "none" : "block";
-      emailInput.required = mode !== "reset";
-      passwordInput.required = mode !== "forgot";
-      passwordInput.autocomplete = mode === "reset" ? "new-password" : "current-password";
-      passwordToggle.style.display = mode === "forgot" ? "none" : "block";
-      googleBtn.style.display = mode === "login" ? "flex" : "none";
-      authDivider.style.display = mode === "login" ? "flex" : "none";
-      forgotBtn.style.display = mode === "login" ? "inline" : "none";
-      setStatus(
-        mode === "login"
-          ? tr("authLoginStatus")
-          : mode === "register"
-            ? tr("authCreateStatus")
-            : mode === "forgot"
-              ? tr("authForgotStatus")
-              : tr("authResetStatus"),
-      );
-    }
+// Close sidebar on small screens when resized big
+window.addEventListener('resize', () => {
+  if (window.innerWidth > 900 && sbOpen) closeSidebar();
+});
 
-    function updatePasswordToggle() {
-      const passwordInput = document.getElementById("password");
-      const isVisible = passwordInput.type === "text";
-      passwordToggle.innerHTML = isVisible ? eyeOffIcon() : eyeIcon();
-      passwordToggle.setAttribute("aria-pressed", String(isVisible));
-      passwordToggle.setAttribute("aria-label", isVisible ? tr("hidePasswordLabel") : tr("showPasswordLabel"));
-      passwordToggle.title = isVisible ? tr("hidePasswordLabel") : tr("showPasswordLabel");
-    }
+// ── CONVERSATIONS ─────────────────────────────
+function selectConv(el) {
+  document.querySelectorAll('.ci').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  const name = el.querySelector('.ci-name');
+  if (name) document.getElementById('chat-title').textContent = name.textContent;
+  if (el.dataset.threadId) openThread(el.dataset.threadId);
+  // On mobile, close sidebar after selecting
+  if (window.innerWidth < 700) closeSidebar();
+}
 
-    function eyeIcon() {
-      return '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6-10-6-10-6Z"/><circle cx="12" cy="12" r="3"/></svg>';
-    }
+// ── TABS ──────────────────────────────────────
+function setTab(btn) {
+  btn.closest('.bs-tabs').querySelectorAll('.bs-tab')
+    .forEach(t => { t.classList.remove('on'); t.classList.add('off'); });
+  btn.classList.remove('off');
+  btn.classList.add('on');
+}
 
-    function eyeOffIcon() {
-      return '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3l18 18"/><path d="M10.6 10.6a3 3 0 0 0 2.8 2.8"/><path d="M9.9 5.2A10.7 10.7 0 0 1 12 5c6.5 0 10 7 10 7a18.5 18.5 0 0 1-3.1 4.1"/><path d="M6.7 6.7C3.8 8.6 2 12 2 12s3.5 7 10 7c1.9 0 3.5-.5 4.9-1.2"/></svg>';
-    }
+// ── BOTTOM SHEET SNAPS ────────────────────────
+// snap 0 = closed (small), 1 = mid, 2 = open
+const SNAPS = [0, 1, 2];
+let currentSnap = 0;
 
-    function showScreen(name) {
-      loginScreen.classList.toggle("active", name === "login");
-      chatScreen.classList.toggle("active", name === "chat");
-    }
+function getSnapHeight(snap) {
+  const vh = window.innerHeight;
+  if (snap === 0) return Math.min(Math.max(vh * 0.22, 170), 210);
+  if (snap === 1) return Math.min(Math.max(vh * 0.42, 320), 400);
+  return  Math.min(Math.max(vh * 0.65, 420), 560);
+}
 
-    function syncSession() {
-      const active = Boolean(state.token && state.workspaceId);
-      if (active) {
-        chatMeta.textContent = activeQueryMeta();
-        connectionLabel.textContent = tr("connected");
-        sidebarUserName.textContent = tr("privateSession");
-        sidebarUserEmail.textContent = state.email || state.userId || "ARI web";
-        showScreen("chat");
-        loadThreads();
-      } else {
-        connectionLabel.textContent = "LOGIN";
-        showScreen("login");
-      }
-      messageInput.disabled = !active;
-      sendBtn.disabled = !active;
-      voiceBtn.disabled = !active || !window.MediaRecorder;
-      voiceBtn.title = window.MediaRecorder ? tr("voiceTitle") : tr("voiceUnsupported");
-      voiceModeBtn.classList.toggle("active", state.spokenReplies);
-      voiceBtn.classList.toggle("active", state.spokenReplies);
-      sideVoiceStatus.textContent = state.spokenReplies ? tr("voiceOn").replace(/^ARI ·\s*/i, "") : tr("voiceOff").replace(/^ARI ·\s*/i, "");
-      renderThreads();
-    }
+const bs      = document.getElementById('bottom-sheet');
+const chips   = document.getElementById('bs-chips');
+const ext     = document.getElementById('bs-extended');
+const expIcon = document.getElementById('bs-expand-icon');
 
-    function saveSession(payload, email) {
-      state.token = payload.access_token;
-      state.workspaceId = payload.default_workspace_id || "";
-      state.userId = payload.user_id || "";
-      state.email = email;
-      localStorage.setItem("ari.token", state.token);
-      localStorage.setItem("ari.workspaceId", state.workspaceId);
-      localStorage.setItem("ari.userId", state.userId);
-      localStorage.setItem("ari.email", state.email);
-      syncSession();
-    }
+function applySnap(snap, animate = true) {
+  currentSnap = snap;
+  const h = getSnapHeight(snap);
+  if (!animate) bs.style.transition = 'none';
+  bs.style.height = h + 'px';
+  if (!animate) requestAnimationFrame(() => bs.style.transition = '');
 
-    function clearSession() {
-      state.token = "";
-      state.workspaceId = "";
-      state.userId = "";
-      state.currentThreadId = "";
-      state.threads = [];
-      localStorage.removeItem("ari.token");
-      localStorage.removeItem("ari.workspaceId");
-      localStorage.removeItem("ari.userId");
-      localStorage.removeItem("ari.currentThreadId");
-      syncSession();
-    }
+  // chips visible at snap 1+
+  snap >= 1 ? chips.classList.add('visible') : chips.classList.remove('visible');
+  // extended visible at snap 2
+  snap === 2 ? ext.classList.add('visible') : ext.classList.remove('visible');
 
-    async function readError(response) {
-      try {
-        const data = await response.json();
-        return data.detail || JSON.stringify(data);
-      } catch {
-        return response.statusText || "Error";
-      }
-    }
+  // arrow direction
+  expIcon.setAttribute('data-lucide', snap === 2 ? 'chevron-down' : 'chevron-up');
+  lucide.createIcons();
+}
 
-    authForm.addEventListener("submit", async (event) => {
-      event.preventDefault();
-      authBtn.disabled = true;
-      const email = document.getElementById("email").value.trim();
-      const password = document.getElementById("password").value;
-      setStatus(state.mode === "login" ? "— connecting —" : state.mode === "register" ? "— creating account —" : "— working —");
+function cycleSnap() {
+  applySnap(currentSnap < 2 ? currentSnap + 1 : 0);
+}
 
-      try {
-        let response;
-        if (state.mode === "forgot") {
-          response = await fetch("/api/v1/auth/forgot-password", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ email }),
-          });
-        } else if (state.mode === "reset") {
-          response = await fetch("/api/v1/auth/reset-password", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ token: state.resetToken, password }),
-          });
-        } else if (state.mode === "register") {
-          response = await fetch("/api/v1/auth/register", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ email, password }),
-          });
-        } else {
-          const form = new URLSearchParams();
-          form.set("username", email);
-          form.set("password", password);
-          response = await fetch("/api/v1/auth/login", {
-            method: "POST",
-            headers: { "Content-Type": "application/x-www-form-urlencoded" },
-            body: form,
-          });
-        }
-        if (!response.ok) throw new Error(await readError(response));
-        if (state.mode === "forgot") {
-          const recovery = await response.json();
-          if (recovery.reset_url) {
-            window.location.href = recovery.reset_url;
-            return;
-          }
-          setStatus(tr("recoverySent"), "ok");
-        } else if (state.mode === "reset") {
-          state.resetToken = "";
-          history.replaceState(null, "", window.location.pathname);
-          setAuthMode("login");
-          setStatus(tr("passwordUpdated"), "ok");
-        } else {
-          saveSession(await response.json(), email);
-          setStatus(tr("sessionActive"), "ok");
-        }
-      } catch (error) {
-        setStatus(error.message, "error");
-      } finally {
-        authBtn.disabled = false;
-      }
+// Init
+applySnap(0, false);
+window.addEventListener('resize', () => applySnap(currentSnap, false));
+
+// ── BOTTOM SHEET DRAG ─────────────────────────
+const handle = document.getElementById('bs-handle');
+let dragStartY = 0, dragStartH = 0, dragging = false;
+
+function dragStart(e) {
+  dragging = true;
+  dragStartY = e.touches ? e.touches[0].clientY : e.clientY;
+  dragStartH = bs.offsetHeight;
+  bs.style.transition = 'none';
+  document.addEventListener('mousemove', dragMove);
+  document.addEventListener('mouseup',   dragEnd);
+  document.addEventListener('touchmove', dragMove, { passive: false });
+  document.addEventListener('touchend',  dragEnd);
+}
+function dragMove(e) {
+  if (!dragging) return;
+  if (e.cancelable) e.preventDefault();
+  const y   = e.touches ? e.touches[0].clientY : e.clientY;
+  const dy  = dragStartY - y;
+  const h   = Math.max(100, Math.min(dragStartH + dy, window.innerHeight * 0.9));
+  bs.style.height = h + 'px';
+  // live chip/ext visibility
+  h >= getSnapHeight(1) * 0.7 ? chips.classList.add('visible') : chips.classList.remove('visible');
+  h >= getSnapHeight(2) * 0.7 ? ext.classList.add('visible')   : ext.classList.remove('visible');
+}
+function dragEnd() {
+  dragging = false;
+  document.removeEventListener('mousemove', dragMove);
+  document.removeEventListener('mouseup',   dragEnd);
+  document.removeEventListener('touchmove', dragMove);
+  document.removeEventListener('touchend',  dragEnd);
+  bs.style.transition = '';
+  // Snap to nearest
+  const h = bs.offsetHeight;
+  const dists = SNAPS.map(s => Math.abs(getSnapHeight(s) - h));
+  const nearest = dists.indexOf(Math.min(...dists));
+  applySnap(nearest);
+}
+handle.addEventListener('mousedown',  dragStart);
+handle.addEventListener('touchstart', dragStart, { passive: true });
+
+// ── TEXTAREA AUTO RESIZE ──────────────────────
+function autoResize(el) {
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 96) + 'px';
+}
+autoResize(document.getElementById('bs-input'));
+
+// ── SEND MESSAGE ──────────────────────────────
+async function sendMessage() {
+  const input = document.getElementById('bs-input');
+  const text  = input.value.trim();
+  if (!text) return;
+
+  input.value = '';
+  input.style.height = 'auto';
+  appendMessage(text, 'user');
+
+  if (!ari.token || !ari.workspaceId) {
+    appendMessage('Esta vista ya está conectada al diseño final. Inicia sesión en ARI para usar memoria y acciones reales.', 'ai');
+    applySnap(0);
+    return;
+  }
+
+  try {
+    await ensureActiveThread(text);
+    const response = await fetch(`/api/v1/messages/${ari.workspaceId}/chat`, {
+      method: 'POST',
+      headers: authHeaders({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify({ message: text, thread_id: ari.currentThreadId, use_memory: true, memory_limit: 8 }),
     });
+    if (!response.ok) throw new Error(await readError(response));
+    const data = await response.json();
+    appendMessage(data.reply || 'ARI no devolvió una respuesta.', 'ai');
+    await loadThreads();
+    applySnap(0);
+  } catch (error) {
+    appendMessage(error.message || String(error), 'ai');
+  }
+}
 
-    authToggle.addEventListener("click", () => setAuthMode(state.mode === "login" ? "register" : "login"));
-    forgotBtn.addEventListener("click", () => setAuthMode("forgot"));
-    passwordToggle.addEventListener("click", () => {
-      const passwordInput = document.getElementById("password");
-      passwordInput.type = passwordInput.type === "password" ? "text" : "password";
-      updatePasswordToggle();
-      passwordInput.focus();
+function handleKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+}
+function escHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+async function loadThreads() {
+  if (!ari.token || !ari.workspaceId) {
+    document.querySelector('.voice-pill span:last-child').textContent = 'Sesión local';
+    return;
+  }
+  try {
+    const response = await fetch(`/api/v1/messages/${ari.workspaceId}/threads?limit=30`, {
+      headers: authHeaders(),
     });
-    loginTab.addEventListener("click", () => setAuthMode("login"));
-    registerTab.addEventListener("click", () => setAuthMode("register"));
-    googleBtn.addEventListener("click", () => {
-      const returnTo = `${window.location.origin}/`;
-      window.location.href = `/api/v1/auth/google/start?client=web&return_to=${encodeURIComponent(returnTo)}`;
+    if (!response.ok) throw new Error(await readError(response));
+    ari.threads = await response.json();
+    renderConversationList(ari.threads);
+  } catch (error) {
+    console.warn('Could not load ARI threads', error);
+  }
+}
+
+function renderConversationList(threads) {
+  const list = document.getElementById('conv-list');
+  if (!threads.length) return;
+  list.innerHTML = threads.map((thread, index) => {
+    const title = thread.title || 'Consulta activa';
+    const sub = thread.summary || thread.last_message || 'ARI';
+    const icon = iconNameForTask(`${title} ${sub}`);
+    const active = thread.id === ari.currentThreadId || (!ari.currentThreadId && index === 0);
+    const time = thread.updated_at
+      ? new Intl.DateTimeFormat(undefined, { hour: '2-digit', minute: '2-digit' }).format(new Date(thread.updated_at))
+      : index === 0 ? 'Ahora' : '';
+    return `
+      <div class="ci ${active ? 'active' : ''}" data-thread-id="${escHtml(thread.id || '')}" onclick="selectConv(this)">
+        <div class="ci-icon ${iconClassForTask(icon)}"><i data-lucide="${icon}"></i></div>
+        <div class="ci-body">
+          <div class="ci-top"><span class="ci-name">${escHtml(title)}</span><span class="ci-time">${escHtml(time)}</span></div>
+          <span class="ci-sub">${escHtml(sub)}</span>
+        </div>
+        ${active ? '<span class="ci-dot"></span>' : ''}
+      </div>`;
+  }).join('');
+  lucide.createIcons();
+}
+
+async function ensureActiveThread(title) {
+  if (ari.currentThreadId || !ari.token || !ari.workspaceId) return ari.currentThreadId;
+  const response = await fetch(`/api/v1/messages/${ari.workspaceId}/threads`, {
+    method: 'POST',
+    headers: authHeaders({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify({ title }),
+  });
+  if (!response.ok) throw new Error(await readError(response));
+  const thread = await response.json();
+  ari.currentThreadId = thread.id;
+  localStorage.setItem('ari.currentThreadId', thread.id);
+  ari.threads = [thread, ...ari.threads.filter(item => item.id !== thread.id)];
+  renderConversationList(ari.threads);
+  return thread.id;
+}
+
+async function openThread(threadId) {
+  if (!ari.token || !ari.workspaceId || !threadId) return;
+  try {
+    const response = await fetch(`/api/v1/messages/${ari.workspaceId}/threads/${encodeURIComponent(threadId)}`, {
+      headers: authHeaders(),
     });
-    document.getElementById("logoutBtn").addEventListener("click", clearSession);
-    document.getElementById("clearBtn").addEventListener("click", clearChat);
-    newChatBtn.addEventListener("click", startNewChat);
+    if (!response.ok) throw new Error(await readError(response));
+    const thread = await response.json();
+    ari.currentThreadId = thread.id;
+    localStorage.setItem('ari.currentThreadId', thread.id);
+    document.getElementById('chat-title').textContent = thread.title || 'Consulta activa';
+    renderThreadMessages(thread.messages || []);
+  } catch (error) {
+    appendMessage(error.message, 'ai');
+  }
+}
 
-    document.querySelectorAll("[data-note]").forEach((button) => {
-      button.addEventListener("click", () => addMessage(button.dataset.note, "ai"));
-    });
-    voiceModeBtn.addEventListener("click", toggleVoiceMode);
-    voiceBtn.addEventListener("click", startVoiceInput);
+function renderThreadMessages(messages) {
+  const wrap = document.getElementById('messages');
+  wrap.innerHTML = '';
+  messages.forEach(message => appendMessage(message.content, message.role === 'user' ? 'user' : 'ai'));
+  wrap.scrollTop = wrap.scrollHeight;
+}
 
-    document.querySelectorAll("[data-prompt]").forEach((button) => {
-      button.addEventListener("click", () => {
-        messageInput.value = button.dataset.prompt;
-        messageInput.focus();
-      });
-    });
+function appendMessage(text, from = 'ai') {
+  const msgs = document.getElementById('messages');
+  const isUser = from === 'user';
+  const row = document.createElement('div');
+  row.className = 'msg-row';
+  if (isUser) row.style.justifyContent = 'flex-end';
+  row.innerHTML = isUser
+    ? `<div class="msg-body" style="max-width:72%;"><div class="bubble" style="border-radius:16px 4px 16px 16px; background:rgba(217,154,61,.1);"><p style="font-family:var(--font-ui); font-style:normal; font-size:clamp(13px,1.6vw,15px);">${escHtml(text)}</p></div></div>`
+    : `<div class="msg-connector"><div class="avatar"><div class="av-dot"></div></div></div><div class="msg-arrow"><i data-lucide="chevron-right"></i></div><div class="msg-body"><div class="bubble"><p>${escHtml(text)}</p></div><div class="msg-meta"><span>ARI</span><span>•</span><span>${new Date().toLocaleTimeString('es',{hour:'2-digit',minute:'2-digit'})}</span><div class="msg-check"><i data-lucide="check"></i></div></div></div>`;
+  msgs.appendChild(row);
+  lucide.createIcons();
+  msgs.scrollTop = msgs.scrollHeight;
+}
 
-    document.getElementById("chatForm").addEventListener("submit", async (event) => {
-      event.preventDefault();
-      await sendMessage();
-    });
+loadThreads();
 
-    messageInput.addEventListener("input", () => autoResize(messageInput));
-    messageInput.addEventListener("keydown", (event) => {
-      if (event.key === "Enter" && !event.shiftKey) {
-        event.preventDefault();
-        sendMessage();
-      }
-    });
-
-    function autoResize(el) {
-      el.style.height = "auto";
-      el.style.height = Math.min(el.scrollHeight, 120) + "px";
-    }
-
-    async function loadThreads() {
-      if (!state.token || !state.workspaceId) {
-        state.threads = [];
-        renderThreads();
-        return;
-      }
-      try {
-        const response = await fetch(`/api/v1/messages/${state.workspaceId}/threads?limit=30`, {
-          headers: { "Authorization": `Bearer ${state.token}` },
-        });
-        if (!response.ok) throw new Error(await readError(response));
-        state.threads = await response.json();
-        if (state.currentThreadId && !state.threads.some((thread) => thread.id === state.currentThreadId)) {
-          state.currentThreadId = "";
-          localStorage.removeItem("ari.currentThreadId");
-        }
-        const activeThread = state.threads.find((thread) => thread.id === state.currentThreadId);
-        if (activeThread) document.querySelector(".chat-title").textContent = displayThreadTitle(activeThread);
-        renderThreads();
-      } catch {
-        state.threads = [];
-        renderThreads();
-      }
-    }
-
-    function renderThreads() {
-      if (!state.threads.length) {
-        recentQueries.innerHTML = `<div class="recent-item active"><span class="query-icon">${lucideIcon("message")}</span><span class="recent-copy"><span class="recent-title">${tr("noQueries")}</span><span class="recent-sub">ARI</span></span><span class="recent-time">--</span></div>`;
-        return;
-      }
-      recentQueries.innerHTML = "";
-      state.threads.forEach((item, index) => {
-        const row = document.createElement("button");
-        row.type = "button";
-        row.className = `recent-item ${item.id === state.currentThreadId ? "active" : ""}`;
-        const title = escapeHtml(displayThreadTitle(item));
-        const dateText = item.date ? escapeHtml(item.date) : "ARI";
-        const timeText = item.updated_at
-          ? new Intl.DateTimeFormat(languageLocale(), { hour: "2-digit", minute: "2-digit" }).format(new Date(item.updated_at))
-          : index === 0 ? "Ahora" : "";
-        const icon = iconForTask(`${item.title || ""} ${item.summary || ""} ${item.last_message || ""}`);
-        row.innerHTML = `<span class="query-icon">${lucideIcon(icon)}</span><span class="recent-copy"><span class="recent-title">${title}</span><span class="recent-sub">${dateText} · ARI</span></span><span class="recent-time">${escapeHtml(timeText)}</span>`;
-        row.addEventListener("click", () => {
-          openThread(item.id);
-        });
-        recentQueries.appendChild(row);
-      });
-    }
-
-    function displayThreadTitle(thread) {
-      if (!thread) return tr("activeQuery");
-      const messageCount = Number.isFinite(thread.message_count)
-        ? thread.message_count
-        : Array.isArray(thread.messages) ? thread.messages.length : 0;
-      if ((thread.title || "") === "New thread" && !messageCount) return tr("newChat");
-      return thread.title || tr("activeQuery");
-    }
-
-    function clearChat() {
-      state.currentThreadId = "";
-      localStorage.removeItem("ari.currentThreadId");
-      messagesEl.innerHTML = "";
-      messagesEl.appendChild(welcomeState);
-      welcomeState.style.display = "block";
-      chatMeta.textContent = state.workspaceId ? activeQueryMeta() : tr("loginRequired");
-      renderThreads();
-      document.querySelector(".welcome-title").textContent = tr("welcomeTitle");
-      document.querySelector(".welcome-copy").textContent = tr("welcomeCopy");
-      const quicks = document.querySelectorAll(".quick");
-      const quickData = [
-        ["promptPriorities", "priorities", "prioritiesCopy"],
-        ["promptWriting", "writing", "writingCopy"],
-        ["promptProduct", "product", "productCopy"],
-        ["promptMemory", "memory", "memorySearch"],
-      ];
-      quicks.forEach((button, index) => {
-        const [promptKey, titleKey, copyKey] = quickData[index];
-        button.dataset.prompt = tr(promptKey);
-        button.querySelector("b").textContent = tr(titleKey);
-        button.querySelector("span").textContent = tr(copyKey);
-      });
-    }
-
-    async function startNewChat() {
-      if (!state.token || !state.workspaceId) return;
-      newChatBtn.disabled = true;
-      try {
-        const response = await fetch(`/api/v1/messages/${state.workspaceId}/threads`, {
-          method: "POST",
-          headers: {
-            "Authorization": `Bearer ${state.token}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({}),
-        });
-        if (!response.ok) throw new Error(await readError(response));
-        const thread = await response.json();
-        state.currentThreadId = thread.id;
-        localStorage.setItem("ari.currentThreadId", state.currentThreadId);
-        state.threads = [thread, ...state.threads.filter((item) => item.id !== thread.id)];
-        renderConversation(thread);
-        renderThreads();
-      } catch (error) {
-        addMessage(error.message, "ai");
-      } finally {
-        newChatBtn.disabled = false;
-      }
-    }
-
-    async function ensureActiveThread(title) {
-      if (state.currentThreadId) return state.currentThreadId;
-      const response = await fetch(`/api/v1/messages/${state.workspaceId}/threads`, {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${state.token}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ title }),
-      });
-      if (!response.ok) throw new Error(await readError(response));
-      const thread = await response.json();
-      state.currentThreadId = thread.id;
-      localStorage.setItem("ari.currentThreadId", state.currentThreadId);
-      state.threads = [thread, ...state.threads.filter((item) => item.id !== thread.id)];
-      renderThreads();
-      chatMeta.textContent = activeQueryMeta();
-      return state.currentThreadId;
-    }
-
-    async function openThread(threadId) {
-      if (!state.token || !state.workspaceId || !threadId) return;
-      const response = await fetch(`/api/v1/messages/${state.workspaceId}/threads/${encodeURIComponent(threadId)}`, {
-        headers: { "Authorization": `Bearer ${state.token}` },
-      });
-      if (!response.ok) {
-        addMessage(await readError(response), "ai");
-        return;
-      }
-      const thread = await response.json();
-      state.currentThreadId = thread.id;
-      localStorage.setItem("ari.currentThreadId", state.currentThreadId);
-      renderConversation(thread);
-      renderThreads();
-    }
-
-    function renderConversation(thread) {
-      messagesEl.innerHTML = "";
-      welcomeState.style.display = "none";
-      if (!thread.messages.length) {
-        messagesEl.appendChild(welcomeState);
-        welcomeState.style.display = "block";
-      }
-      thread.messages.forEach((message) => addMessage(message.content, message.role === "user" ? "user" : "ai"));
-      document.querySelector(".chat-title").textContent = displayThreadTitle(thread);
-      chatMeta.textContent = activeQueryMeta();
-      messagesEl.scrollTop = messagesEl.scrollHeight;
-      messageInput.focus();
-    }
-
-    function addMessage(text, from = "ai") {
-      if (welcomeState.parentElement) welcomeState.style.display = "none";
-      const message = document.createElement("div");
-      message.className = `message ${from === "user" ? "user" : ""}`;
-      const label = from === "user" ? "YOU" : "ARI";
-      const mark = from === "user" ? "◇" : "☉";
-      message.innerHTML = `<div class="msg-avatar">${mark}</div><div><div class="bubble">${escapeHtml(text)}</div><div class="msg-time">${label} · ${new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</div></div>`;
-      messagesEl.appendChild(message);
-      messagesEl.scrollTop = messagesEl.scrollHeight;
-      return message;
-    }
-
-    function addRichMessage(html, from = "ai") {
-      if (welcomeState.parentElement) welcomeState.style.display = "none";
-      const message = document.createElement("div");
-      message.className = `message ${from === "user" ? "user" : ""}`;
-      const label = from === "user" ? "YOU" : "ARI";
-      const mark = from === "user" ? "◇" : "☉";
-      message.innerHTML = `<div class="msg-avatar">${mark}</div><div>${html}<div class="msg-time">${label} · ${new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</div></div>`;
-      messagesEl.appendChild(message);
-      messagesEl.scrollTop = messagesEl.scrollHeight;
-      return message;
-    }
-
-    function showTyping() {
-      const typing = document.createElement("div");
-      typing.className = "message";
-      typing.id = "typingMsg";
-      typing.innerHTML = '<div class="msg-avatar">☉</div><div class="typing"><span></span><span></span><span></span></div>';
-      messagesEl.appendChild(typing);
-      messagesEl.scrollTop = messagesEl.scrollHeight;
-    }
-
-    function removeTyping() {
-      const typing = document.getElementById("typingMsg");
-      if (typing) typing.remove();
-    }
-
-    async function sendMessage(options = {}) {
-      const text = messageInput.value.trim();
-      if (!text || !state.token || !state.workspaceId) return;
-      await ensureActiveThread(text);
-      messageInput.value = "";
-      autoResize(messageInput);
-      addMessage(text, "user");
-      showTyping();
-      sendBtn.disabled = true;
-
-      try {
-        if (looksLikeTravelIntent(text)) {
-          const handled = await tryHandleTravelIntent(text, options);
-          if (handled) return;
-        }
-        await sendChatMessage(text, options);
-      } catch (error) {
-        removeTyping();
-        addMessage(error.message, "ai");
-        chatMeta.textContent = "ARI · attention required";
-      } finally {
-        sendBtn.disabled = false;
-        await loadThreads();
-        messageInput.focus();
-      }
-    }
-
-    function looksLikeTravelIntent(text) {
-      return /\b(vuelo|vuelos|volar|viaje|viajar|flight|flights|fly|trip|travel)\b/i.test(text);
-    }
-
-    async function tryHandleTravelIntent(text, options = {}) {
-      const orchestration = await fetch(`/api/v1/messages/${state.workspaceId}/orchestrate`, {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${state.token}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ message: text, thread_id: state.currentThreadId, use_memory: true, memory_limit: 8 }),
-      });
-      if (!orchestration.ok) throw new Error(await readError(orchestration));
-      const intent = await orchestration.json();
-      if (intent.tool_name === "search_flights" && intent.mode === "tool_ready") {
-        removeTyping();
-        addMessage(intent.reply || languageText("flightSearch"), "ai");
-        showTyping();
-        const result = await searchFlights(intent.params || {});
-        removeTyping();
-        renderFlightResults(result, intent.params || {});
-        chatMeta.textContent = "ARI · Duffel · flight results";
-        return true;
-      }
-      if (intent.mode === "ask" || intent.tool_name === "search_flights") {
-        removeTyping();
-        addMessage(intent.reply || languageText("flightNeedsRoute"), "ai");
-        chatMeta.textContent = "ARI · travel details required";
-        if (options.speak || state.spokenReplies) speakText(intent.reply || "");
-        return true;
-      }
-      if (intent.mode === "reply") {
-        removeTyping();
-        addMessage(intent.reply || tr("modelFallback"), "ai");
-        if (options.speak || state.spokenReplies) speakText(intent.reply || "");
-        chatMeta.textContent = "ARI · thread";
-        return true;
-      }
-      return false;
-    }
-
-    async function sendChatMessage(text, options = {}) {
-      const response = await fetch(`/api/v1/messages/${state.workspaceId}/chat`, {
-          method: "POST",
-          headers: {
-            "Authorization": `Bearer ${state.token}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ message: text, thread_id: state.currentThreadId, use_memory: true, memory_limit: 8 }),
-      });
-      if (!response.ok) throw new Error(await readError(response));
-      const data = await response.json();
-      removeTyping();
-      const reply = data.reply || tr("modelFallback");
-      addMessage(reply, "ai");
-      if (options.speak || state.spokenReplies) speakText(reply);
-      chatMeta.textContent = `ARI · ${data.model || "model"} · memory active`;
-    }
-
-    async function searchFlights(params) {
-      const body = {
-        origin: params.origin,
-        destination: params.destination,
-        departure_date: params.departure_date,
-        return_date: params.return_date || null,
-        passengers: Number(params.passengers || 1),
-        cabin_class: params.cabin_class || "economy",
-        max_results: 3,
-      };
-      const response = await fetch(`/api/v1/travel/${state.workspaceId}/flights/search`, {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${state.token}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(body),
-      });
-      if (!response.ok) throw new Error(await readError(response));
-      return response.json();
-    }
-
-    function renderFlightResults(result, params) {
-      const results = result.results || [];
-      const title = `${escapeHtml(params.origin || "?")} → ${escapeHtml(params.destination || "?")}`;
-      const subtitle = result.live_mode ? "Live results" : "Duffel test mode";
-      if (!results.length) {
-        addRichMessage(`<div class="flight-card"><div class="flight-kicker">${subtitle}</div><div class="flight-title">${title}</div><p class="flight-note">${languageText("noFlightResults")}</p></div>`, "ai");
-        return;
-      }
-      const offers = results.map((offer) => {
-        const slices = (offer.slices || []).map((slice, index) => {
-          const label = index === 0 ? languageText("outbound") : languageText("returnTrip");
-          const segments = (slice || []).map((segment) => {
-            const time = formatSegmentTime(segment.departing_at, segment.arriving_at);
-            const carrier = segment.marketing_carrier ? ` · ${escapeHtml(segment.marketing_carrier)} ${escapeHtml(segment.flight_number || "")}` : "";
-            return `<div class="flight-segment"><b>${escapeHtml(segment.origin)} → ${escapeHtml(segment.destination)}</b><span>${time}${carrier}</span></div>`;
-          }).join("");
-          return `<div><div class="flight-kicker">${label}</div>${segments}</div>`;
-        }).join("");
-        return `<div class="flight-offer"><div class="flight-offer-top"><div class="flight-airline">${escapeHtml(offer.owner || "Duffel")}</div><div class="flight-price">${escapeHtml(offer.total_amount)} ${escapeHtml(offer.total_currency)}</div></div><div class="flight-slices">${slices}</div></div>`;
-      }).join("");
-      addRichMessage(`<div class="flight-card"><div class="flight-head"><div><div class="flight-kicker">${subtitle}</div><div class="flight-title">${title}</div></div><div class="flight-count">${results.length} / ${result.raw_result_count || results.length}</div></div><div class="flight-list">${offers}</div><p class="flight-note">${languageText("flightShown")}</p></div>`, "ai");
-    }
-
-    function formatSegmentTime(departingAt, arrivingAt) {
-      const options = { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" };
-      const dep = departingAt ? new Date(departingAt).toLocaleString(languageLocale(), options) : "";
-      const arr = arrivingAt ? new Date(arrivingAt).toLocaleString(languageLocale(), options) : "";
-      return [dep, arr].filter(Boolean).join(" - ");
-    }
-
-    function toggleVoiceMode() {
-      state.spokenReplies = !state.spokenReplies;
-      localStorage.setItem("ari.spokenReplies", String(state.spokenReplies));
-      voiceModeBtn.classList.toggle("active", state.spokenReplies);
-      voiceBtn.classList.toggle("active", state.spokenReplies);
-      chatMeta.textContent = state.spokenReplies ? tr("voiceOn") : tr("voiceOff");
-      if (state.spokenReplies) speakText(tr("voiceOnSpeech"));
-    }
-
-    async function startVoiceInput() {
-      if (!state.token || !state.workspaceId) return;
-      if (!window.MediaRecorder) {
-        addMessage(tr("voiceUnsupported"), "ai");
-        return;
-      }
-      if (state.listening && mediaRecorder) {
-        mediaRecorder.stop();
-        return;
-      }
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        voiceChunks = [];
-        mediaRecorder = new MediaRecorder(stream);
-        state.listening = false;
-        mediaRecorder.ondataavailable = (event) => {
-          if (event.data && event.data.size > 0) voiceChunks.push(event.data);
-        };
-        mediaRecorder.onstop = async () => {
-          stream.getTracks().forEach((track) => track.stop());
-          state.listening = false;
-          voiceBtn.classList.remove("listening");
-          chatMeta.textContent = languageText("transcribing");
-          await sendVoiceAudio(new Blob(voiceChunks, { type: mediaRecorder.mimeType || "audio/webm" }));
-          chatMeta.textContent = state.spokenReplies ? tr("voiceOn") : tr("memoryReady");
-        };
-        state.listening = true;
-        voiceBtn.classList.add("listening");
-        chatMeta.textContent = languageText("listening");
-        mediaRecorder.start();
-      } catch (error) {
-        state.listening = false;
-        voiceBtn.classList.remove("listening");
-        addMessage(`Voice input stopped: ${error.message || "microphone unavailable"}.`, "ai");
-      }
-    }
-
-    async function sendVoiceAudio(blob) {
-      if (!blob.size) return;
-      await ensureActiveThread("Voice thread");
-      const form = new FormData();
-      form.append("audio", blob, "ari-voice.webm");
-      form.append("language", state.language);
-      form.append("tts", "true");
-      form.append("use_memory", "true");
-      form.append("memory_limit", "8");
-      form.append("thread_id", state.currentThreadId);
-      showTyping();
-      voiceBtn.disabled = true;
-      try {
-        const response = await fetch(`/api/v1/messages/${state.workspaceId}/voice`, {
-          method: "POST",
-          headers: { "Authorization": `Bearer ${state.token}` },
-          body: form,
-        });
-        if (!response.ok) throw new Error(await readError(response));
-        const data = await response.json();
-        removeTyping();
-        if (data.thread_id) {
-          state.currentThreadId = data.thread_id;
-          localStorage.setItem("ari.currentThreadId", state.currentThreadId);
-        }
-        addMessage(data.transcript, "user");
-        addMessage(data.reply || tr("modelFallback"), "ai");
-        if (data.audio_base64) playAudioBase64(data.audio_base64, data.audio_content_type || "audio/mpeg");
-        await loadThreads();
-      } catch (error) {
-        removeTyping();
-        addMessage(error.message, "ai");
-      } finally {
-        voiceBtn.disabled = false;
-      }
-    }
-
-    function playAudioBase64(audioBase64, contentType) {
-      const audio = new Audio(`data:${contentType};base64,${audioBase64}`);
-      audio.play().catch(() => {});
-    }
-
-    function speakText(text) {
-      if (!("speechSynthesis" in window)) return;
-      const cleaned = String(text || "").replace(/\s+/g, " ").trim();
-      if (!cleaned) return;
-      window.speechSynthesis.cancel();
-      const utterance = new SpeechSynthesisUtterance(cleaned.slice(0, 1200));
-      utterance.lang = languageLocale();
-      utterance.rate = 0.96;
-      utterance.pitch = 0.92;
-      window.speechSynthesis.speak(utterance);
-    }
-
-    function escapeHtml(value) {
-      return String(value)
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;")
-        .replace(/'/g, "&#039;");
-    }
-
-    const canvas = document.getElementById("cv");
-    const ctx = canvas.getContext("2d");
-    let stars = [];
-    function resizeCanvas() {
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
-      stars = Array.from({ length: Math.min(180, Math.floor(canvas.width * canvas.height / 6500)) }, () => ({
-        x: Math.random() * canvas.width,
-        y: Math.random() * canvas.height,
-        r: Math.random() * 1.4 + .25,
-        p: Math.random() * Math.PI * 2,
-      }));
-    }
-    function drawSky(time = 0) {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      const bg = ctx.createRadialGradient(canvas.width * .66, canvas.height * .2, 0, canvas.width * .5, canvas.height * .5, Math.max(canvas.width, canvas.height));
-      bg.addColorStop(0, "rgba(139,79,58,0.26)");
-      bg.addColorStop(.45, "rgba(26,18,8,0.72)");
-      bg.addColorStop(1, "rgba(10,7,4,1)");
-      ctx.fillStyle = bg;
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-      stars.forEach((star) => {
-        const alpha = .18 + .48 * (.5 + .5 * Math.sin(time * .001 + star.p));
-        ctx.beginPath();
-        ctx.arc(star.x, star.y, star.r, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(201,169,110,${alpha})`;
-        ctx.fill();
-      });
-      requestAnimationFrame(drawSky);
-    }
-    window.addEventListener("resize", resizeCanvas);
-    resizeCanvas();
-    drawSky();
-    buildLanguageSelect(appLanguage);
-    const resetParams = new URLSearchParams(window.location.search);
-    state.resetToken = resetParams.get("reset_token") || "";
-    setAuthMode(state.resetToken ? "reset" : "login");
-    applyTranslations();
-    syncSession();
-    hydrateGoogleCallback();
-
-    async function hydrateGoogleCallback() {
-      const rawHash = window.location.hash.startsWith("#") ? window.location.hash.slice(1) : window.location.hash;
-      if (!rawHash) return;
-      const params = new URLSearchParams(rawHash);
-      const googleAuth = params.get("google_auth");
-      const googleError = params.get("google_error");
-      if (googleError) setStatus(decodeURIComponent(googleError), "error");
-      if (!googleAuth) return;
-      try {
-        const response = await fetch("/api/v1/auth/google/exchange", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ code: googleAuth }),
-        });
-        if (!response.ok) throw new Error(await readError(response));
-        const auth = await response.json();
-        saveSession(auth, auth.email || "google");
-        setStatus(languageText("googleActive"), "ok");
-        history.replaceState(null, "", window.location.pathname + window.location.search);
-      } catch (error) {
-        setStatus(error.message, "error");
-      }
-    }
-  </script>
+// ── LUCIDE RE-INIT (after dynamic content) ────
+lucide.createIcons();
+</script>
 </body>
 </html>

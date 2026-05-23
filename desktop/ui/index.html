@@ -1,1867 +1,1197 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ARI — Solara</title>
+<title>ARI — Asistente</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@1,500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
 <style>
+/* ── RESET & BASE ─────────────────────────────── */
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
 :root {
-  --cream: #F4EFE7;
-  --rose: #C4836A;
-  --gold: #D99A3D;
-  --gold-light: #F0B85A;
-  --dark: #0B0805;
-  --panel-dark: #120D08;
-  --panel-elevated: #1A120B;
-  --soft: #F4EFE7;
-  --soft-2: #A89A88;
-  --soft-3: #6F604D;
-  --border: rgba(217,154,61,0.28);
-  --panel: #120D08;
-  --danger: #E8A18E;
+  --bg:        #0B0805;
+  --panel:     #120D08;
+  --elevated:  #1A120B;
+  --border-c:  rgba(217,154,61,.28);
+  --gold:      #D99A3D;
+  --gold-lt:   #F0B85A;
+  --gold-dim:  #5C3F1D;
+  --t1:        #F4EFE7;
+  --t2:        #A89A88;
+  --t3:        #6F604D;
+  --shadow-panel: 0 24px 80px rgba(0,0,0,.55);
+  --glow:      0 0 24px rgba(217,154,61,.35);
+  --sb-closed: 72px;
+  --sb-open:   300px;
+  --font-ui:   'Inter', sans-serif;
+  --font-msg:  'Cormorant Garamond', serif;
+  --radius-panel: 24px;
+  --radius-btn:   14px;
 }
 
-*{margin:0;padding:0;box-sizing:border-box}
-html,body{height:100%;overflow:hidden;background:var(--dark)}
-body{min-height:100vh;font-family:'Inter',system-ui,sans-serif;font-weight:400;color:var(--cream)}
-canvas{position:fixed;inset:0;z-index:0;pointer-events:none}
-button,input,textarea{font:inherit}
-button{cursor:pointer}
-body.booting canvas,body.booting #cur,body.booting #cd{display:none}
-body.booting .card,body.booting .app{backdrop-filter:none;box-shadow:none}
-body.booting *{animation:none!important;transition:none!important}
-
-#cur{position:fixed;pointer-events:none;z-index:9999;transform:translate(-50%,-50%)}
-#cd{position:fixed;pointer-events:none;z-index:9999;transform:translate(-50%,-50%);
-  width:4px;height:4px;border-radius:50%;background:var(--gold);box-shadow:0 0 8px var(--gold)}
-
-.screen{position:fixed;inset:0;z-index:2;display:none}
-.screen.active{display:flex}
-.scene{align-items:center;justify-content:center;padding:22px}
-
-.card{
-  width:min(420px,100%);position:relative;
-  background:rgba(20,12,4,0.84);
-  border:1px solid var(--border);
-  border-radius:2px;
-  padding:0;
-  backdrop-filter:blur(30px);
-  box-shadow:
-    0 0 60px rgba(201,169,110,0.07),
-    0 40px 80px rgba(0,0,0,0.55),
-    inset 0 1px 0 rgba(201,169,110,0.12);
-  overflow:hidden;
+html, body {
+  width: 100%; height: 100%;
+  font-family: var(--font-ui);
+  background: var(--bg);
+  color: var(--t1);
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
 }
-.card-top-bar{height:2px;background:linear-gradient(90deg, transparent 5%, var(--rose) 30%, var(--gold) 60%, transparent 95%);opacity:.75}
-.card-inner{padding:46px 42px 38px}
-.brand-block{text-align:center;margin-bottom:34px}
-.sun-wrap{width:56px;height:56px;margin:0 auto 16px;position:relative;display:flex;align-items:center;justify-content:center}
-.sun-wrap svg{animation:sunrot 24s linear infinite}
-@keyframes sunrot{to{transform:rotate(360deg)}}
-.brand-name{
-  font-family:'Cormorant Garamond',serif;
-  font-size:42px;font-weight:300;font-style:italic;
-  letter-spacing:6px;color:var(--cream);
-  line-height:1;
-}
-.brand-name span{color:var(--gold)}
-.brand-sub{margin-top:7px;font-size:8px;font-weight:300;letter-spacing:4px;color:rgba(201,169,110,0.42);text-transform:uppercase}
-.heading{font-family:'Cormorant Garamond',serif;font-size:21px;font-weight:300;font-style:italic;color:var(--cream);text-align:center;margin-bottom:4px}
-.sub-h{min-height:14px;font-size:8px;font-weight:300;letter-spacing:3px;color:rgba(201,169,110,0.36);text-align:center;text-transform:uppercase;margin-bottom:28px}
-.sub-h.error{color:var(--danger)}
-.sub-h.ok{color:var(--gold)}
-.social{
-  width:100%;min-height:44px;background:rgba(201,169,110,0.035);
-  border:1px solid rgba(201,169,110,0.2);border-radius:1px;
-  color:var(--soft-2);font-size:9px;font-weight:300;
-  letter-spacing:3px;text-transform:uppercase;
-  display:flex;align-items:center;justify-content:center;gap:10px;transition:all .25s;margin-bottom:18px;
-}
-.social:hover{border-color:rgba(201,169,110,0.48);color:var(--cream)}
-.s-pulse{width:8px;height:8px;border-radius:50%;background:var(--gold);flex-shrink:0;box-shadow:0 0 14px var(--gold)}
-@keyframes gpulse{0%,100%{box-shadow:0 0 0 0 rgba(201,169,110,.5)}50%{box-shadow:0 0 0 5px rgba(201,169,110,0)}}
-.orn-div{display:flex;align-items:center;gap:12px;margin-bottom:18px;font-size:9px;color:rgba(201,169,110,0.28);letter-spacing:3px;justify-content:center}
-.fg{margin-bottom:18px;position:relative}
-.fg label{display:block;font-size:8px;font-weight:300;letter-spacing:3px;color:rgba(201,169,110,0.42);text-transform:uppercase;margin-bottom:8px}
-.fg input,.composer textarea{
-  width:100%;background:transparent;border:0;border-bottom:1px solid rgba(201,169,110,0.16);
-  padding:10px 0;color:var(--cream);
-  font-family:'Cormorant Garamond',serif;font-size:18px;font-weight:300;font-style:italic;
-  outline:none;transition:border-color .25s;letter-spacing:.5px;
-}
-.fg input:focus,.composer textarea:focus{border-bottom-color:rgba(201,169,110,0.55)}
-.fg input::placeholder,.composer textarea::placeholder{color:rgba(201,169,110,0.2);font-style:italic}
-.fg.has-toggle input{padding-right:44px}
-.password-toggle{position:absolute;right:0;bottom:11px;border:0;background:transparent;color:rgba(201,169,110,.52);line-height:0;padding:4px}
-.password-toggle:hover{color:var(--gold)}
-.password-toggle svg{width:20px;height:20px;stroke:currentColor}
-.fg-line{position:absolute;bottom:0;left:0;width:0;height:1px;background:var(--gold);transition:width .45s cubic-bezier(.4,0,.2,1);box-shadow:0 0 8px rgba(201,169,110,.5)}
-.fg input:focus~.fg-line{width:100%}
-.forgot{text-align:right;margin:-8px 0 22px;font-size:9px;font-weight:300;letter-spacing:1px}
-.link{color:rgba(201,169,110,.58);text-decoration:underline;text-underline-offset:4px;transition:color .2s;background:none;border:0}
-.link:hover{color:var(--gold)}
-.cta{
-  width:100%;margin-top:8px;padding:15px 22px;background:transparent;border:1px solid rgba(201,169,110,0.32);
-  border-radius:1px;color:var(--cream);
-  font-family:'Cormorant Garamond',serif;font-size:17px;font-weight:300;font-style:italic;
-  letter-spacing:3px;transition:all .25s;position:relative;overflow:hidden;margin-bottom:14px;
-}
-.cta::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(201,169,110,0.1) 0%,rgba(196,131,106,0.08) 100%);opacity:0;transition:opacity .35s}
-.cta:hover{border-color:rgba(201,169,110,0.58);box-shadow:0 0 28px rgba(201,169,110,0.1);background:rgba(201,169,110,0.045)}
-.cta:hover::before{opacity:1}
-.cta:disabled{opacity:.45;cursor:not-allowed}
-.card-bottom-rule{height:1px;background:linear-gradient(90deg,transparent,var(--border),transparent);margin:0 42px}
-.card-footer{padding:18px 42px 24px;text-align:center;font-size:10px;font-weight:300;letter-spacing:1px;color:rgba(201,169,110,0.34)}
-.libra-label{position:fixed;font-size:8px;font-weight:200;letter-spacing:4px;color:rgba(201,169,110,0.18);text-transform:uppercase;z-index:5;pointer-events:none;white-space:nowrap}
 
-.app{width:100%;height:100%;min-height:0;overflow:hidden;display:grid;grid-template-columns:310px minmax(0,1fr);background:rgba(20,12,4,.34);backdrop-filter:blur(14px)}
-.sidebar{height:100vh;min-height:0;border-right:1px solid var(--border);background:rgba(20,12,4,.64);display:flex;flex-direction:column;min-width:0;overflow:hidden}
-.side-brand{padding:38px 34px 30px;border-bottom:1px solid var(--border);display:flex;align-items:baseline;gap:18px;min-width:0}
-.side-brand .brand-name{font-size:36px;margin-bottom:0;flex:0 0 auto}
-.side-brand .brand-sub{letter-spacing:4px;white-space:nowrap}
-.side-section{padding:28px 26px 0;min-height:0;overflow:hidden}
-.side-label{font-size:8px;font-weight:300;letter-spacing:5px;text-transform:uppercase;color:rgba(201,169,110,.35);margin-bottom:14px}
-.recent-list{display:flex;flex-direction:column;gap:8px;min-width:0}
-.recent-item{
-  display:flex;align-items:center;gap:12px;min-height:42px;max-width:100%;padding:11px 12px;
-  border:1px solid transparent;color:var(--soft-3);
-  font-family:'Cormorant Garamond',serif;font-size:16px;font-style:italic;
-  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;transition:all .25s;
+/* ── LAYOUT ROOT ──────────────────────────────── */
+#app {
+  display: flex;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  position: relative;
 }
-.recent-item:hover,.recent-item.active{border-color:var(--border);background:rgba(201,169,110,.05);color:var(--cream)}
-.glyph{color:rgba(201,169,110,.55);font-family:'Inter',sans-serif;font-size:11px;flex:0 0 auto}
-.side-footer{margin-top:auto;padding:22px 26px;border-top:1px solid var(--border)}
-.user-card{display:flex;align-items:center;gap:12px;color:var(--soft-2)}
-.avatar{width:38px;height:38px;border:1px solid rgba(201,169,110,.28);display:flex;align-items:center;justify-content:center;color:var(--gold)}
-.user-name{font-family:'Cormorant Garamond',serif;font-size:17px;font-style:italic;color:var(--cream);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.user-email{font-size:9px;letter-spacing:1px;color:rgba(201,169,110,.38);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
-.main{height:100vh;min-height:0;min-width:0;overflow:hidden;display:grid;grid-template-rows:auto minmax(0,1fr) auto}
-.topbar{height:92px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:20px;padding:0 42px;background:rgba(20,12,4,.44)}
-.chat-title{font-family:'Cormorant Garamond',serif;font-size:26px;font-style:italic;font-weight:300;letter-spacing:3px;color:var(--cream)}
-.chat-meta{font-size:9px;font-weight:300;letter-spacing:3px;color:rgba(201,169,110,.38);margin-top:5px}
-.actions{display:flex;align-items:center;gap:12px}
-.badge{height:34px;padding:0 16px;border:1px solid rgba(201,169,110,.22);display:flex;align-items:center;gap:10px;font-size:9px;letter-spacing:3px;text-transform:uppercase;color:var(--soft-2)}
-.badge-dot{width:7px;height:7px;border-radius:50%;background:var(--gold);box-shadow:0 0 12px var(--gold)}
-.icon-btn{width:38px;height:38px;background:rgba(201,169,110,.03);border:1px solid rgba(201,169,110,.18);color:rgba(201,169,110,.58);transition:all .2s}
-.icon-btn:hover{border-color:rgba(201,169,110,.48);color:var(--cream)}
-.language-select{height:34px;border:1px solid rgba(201,169,110,.22);background:rgba(20,12,4,.58);color:var(--soft-2);font-size:9px;letter-spacing:2px;text-transform:uppercase;padding:0 10px;outline:none}
-
-.messages{position:relative;min-height:0;overflow:auto;padding:42px;display:flex;flex-direction:column;gap:24px;overscroll-behavior:contain}
-.messages::-webkit-scrollbar{width:6px}.messages::-webkit-scrollbar-thumb{background:rgba(201,169,110,.18)}
-.welcome{margin:auto;text-align:center;max-width:560px;color:var(--soft-3)}
-.welcome .sun-wrap{margin-bottom:24px}
-.welcome-title{font-family:'Cormorant Garamond',serif;font-size:34px;font-style:italic;font-weight:300;color:var(--cream);letter-spacing:2px;margin-bottom:8px}
-.welcome-copy{font-family:'Cormorant Garamond',serif;font-size:19px;font-style:italic;line-height:1.55;color:var(--soft-3)}
-.quick-row{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-top:34px}
-.quick{border:1px solid rgba(201,169,110,.14);background:rgba(201,169,110,.035);padding:14px 12px;text-align:left;color:var(--soft-3);transition:all .2s;min-height:84px}
-.quick:hover{border-color:rgba(201,169,110,.4);color:var(--cream)}
-.quick b{display:block;font-family:'Cormorant Garamond',serif;font-size:16px;font-style:italic;font-weight:300;color:var(--cream);margin:6px 0}
-.quick span{font-size:9px;line-height:1.4;color:rgba(201,169,110,.42)}
-.message{display:flex;gap:14px;max-width:78%;animation:msgin .25s ease}
-.message.user{align-self:flex-end;flex-direction:row-reverse}
-@keyframes msgin{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
-.msg-avatar{width:34px;height:34px;border:1px solid rgba(201,169,110,.24);display:flex;align-items:center;justify-content:center;color:var(--gold);flex:0 0 auto}
-.bubble{
-  border:1px solid rgba(201,169,110,.16);background:rgba(20,12,4,.68);
-  padding:16px 18px;color:var(--soft);
-  font-family:'Cormorant Garamond',serif;font-size:18px;font-style:italic;line-height:1.5;white-space:pre-wrap;overflow-wrap:anywhere;
-  box-shadow:0 18px 40px rgba(0,0,0,.22);
+/* ── SIDEBAR OVERLAY (mobile) ─────────────────── */
+#sb-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(8,5,3,.72);
+  z-index: 40;
+  opacity: 0;
+  transition: opacity .3s ease;
 }
-.message.user .bubble{background:rgba(201,169,110,.08);border-color:rgba(201,169,110,.28);color:var(--cream)}
-.msg-time{font-size:8px;letter-spacing:3px;text-transform:uppercase;color:rgba(201,169,110,.28);margin-top:8px}
-.typing{display:flex;gap:6px;border:1px solid rgba(201,169,110,.16);background:rgba(20,12,4,.58);padding:15px 18px;width:86px}
-.typing span{width:6px;height:6px;border-radius:50%;background:var(--gold);animation:type 1s infinite ease-in-out}
-.typing span:nth-child(2){animation-delay:.15s}.typing span:nth-child(3){animation-delay:.3s}
-@keyframes type{0%,60%,100%{opacity:.25;transform:translateY(0)}30%{opacity:1;transform:translateY(-5px)}}
-.activity-view{width:100%;max-width:980px;align-self:center;display:flex;flex-direction:column;gap:14px}
-.activity-head{display:flex;align-items:flex-end;justify-content:space-between;gap:18px;margin-bottom:6px}
-.activity-title{font-family:'Cormorant Garamond',serif;font-size:28px;font-style:italic;font-weight:300;color:var(--cream);letter-spacing:2px}
-.activity-sub{font-size:9px;letter-spacing:3px;text-transform:uppercase;color:rgba(201,169,110,.35);margin-top:4px}
-.activity-refresh{width:auto;margin:0;padding:10px 16px;font-size:13px}
-.activity-card{display:grid;grid-template-columns:150px 170px 1fr;gap:16px;align-items:start;border:1px solid rgba(201,169,110,.16);background:rgba(20,12,4,.62);padding:16px 18px;box-shadow:0 18px 40px rgba(0,0,0,.18)}
-.activity-type{font-size:9px;letter-spacing:3px;text-transform:uppercase;color:var(--gold)}
-.activity-tool{font-family:'Cormorant Garamond',serif;font-size:18px;font-style:italic;color:var(--cream);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.activity-time{font-size:8px;letter-spacing:2px;text-transform:uppercase;color:rgba(201,169,110,.32);margin-top:6px}
-.activity-payload{font-family:'Inter',sans-serif;font-size:11px;line-height:1.55;color:var(--soft-3);word-break:break-word}
-.activity-hash{font-size:8px;letter-spacing:1px;color:rgba(201,169,110,.28);margin-top:8px}
+#sb-overlay.visible { display: block; }
+#sb-overlay.active  { opacity: 1; }
 
-.composer-wrap{border-top:1px solid var(--border);padding:20px 42px 28px;background:rgba(20,12,4,.58);flex:0 0 auto}
-.modes{display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap}
-.mode{padding:9px 16px;border:1px solid rgba(201,169,110,.16);background:transparent;color:rgba(201,169,110,.42);font-size:8px;letter-spacing:3px;text-transform:uppercase}
-.mode.active,.mode:hover{border-color:rgba(201,169,110,.42);color:var(--cream);background:rgba(201,169,110,.05)}
-.composer{display:grid;grid-template-columns:1fr 46px 46px;gap:14px;align-items:end;border:1px solid rgba(201,169,110,.22);padding:10px 16px;background:rgba(20,12,4,.44)}
-.composer textarea{resize:none;max-height:120px;min-height:44px;border-bottom:0;padding:10px 0 6px}
-.send{height:46px;border:1px solid rgba(201,169,110,.35);background:rgba(201,169,110,.06);color:var(--gold);font-size:18px}
-.voice-btn{height:46px;border:1px solid rgba(201,169,110,.22);background:rgba(201,169,110,.035);color:rgba(201,169,110,.68);font-size:17px;display:flex;align-items:center;justify-content:center}
-.voice-icon{width:18px;height:18px;display:block}
-.voice-btn:hover,.voice-btn.active{border-color:rgba(201,169,110,.55);color:var(--cream);box-shadow:0 0 22px rgba(201,169,110,.1)}
-.voice-btn.listening{color:var(--danger);border-color:rgba(232,161,142,.58);box-shadow:0 0 24px rgba(232,161,142,.16)}
+/* ── SIDEBAR ──────────────────────────────────── */
+#sidebar {
+  width: var(--sb-closed);
+  flex-shrink: 0;
+  background: var(--panel);
+  border-right: 1px solid var(--border-c);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  overflow: hidden;
+  transition: width .32s cubic-bezier(.4,0,.2,1);
+  z-index: 50;
+  position: relative;
+}
+#sidebar.open { width: var(--sb-open); align-items: flex-start; }
 
-.app{grid-template-columns:minmax(340px,410px) minmax(0,1fr);background:radial-gradient(circle at 92% 2%,rgba(217,154,61,.14),transparent 28%),radial-gradient(circle at 18% 100%,rgba(217,154,61,.08),transparent 34%),linear-gradient(135deg,#0B0805,#120D08);border:1px solid rgba(217,154,61,.28);border-radius:38px;box-shadow:0 24px 80px rgba(0,0,0,.55),inset 0 1px 0 rgba(255,248,240,.04);overflow:hidden}
-.sidebar{padding:30px 24px;background:linear-gradient(180deg,#0B0805,#120D08);border-right:1px solid rgba(217,154,61,.18);gap:26px}
-.side-brand{border-bottom:0;padding:0;align-items:center;gap:18px}
-.brand-icon{width:72px;height:72px;border:1px solid rgba(217,154,61,.28);border-radius:18px;background:linear-gradient(145deg,rgba(217,154,61,.16),rgba(255,248,240,.02));box-shadow:0 0 24px rgba(217,154,61,.18),inset 0 1px 0 rgba(255,248,240,.08);color:var(--gold-light);display:grid;place-items:center;flex:0 0 auto}
-.brand-icon svg{width:34px;height:34px;stroke:currentColor}
-.side-brand .brand-name{font-family:'Inter',system-ui,sans-serif;font-size:28px;font-style:normal;letter-spacing:.5px;line-height:1.05}
-.side-brand .brand-sub{color:rgba(255,248,240,.62);font-size:14px;letter-spacing:.4px;margin-top:5px;text-transform:none}
-.side-nav{display:grid;gap:12px}
-.side-nav-item{min-height:72px;border:1px solid rgba(217,154,61,.28);border-radius:18px;background:linear-gradient(90deg,rgba(217,154,61,.18),rgba(217,154,61,.05));color:var(--gold-light);display:flex;align-items:center;justify-content:space-between;padding:0 22px;box-shadow:0 0 24px rgba(217,154,61,.16),inset 0 1px 0 rgba(255,248,240,.04)}
-.side-nav-main{display:flex;align-items:center;gap:14px;font-size:18px;font-weight:400}
-.nav-icon,.query-icon{width:46px;height:46px;border:1px solid rgba(217,154,61,.28);border-radius:14px;display:grid;place-items:center;color:var(--gold-light);background:rgba(217,154,61,.08);flex:0 0 auto}
-.nav-dot{width:10px;height:10px;border-radius:50%;background:var(--gold);box-shadow:0 0 24px rgba(217,154,61,.35)}
-.side-section{padding:0;overflow:visible}
-.side-label{color:rgba(255,248,240,.56);font-size:12px;letter-spacing:.8px;margin-bottom:14px}
-.search-shell{height:52px;border:1px solid rgba(217,154,61,.18);border-radius:18px;display:flex;align-items:center;gap:12px;padding:0 18px;color:var(--soft-2);background:rgba(18,13,8,.7);margin-bottom:18px}
-.search-shell input{min-width:0;flex:1;border:0;outline:0;background:transparent;color:var(--cream);font-size:14px}
-.search-shell input::placeholder{color:rgba(255,248,240,.42)}
-.recent-list{gap:10px;overflow:auto;padding-right:2px}
-.recent-item{min-height:84px;display:grid;grid-template-columns:48px minmax(0,1fr) auto;align-items:center;gap:14px;border:1px solid rgba(217,154,61,.12);border-radius:18px;background:#120D08;color:var(--soft-2);font-family:'Inter',system-ui,sans-serif;font-size:15px;font-style:normal;font-weight:400;padding:12px 14px;text-align:left;width:100%;box-shadow:0 24px 80px rgba(0,0,0,.18)}
-.recent-item:hover,.recent-item.active{border-color:rgba(217,154,61,.28);background:linear-gradient(90deg,rgba(217,154,61,.22),rgba(217,154,61,.07));box-shadow:0 24px 80px rgba(0,0,0,.35),0 0 24px rgba(217,154,61,.35),inset 4px 0 0 var(--gold)}
-.recent-title,.recent-sub{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.recent-title{color:var(--cream);font-weight:400}
-.recent-sub{color:rgba(255,248,240,.48);font-size:12px;margin-top:5px}
-.recent-time{color:rgba(255,248,240,.52);font-size:12px;white-space:nowrap}
-.glyph{margin:0}
-.side-footer{border-top:1px solid rgba(255,248,240,.1);display:grid;gap:10px;margin-top:auto;padding:22px 0 0}
-.side-control{min-height:56px;border:1px solid rgba(217,154,61,.18);border-radius:16px;background:#120D08;display:flex;align-items:center;gap:14px;padding:0 18px;color:var(--soft-2)}
-.language-select.side-control-select{width:100%;height:56px;border-radius:16px;padding:0 18px 0 50px;background:#120D08;font-size:14px;letter-spacing:.2px;text-transform:none}
-.main{position:relative;background:radial-gradient(circle at 96% 4%,rgba(217,154,61,.12),transparent 24%),radial-gradient(circle at 78% 94%,rgba(217,154,61,.12),transparent 26%),linear-gradient(145deg,#0B0805,#120D08)}
-.main::before,.main::after{content:'';position:absolute;pointer-events:none;border:1px solid rgba(244,142,32,.12);border-left-color:transparent;border-bottom-color:transparent;opacity:.6}
-.main::before{width:360px;height:360px;right:-120px;top:-150px;border-radius:50%}
-.main::after{width:520px;height:260px;right:-120px;bottom:-70px;border-radius:50%;transform:rotate(-18deg)}
-.topbar{position:relative;z-index:1;height:148px;align-items:flex-start;border-bottom:0;padding:44px 48px 0;background:transparent}
-.chat-title{font-family:'Inter',system-ui,sans-serif;font-size:34px;font-style:normal;font-weight:500;letter-spacing:.2px;line-height:1.1}
-.chat-meta{display:inline-flex;align-items:center;gap:8px;min-height:34px;margin-top:14px;border:1px solid rgba(255,248,240,.11);border-radius:999px;background:rgba(255,248,240,.035);color:rgba(255,248,240,.64);font-size:13px;letter-spacing:.2px;padding:0 16px;text-transform:none}
-.actions{gap:10px}.actions .language-select{display:none}
-.badge{border-radius:999px;height:36px;letter-spacing:.6px;text-transform:none;background:rgba(255,248,240,.035)}
-.icon-btn{width:48px;height:48px;border-radius:14px;background:#120D08;color:var(--soft-2);display:grid;place-items:center}
-.messages{position:relative;z-index:1;padding:28px 72px 34px 108px;gap:40px}
-.welcome{margin:36px auto auto}.quick{border-radius:16px;background:rgba(255,248,240,.03)}
-.message{position:relative;display:block;max-width:min(640px,82%);margin-left:68px}
-.message:not(.user)::before{content:'';position:absolute;left:-70px;top:17px;width:46px;height:46px;border-radius:50%;border:1px solid rgba(244,170,69,.5);background:radial-gradient(circle,#F0B85A 0 5px,rgba(244,170,69,.22) 6px 14px,rgba(0,0,0,.42) 15px);box-shadow:0 0 24px rgba(244,170,69,.14)}
-.message:not(.user)::after{content:'';position:absolute;left:-48px;top:63px;width:1px;height:calc(100% + 32px);background:linear-gradient(rgba(244,170,69,.42),rgba(244,170,69,.08))}
-.message.user{align-self:flex-end;margin-left:0;max-width:min(620px,86%)}
-.msg-avatar{display:none}
-.bubble{border-color:rgba(217,154,61,.28);border-radius:18px;background:linear-gradient(145deg,rgba(26,18,11,.96),rgba(18,13,8,.82));box-shadow:0 24px 80px rgba(0,0,0,.55),inset 0 1px 0 rgba(255,248,240,.05);font-family:'Cormorant Garamond',serif;font-size:25px;font-style:italic;font-weight:500;line-height:1.6;padding:28px 34px}
-.msg-time{color:rgba(244,170,69,.72);font-size:14px;letter-spacing:3px;margin:16px 0 0 4px}
-.composer-wrap{position:relative;z-index:2;border:1px solid rgba(217,154,61,.28);border-radius:24px;background:#120D08;box-shadow:0 24px 80px rgba(0,0,0,.55),inset 0 1px 0 rgba(255,248,240,.05);margin:0 28px 28px;padding:20px 20px 22px}
-.modes{justify-content:center;background:rgba(255,248,240,.03);border:1px solid rgba(255,248,240,.09);border-radius:18px;margin:0 auto 18px;max-width:640px;padding:5px}
-.mode{border-radius:14px;border-color:transparent;font-size:13px;letter-spacing:.2px;min-height:42px;text-transform:none}
-.mode.active,.mode:hover{background:linear-gradient(135deg,rgba(244,142,32,.28),rgba(244,142,32,.08));border-color:rgba(244,170,69,.24);color:var(--cream);box-shadow:0 12px 28px rgba(244,142,32,.12)}
-.composer{border-color:rgba(244,170,69,.2);border-radius:18px;background:rgba(255,248,240,.035);grid-template-columns:1fr 62px 62px;padding:14px 16px 14px 22px}
-.composer textarea{font-family:'Inter',system-ui,sans-serif;font-size:18px;font-style:normal;line-height:1.5}
-.send,.voice-btn{height:62px;border-radius:50%;font-size:24px}
-.send{background:linear-gradient(135deg,var(--gold-light),var(--gold));color:#0B0805;border-color:transparent;box-shadow:0 0 24px rgba(217,154,61,.35)}
-.voice-btn{background:rgba(0,0,0,.22);border-color:rgba(255,248,240,.12)}
-.lucide{width:20px;height:20px;display:block;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
-.send .lucide,.voice-btn .lucide{width:22px;height:22px}
-.activity-payload,.glyph{font-family:'Inter',system-ui,sans-serif}
-.side-brand .brand-name,.composer textarea{font-family:'Inter',system-ui,sans-serif}
-.message:not(.user)::before{border-color:rgba(217,154,61,.28);background:radial-gradient(circle,var(--gold-light) 0 5px,rgba(217,154,61,.22) 6px 14px,rgba(0,0,0,.42) 15px);box-shadow:0 0 24px rgba(217,154,61,.35)}
-@media (max-width:900px){body{overflow:hidden}.screen{position:fixed;min-height:100vh}.app{grid-template-columns:72px minmax(0,1fr);min-height:100vh;border-radius:0;border:0}.sidebar{display:flex;padding:20px 12px;align-items:center}.side-brand{justify-content:center}.brand-icon{width:48px;height:48px;border-radius:14px}.side-brand>div:last-child,.side-nav-main span,.nav-dot,.side-label,.search-shell,.recent-item .recent-copy,.recent-time,.user-card>div:not(.avatar){display:none}.side-nav-item{width:48px;min-height:48px;padding:0;justify-content:center;border-radius:14px}.nav-icon,.query-icon{width:48px;height:48px;border-radius:14px}.side-section{width:100%}.recent-list{align-items:center;max-height:48vh}.recent-item{width:48px;min-height:48px;display:grid;grid-template-columns:1fr;place-items:center;padding:0;border-radius:14px}.side-footer{width:100%;padding-top:18px;align-items:center}.side-control,.language-select.side-control-select{display:none}.avatar{width:48px;height:48px;border-radius:14px}.main{min-height:100vh;grid-template-rows:auto minmax(0,1fr) auto}.topbar{height:96px;min-height:96px;padding:20px}.chat-title{font-size:28px}.chat-meta{font-size:12px;max-width:100%}.actions{align-items:flex-start}.actions .badge{display:none}.icon-btn{width:48px;height:48px;border-radius:14px}.messages{padding:22px 20px 22px 56px;gap:34px}.welcome{margin-top:12px}.quick-row{grid-template-columns:repeat(2,minmax(0,1fr))}.activity-card{grid-template-columns:1fr}.message{max-width:94%;margin-left:38px}.message:not(.user)::before{left:-48px;width:38px;height:38px}.message:not(.user)::after{left:-30px;top:55px}.bubble{width:min(260px,100%);min-height:128px;font-size:21px;padding:22px 24px}.composer-wrap{min-height:190px;margin:0 20px 20px;border-radius:24px;padding:14px}.modes{justify-content:flex-start;overflow-x:auto;flex-wrap:nowrap}.mode{white-space:nowrap}.composer{min-height:72px;grid-template-columns:1fr 54px 54px;gap:10px;padding:12px}.send,.voice-btn{height:54px}}
-@media (max-width:560px){.app{grid-template-columns:72px minmax(0,1fr)}.sidebar{padding:20px 12px}.brand-icon,.side-nav-item,.recent-item{width:48px;min-height:48px}.brand-icon{height:48px}.topbar{padding:20px;min-height:96px}.chat-title{font-size:25px}.chat-meta{padding:0 12px;min-height:30px}.messages{padding:18px 20px 18px 44px}.quick-row{display:none}.bubble{width:min(240px,100%);font-size:19px;padding:20px}.msg-time{font-size:11px;letter-spacing:2px}.composer-wrap{min-height:180px;margin:0 20px 20px}.modes{display:none}.composer{grid-template-columns:1fr 50px 50px}.composer textarea{font-size:16px;min-height:64px}.send,.voice-btn{height:50px}}
+/* Logo strip */
+.sb-logo {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 24px 12px 20px;
+  flex-shrink: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  min-height: 88px;
+}
+.sb-logo-icon {
+  width: 48px; height: 48px; flex-shrink: 0;
+  background: linear-gradient(145deg, #231508, #160e06);
+  border-radius: 14px;
+  border: 1.5px solid var(--gold);
+  box-shadow: var(--glow);
+  display: flex; align-items: center; justify-content: center;
+}
+.sb-logo-icon svg { width: 22px; height: 22px; color: var(--gold); }
+.sb-logo-text { overflow: hidden; }
+.sb-logo-text h1 { font-size: 16px; font-weight: 700; color: var(--gold); letter-spacing: 2px; line-height: 1.1; }
+.sb-logo-text p  { font-size: 10px; color: var(--t3); margin-top: 2px; font-weight: 400; }
+
+/* Sidebar toggle button */
+#sb-toggle {
+  width: 48px; height: 48px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; border-radius: var(--radius-btn);
+  color: var(--t2); transition: background .2s, color .2s;
+  border: none; background: transparent;
+  margin: 0 12px 8px;
+  align-self: flex-start;
+}
+#sb-toggle:hover { background: var(--elevated); color: var(--gold-lt); }
+#sb-toggle svg { width: 22px; height: 22px; }
+
+/* Sidebar conversations button */
+.sb-conv-btn {
+  margin: 0 12px 12px;
+  width: calc(100% - 24px);
+  background: linear-gradient(135deg, #221508, #1a1208);
+  border: 1px solid var(--border-c);
+  border-radius: var(--radius-btn);
+  padding: 10px 14px;
+  display: flex; align-items: center; gap: 10px;
+  cursor: pointer; color: var(--gold);
+  font-size: 13px; font-weight: 500;
+  font-family: var(--font-ui);
+  white-space: nowrap; overflow: hidden;
+  position: relative; flex-shrink: 0;
+}
+.sb-conv-btn svg { flex-shrink: 0; width: 18px; height: 18px; }
+.sb-conv-btn .odot {
+  width: 7px; height: 7px; background: var(--gold); border-radius: 50%;
+  position: absolute; right: 14px; box-shadow: var(--glow);
+  flex-shrink: 0;
+}
+
+/* Section label */
+.sb-sec {
+  font-size: 9px; font-weight: 600; color: var(--t3);
+  letter-spacing: 1.4px; text-transform: uppercase;
+  padding: 4px 20px 6px;
+  white-space: nowrap; overflow: hidden;
+  align-self: flex-start; width: 100%;
+}
+
+/* Search */
+.sb-search {
+  margin: 0 12px 8px;
+  width: calc(100% - 24px);
+  background: var(--elevated);
+  border: 1px solid var(--border-c);
+  border-radius: 10px;
+  padding: 8px 12px;
+  display: flex; align-items: center; gap: 8px;
+  flex-shrink: 0;
+}
+.sb-search svg { width: 14px; height: 14px; color: var(--t3); flex-shrink: 0; }
+.sb-search input {
+  background: none; border: none; color: var(--t2);
+  font-size: 12px; outline: none; width: 100%;
+  font-family: var(--font-ui); white-space: nowrap;
+}
+.sb-search input::placeholder { color: var(--t3); }
+
+/* Conversation list */
+#conv-list {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 0 8px 8px;
+  width: 100%;
+}
+#conv-list::-webkit-scrollbar { width: 3px; }
+#conv-list::-webkit-scrollbar-thumb { background: var(--border-c); border-radius: 2px; }
+
+.ci {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  cursor: pointer;
+  position: relative;
+  margin-bottom: 2px;
+  transition: background .15s;
+  overflow: hidden;
+  white-space: nowrap;
+}
+.ci:hover { background: var(--elevated); }
+.ci.active { background: rgba(217,154,61,.12); }
+.ci.active::before {
+  content: '';
+  position: absolute; left: 0; top: 50%; transform: translateY(-50%);
+  width: 3px; height: 60%;
+  background: var(--gold); border-radius: 0 2px 2px 0;
+}
+.ci-icon {
+  width: 36px; height: 36px; border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.ci-icon svg { width: 16px; height: 16px; }
+.ic-chat    { background: rgba(217,154,61,.14); }
+.ic-chat svg { color: var(--gold); }
+.ic-cal     { background: rgba(60,120,220,.18); }
+.ic-cal svg  { color: #6090e0; }
+.ic-doc     { background: rgba(120,60,200,.18); }
+.ic-doc svg  { color: #a070e0; }
+.ic-plane   { background: rgba(60,170,220,.18); }
+.ic-plane svg { color: #50b8e0; }
+.ic-folder  { background: rgba(180,100,30,.18); }
+.ic-folder svg { color: #c87830; }
+.ic-term    { background: rgba(60,185,100,.18); }
+.ic-term svg { color: #40c070; }
+.ic-task    { background: rgba(215,60,75,.18); }
+.ic-task svg { color: #e04050; }
+.ic-notes   { background: rgba(100,60,210,.18); }
+.ic-notes svg { color: #8060d0; }
+
+.ci-body { min-width: 0; overflow: hidden; }
+.ci-top  { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px; }
+.ci-name { font-size: 12px; font-weight: 600; color: var(--t1); overflow: hidden; text-overflow: ellipsis; }
+.ci-time { font-size: 9px; color: var(--t3); flex-shrink: 0; margin-left: 6px; }
+.ci-sub  { font-size: 10px; color: var(--t2); overflow: hidden; text-overflow: ellipsis; display: block; }
+.ci.active .ci-name { color: var(--gold); }
+.ci.active .ci-time { color: var(--gold); }
+.ci-dot  { width: 7px; height: 7px; background: var(--gold); border-radius: 50%; flex-shrink: 0; box-shadow: var(--glow); }
+
+/* Sidebar icon-only mode (collapsed) */
+#sidebar:not(.open) .sb-logo-text,
+#sidebar:not(.open) .sb-conv-btn span,
+#sidebar:not(.open) .sb-conv-btn .odot,
+#sidebar:not(.open) .sb-sec,
+#sidebar:not(.open) .sb-search,
+#sidebar:not(.open) #conv-list,
+#sidebar:not(.open) .sb-foot-label,
+#sidebar:not(.open) .sb-foot-arrow { display: none; }
+
+#sidebar:not(.open) .sb-conv-btn {
+  width: 48px; padding: 0;
+  justify-content: center;
+  border-radius: var(--radius-btn);
+}
+#sidebar:not(.open) .ci { padding: 10px; justify-content: center; }
+#sidebar:not(.open) .ci-body { display: none; }
+#sidebar:not(.open) .ci-dot { display: none; }
+#sidebar:not(.open) .ci::before { display: none; }
+#sidebar:not(.open) .ci.active { background: rgba(217,154,61,.15); border: 1px solid var(--border-c); }
+#sidebar:not(.open) #conv-list { display: flex; flex-direction: column; align-items: center; padding: 0 0 8px; }
+
+/* Sidebar footer */
+.sb-foot {
+  width: 100%;
+  padding: 10px 12px 16px;
+  border-top: 1px solid var(--border-c);
+  flex-shrink: 0;
+  display: flex; flex-direction: column; gap: 2px;
+}
+.sb-foot-row {
+  display: flex; align-items: center;
+  padding: 6px 8px; border-radius: 10px;
+  font-size: 11px; color: var(--t2);
+  cursor: pointer; gap: 8px; white-space: nowrap; overflow: hidden;
+  transition: background .15s;
+}
+.sb-foot-row:hover { background: var(--elevated); }
+.sb-foot-row svg   { flex-shrink: 0; width: 16px; height: 16px; color: var(--t3); }
+.sb-foot-arrow     { margin-left: auto; }
+.sb-foot-arrow svg { width: 12px; height: 12px; }
+
+/* ── MAIN CHAT AREA ───────────────────────────── */
+#main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+  position: relative;
+  overflow: hidden;
+}
+
+/* Decorative gold arcs */
+.deco-svg {
+  position: absolute; top: 0; right: 0;
+  width: min(40%, 360px); height: min(40%, 360px);
+  pointer-events: none; z-index: 0; opacity: .9;
+}
+
+/* Chat header */
+#chat-header {
+  height: 96px; flex-shrink: 0;
+  padding: 0 20px;
+  display: flex; flex-direction: column; justify-content: center;
+  gap: 8px; position: relative; z-index: 2;
+  border-bottom: 1px solid var(--border-c);
+}
+.ch-top {
+  display: flex; align-items: center; gap: 14px;
+}
+.ch-menu-btn {
+  width: 40px; height: 40px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; border-radius: 12px;
+  color: var(--t2); border: none; background: transparent;
+  transition: background .2s, color .2s; flex-shrink: 0;
+}
+.ch-menu-btn:hover { background: var(--elevated); color: var(--gold-lt); }
+.ch-menu-btn svg { width: 20px; height: 20px; }
+.ch-title { font-size: clamp(15px, 2vw, 18px); font-weight: 600; color: var(--t1); }
+.ch-more  {
+  margin-left: auto;
+  width: 36px; height: 36px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; border-radius: 10px; color: var(--t2);
+  border: none; background: transparent; transition: background .2s;
+}
+.ch-more:hover { background: var(--elevated); }
+.ch-more svg { width: 18px; height: 18px; }
+.voice-pill {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: var(--elevated); border: 1px solid var(--border-c);
+  border-radius: 20px; padding: 5px 14px;
+  font-size: 11px; color: var(--t2); width: fit-content;
+}
+.voice-pill svg { width: 12px; height: 12px; color: var(--t3); }
+.vp-sep { color: var(--t3); }
+
+/* Messages scroll area */
+#messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px 20px 12px;
+  display: flex; flex-direction: column; gap: 20px;
+  position: relative; z-index: 1;
+}
+#messages::-webkit-scrollbar { width: 4px; }
+#messages::-webkit-scrollbar-thumb { background: var(--border-c); border-radius: 2px; }
+
+.msg-row {
+  display: flex; align-items: flex-start; gap: 10px;
+}
+.avatar {
+  width: 32px; height: 32px; flex-shrink: 0;
+  border-radius: 50%;
+  border: 1.5px solid var(--gold);
+  background: var(--panel);
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: var(--glow);
+}
+.av-dot {
+  width: 10px; height: 10px; border-radius: 50%;
+  background: var(--gold); box-shadow: 0 0 6px var(--gold);
+}
+.msg-arrow {
+  margin-top: 8px; flex-shrink: 0;
+  color: rgba(217,154,61,.45);
+}
+.msg-arrow svg { width: 14px; height: 14px; }
+.msg-body { flex: 1; min-width: 0; }
+.bubble {
+  background: var(--elevated);
+  border: 1px solid var(--border-c);
+  border-radius: 4px 16px 16px 16px;
+  padding: 14px 18px;
+  margin-bottom: 8px;
+}
+.bubble p {
+  font-family: var(--font-msg);
+  font-size: clamp(14px, 1.8vw, 17px);
+  font-style: italic;
+  font-weight: 500;
+  color: var(--t1);
+  line-height: 1.6;
+}
+.msg-meta {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 10px; color: var(--t3);
+}
+.msg-check {
+  width: 16px; height: 16px;
+  border: 1.5px solid var(--t3); border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+}
+.msg-check svg { width: 9px; height: 9px; }
+.msg-connector {
+  display: flex; flex-direction: column; align-items: center;
+}
+.mc-line {
+  width: 1px; height: 20px;
+  background: linear-gradient(to bottom, rgba(217,154,61,.2), transparent);
+  margin-top: 3px;
+}
+
+/* ── BOTTOM SHEET ─────────────────────────────── */
+#bottom-sheet {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  background: var(--panel);
+  border-top: 1px solid var(--border-c);
+  border-radius: var(--radius-panel) var(--radius-panel) 0 0;
+  box-shadow: var(--shadow-panel);
+  z-index: 10;
+  display: flex; flex-direction: column;
+  transition: height .32s cubic-bezier(.4,0,.2,1);
+  will-change: height;
+  overflow: hidden;
+}
+
+/* Snap heights as CSS custom properties updated via JS */
+.bs-handle-bar {
+  width: 40px; height: 4px;
+  background: var(--gold-dim); border-radius: 2px;
+  margin: 10px auto 6px; flex-shrink: 0; cursor: grab;
+}
+.bs-handle-bar:active { cursor: grabbing; }
+
+/* Expand arrow */
+.bs-expand-row {
+  display: flex; justify-content: center;
+  padding: 0 0 6px;
+}
+.bs-expand-btn {
+  width: 32px; height: 20px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; color: var(--gold); border: none; background: transparent;
+  transition: transform .2s;
+}
+.bs-expand-btn svg { width: 16px; height: 16px; }
+
+/* Tabs */
+.bs-tabs {
+  display: flex; gap: 6px;
+  padding: 0 20px 10px;
+  flex-shrink: 0;
+}
+.bs-tab {
+  display: flex; align-items: center; gap: 7px;
+  padding: 7px 16px; border-radius: 20px;
+  font-size: 12px; font-weight: 500;
+  cursor: pointer; border: none; font-family: var(--font-ui);
+  transition: all .2s;
+}
+.bs-tab.on {
+  background: rgba(217,154,61,.15);
+  color: var(--t1);
+  border: 1px solid var(--border-c);
+}
+.bs-tab.off {
+  background: transparent; color: var(--t2);
+  border: 1px solid transparent;
+}
+.bs-tab:hover:not(.on) { color: var(--t1); background: var(--elevated); }
+.bs-tab svg { width: 14px; height: 14px; }
+
+/* Input box */
+.bs-input-wrap {
+  padding: 0 20px 12px; flex-shrink: 0;
+}
+.bs-input-box {
+  background: var(--elevated);
+  border: 1px solid var(--border-c);
+  border-radius: 16px;
+  padding: 12px 14px;
+  display: flex; align-items: flex-end; gap: 10px;
+}
+.bs-textarea {
+  flex: 1; background: none; border: none;
+  color: var(--t1); font-size: 13px;
+  outline: none; resize: none;
+  font-family: var(--font-ui); line-height: 1.5;
+  min-height: 22px; max-height: 96px;
+  overflow-y: auto;
+}
+.bs-textarea::placeholder { color: var(--t3); }
+.bs-mic, .bs-send {
+  width: 36px; height: 36px; flex-shrink: 0;
+  border-radius: 50%; border: none;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; transition: all .2s;
+}
+.bs-mic {
+  background: transparent; color: var(--t2);
+}
+.bs-mic:hover { background: var(--elevated); color: var(--gold-lt); }
+.bs-mic svg { width: 18px; height: 18px; }
+.bs-send {
+  background: var(--gold);
+  box-shadow: var(--glow);
+  color: #0B0805;
+}
+.bs-send:hover { background: var(--gold-lt); }
+.bs-send svg { width: 16px; height: 16px; }
+
+/* Action chips (mid/open snap) */
+.bs-chips {
+  display: flex; gap: 8px; flex-wrap: wrap;
+  padding: 0 20px 14px; flex-shrink: 0;
+  overflow: hidden;
+  max-height: 0;
+  transition: max-height .3s ease, opacity .3s ease, padding .3s ease;
+  opacity: 0;
+}
+.bs-chips.visible { max-height: 80px; opacity: 1; }
+.chip {
+  display: flex; align-items: center; gap: 6px;
+  background: var(--elevated); border: 1px solid var(--border-c);
+  border-radius: 20px; padding: 6px 14px;
+  font-size: 11px; color: var(--t2);
+  cursor: pointer; white-space: nowrap;
+  transition: background .2s, color .2s;
+}
+.chip:hover { background: rgba(217,154,61,.1); color: var(--t1); }
+.chip svg { width: 12px; height: 12px; }
+
+/* Extended content (open snap) */
+.bs-extended {
+  flex: 1; overflow-y: auto;
+  padding: 0 20px 8px;
+  max-height: 0; overflow: hidden;
+  transition: max-height .3s ease, opacity .3s ease;
+  opacity: 0;
+}
+.bs-extended.visible { max-height: 300px; opacity: 1; overflow-y: auto; }
+.bs-ext-title {
+  font-size: 11px; font-weight: 600; color: var(--t3);
+  letter-spacing: 1px; text-transform: uppercase;
+  margin-bottom: 10px;
+}
+.bs-ext-card {
+  background: var(--elevated); border: 1px solid var(--border-c);
+  border-radius: 12px; padding: 12px 14px; margin-bottom: 8px;
+  cursor: pointer; transition: background .2s;
+}
+.bs-ext-card:hover { background: rgba(217,154,61,.08); }
+.bs-ext-card-title { font-size: 12px; font-weight: 500; color: var(--t1); margin-bottom: 3px; }
+.bs-ext-card-sub   { font-size: 10px; color: var(--t2); }
+
+/* ── SCROLLBAR GLOBAL ────────────────────────── */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(217,154,61,.2); border-radius: 2px; }
+
+/* ── RESPONSIVE TWEAKS ───────────────────────── */
+@media (max-width: 600px) {
+  #sidebar { position: fixed; top: 0; left: 0; height: 100vh; z-index: 50; }
+  #sidebar:not(.open) { width: 0; border: none; }
+  #main { width: 100%; }
+}
 </style>
 </head>
-<body class="booting">
-<canvas id="cv"></canvas>
-<div class="libra-label" id="libra-lbl">⚖ Libra</div>
+<body>
 
-<div id="cur">
-  <svg width="30" height="30" viewBox="0 0 30 30" fill="none">
-    <circle cx="15" cy="15" r="13" stroke="#D99A3D" stroke-width=".6" opacity=".5"/>
-    <circle cx="15" cy="15" r="3.5" stroke="#D99A3D" stroke-width=".5" opacity=".3"/>
-    <line x1="15" y1="2" x2="15" y2="6" stroke="#D99A3D" stroke-width=".8" opacity=".55"/>
-    <line x1="15" y1="24" x2="15" y2="28" stroke="#D99A3D" stroke-width=".8" opacity=".55"/>
-    <line x1="2" y1="15" x2="6" y2="15" stroke="#D99A3D" stroke-width=".8" opacity=".55"/>
-    <line x1="24" y1="15" x2="28" y2="15" stroke="#D99A3D" stroke-width=".8" opacity=".55"/>
-  </svg>
-</div>
-<div id="cd"></div>
+<div id="app">
 
-<div class="screen scene active" id="screen-login">
-  <div class="card">
-    <div class="card-top-bar"></div>
-    <div class="card-inner">
-      <div class="brand-block">
-        <div class="sun-wrap">
-          <svg width="56" height="56" viewBox="0 0 56 56" fill="none">
-            <circle cx="28" cy="28" r="9" stroke="#D99A3D" stroke-width=".7" opacity=".6"/>
-            <circle cx="28" cy="28" r="15" stroke="#D99A3D" stroke-width=".45" opacity=".3"/>
-            <circle cx="28" cy="28" r="21" stroke="#D99A3D" stroke-width=".35" opacity=".18"/>
-            <line x1="28" y1="2" x2="28" y2="8" stroke="#D99A3D" stroke-width=".8" opacity=".5"/>
-            <line x1="28" y1="48" x2="28" y2="54" stroke="#D99A3D" stroke-width=".8" opacity=".5"/>
-            <line x1="2" y1="28" x2="8" y2="28" stroke="#D99A3D" stroke-width=".8" opacity=".5"/>
-            <line x1="48" y1="28" x2="54" y2="28" stroke="#D99A3D" stroke-width=".8" opacity=".5"/>
-            <line x1="8" y1="8" x2="13" y2="13" stroke="#D99A3D" stroke-width=".65" opacity=".4"/>
-            <line x1="48" y1="8" x2="43" y2="13" stroke="#D99A3D" stroke-width=".65" opacity=".4"/>
-            <line x1="8" y1="48" x2="13" y2="43" stroke="#D99A3D" stroke-width=".65" opacity=".4"/>
-            <line x1="48" y1="48" x2="43" y2="43" stroke="#D99A3D" stroke-width=".65" opacity=".4"/>
-            <circle cx="28" cy="28" r="3" fill="#D99A3D" opacity=".22"/>
-            <circle cx="28" cy="28" r="1.5" fill="#D99A3D" opacity=".7"/>
-          </svg>
-        </div>
-        <div class="brand-name"><span>A</span>ri</div>
-        <div class="brand-sub">Solara · Quantum Intelligent</div>
+  <!-- ── SIDEBAR OVERLAY ── -->
+  <div id="sb-overlay" onclick="closeSidebar()"></div>
+
+  <!-- ══════════════════════════════════
+       SIDEBAR
+  ══════════════════════════════════ -->
+  <aside id="sidebar">
+
+    <!-- Logo -->
+    <div class="sb-logo">
+      <div class="sb-logo-icon">
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect x="3"  y="9"  width="2.2" height="6"  rx="1" fill="#D99A3D"/>
+          <rect x="7"  y="6"  width="2.2" height="12" rx="1" fill="#D99A3D"/>
+          <rect x="11" y="3"  width="2.2" height="18" rx="1" fill="#D99A3D"/>
+          <rect x="15" y="6"  width="2.2" height="12" rx="1" fill="#D99A3D"/>
+          <rect x="19" y="9"  width="2.2" height="6"  rx="1" fill="#D99A3D"/>
+        </svg>
       </div>
-
-      <div class="heading" id="auth-heading">Access your light</div>
-      <div class="sub-h" id="auth-status">— log in to use ARI —</div>
-
-      <div class="fg" id="auth-email-group">
-        <label>Email</label>
-        <input id="auth-email" type="email" value="demo-3@example.com" placeholder="soul@ari.ai">
-        <div class="fg-line"></div>
+      <div class="sb-logo-text">
+        <h1>ARI</h1>
+        <p>Asistente</p>
       </div>
-      <div class="fg" id="auth-reset-token-group" style="display:none">
-        <label>Recovery code</label>
-        <input id="auth-reset-token" type="text" placeholder="Paste recovery link or code">
-        <div class="fg-line"></div>
-      </div>
-      <div class="fg has-toggle" id="auth-password-group">
-        <label>Password</label>
-        <input id="auth-password" type="password" placeholder="••••••••">
-        <button class="password-toggle" id="auth-password-toggle" type="button" aria-controls="auth-password" aria-pressed="false" aria-label="Show password"></button>
-        <div class="fg-line"></div>
-      </div>
-      <div class="forgot" id="forgot-row"><button class="link" type="button" onclick="setAuthMode('forgot')">Forgot your key?</button></div>
-
-      <button class="social" id="auth-social" type="button" onclick="loginWithGoogle()">
-        <span class="s-pulse"></span>
-        Continue with Google
-      </button>
-
-      <div class="orn-div" id="auth-divider">✦ or ✦</div>
-
-      <button class="cta" id="auth-primary" onclick="submitAuth()">Align me →</button>
     </div>
 
-    <div class="card-bottom-rule"></div>
-    <div class="card-footer">
-      <span id="auth-footer-text">First time here?</span>
-      <button class="link" id="auth-toggle" onclick="setAuthMode('register')">Begin your expansion</button>
+    <!-- Toggle (hamburger/close) -->
+    <button id="sb-toggle" onclick="toggleSidebar()" title="Menú">
+      <i data-lucide="menu"></i>
+    </button>
+
+    <!-- Conversations button -->
+    <button class="sb-conv-btn">
+      <i data-lucide="message-circle"></i>
+      <span>Conversaciones</span>
+      <span class="odot"></span>
+    </button>
+
+    <!-- Section label -->
+    <p class="sb-sec">Todas las conversaciones</p>
+
+    <!-- Search -->
+    <div class="sb-search">
+      <i data-lucide="search"></i>
+      <input type="text" placeholder="Buscar conversación…">
     </div>
-  </div>
-</div>
 
-<div class="screen" id="screen-chat">
-  <div class="app">
-    <aside class="sidebar">
-      <div class="side-brand">
-        <div class="brand-icon" aria-hidden="true">
-          <svg viewBox="0 0 24 24" fill="none">
-            <path d="M4 13v-2M7 17V7M10 20V4M13 17V7M16 15V9M20 13v-2" stroke-width="1.8" stroke-linecap="round"/>
-          </svg>
+    <!-- Conversation list -->
+    <div id="conv-list">
+
+      <div class="ci active" onclick="selectConv(this)">
+        <div class="ci-icon ic-chat"><i data-lucide="message-circle"></i></div>
+        <div class="ci-body">
+          <div class="ci-top"><span class="ci-name">Consulta activa</span><span class="ci-time">17:15</span></div>
+          <span class="ci-sub">Último mensaje</span>
         </div>
-        <div>
-          <div class="brand-name">ARI</div>
-          <div class="brand-sub">Asistente</div>
+        <span class="ci-dot"></span>
+      </div>
+
+      <div class="ci" onclick="selectConv(this)">
+        <div class="ci-icon ic-cal"><i data-lucide="calendar"></i></div>
+        <div class="ci-body">
+          <div class="ci-top"><span class="ci-name">Reunión mañana</span><span class="ci-time">16:40</span></div>
+          <span class="ci-sub">Crear evento en calendario</span>
         </div>
       </div>
-      <div class="side-nav" aria-label="Primary">
-        <div class="side-nav-item">
-          <div class="side-nav-main">
-            <span class="nav-icon" aria-hidden="true"><svg class="lucide" viewBox="0 0 24 24"><path d="M21 15a4 4 0 0 1-4 4H7l-4 4V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"/></svg></span>
-            <span>Conversaciones</span>
-          </div>
-          <span class="nav-dot" aria-hidden="true"></span>
+
+      <div class="ci" onclick="selectConv(this)">
+        <div class="ci-icon ic-doc"><i data-lucide="file-text"></i></div>
+        <div class="ci-body">
+          <div class="ci-top"><span class="ci-name">Resumen documento</span><span class="ci-time">15:22</span></div>
+          <span class="ci-sub">Análisis del PDF proyecto</span>
         </div>
       </div>
-      <div class="side-section">
-        <div class="side-label">Todas las conversaciones</div>
-        <label class="search-shell" for="conversation-search">
-          <span aria-hidden="true"><svg class="lucide" viewBox="0 0 24 24"><path d="m21 21-4.3-4.3"/><circle cx="11" cy="11" r="8"/></svg></span>
-          <input id="conversation-search" type="search" placeholder="Buscar conversación">
-        </label>
-        <div class="recent-list" id="recent-queries">
-          <div class="recent-item active">
-            <span class="query-icon"><svg class="lucide" viewBox="0 0 24 24"><path d="M21 15a4 4 0 0 1-4 4H7l-4 4V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"/></svg></span>
-            <span class="recent-copy"><span class="recent-title">No queries yet</span><span class="recent-sub">ARI</span></span>
-            <span class="recent-time">Ahora</span>
+
+      <div class="ci" onclick="selectConv(this)">
+        <div class="ci-icon ic-plane"><i data-lucide="send"></i></div>
+        <div class="ci-body">
+          <div class="ci-top"><span class="ci-name">Viaje a Madrid</span><span class="ci-time">14:05</span></div>
+          <span class="ci-sub">Buscar vuelos y hoteles</span>
+        </div>
+      </div>
+
+      <div class="ci" onclick="selectConv(this)">
+        <div class="ci-icon ic-folder"><i data-lucide="folder"></i></div>
+        <div class="ci-body">
+          <div class="ci-top"><span class="ci-name">Archivos importantes</span><span class="ci-time">13:11</span></div>
+          <span class="ci-sub">Encontrar y organizar</span>
+        </div>
+      </div>
+
+      <div class="ci" onclick="selectConv(this)">
+        <div class="ci-icon ic-term"><i data-lucide="terminal"></i></div>
+        <div class="ci-body">
+          <div class="ci-top"><span class="ci-name">Script automatización</span><span class="ci-time">Ayer</span></div>
+          <span class="ci-sub">Ejecutar comando en Mac</span>
+        </div>
+      </div>
+
+      <div class="ci" onclick="selectConv(this)">
+        <div class="ci-icon ic-task"><i data-lucide="check-square"></i></div>
+        <div class="ci-body">
+          <div class="ci-top"><span class="ci-name">Tareas pendientes</span><span class="ci-time">Ayer</span></div>
+          <span class="ci-sub">Lista de pendientes</span>
+        </div>
+      </div>
+
+      <div class="ci" onclick="selectConv(this)">
+        <div class="ci-icon ic-notes"><i data-lucide="book-open"></i></div>
+        <div class="ci-body">
+          <div class="ci-top"><span class="ci-name">Notas personales</span><span class="ci-time">Lunes</span></div>
+          <span class="ci-sub">Ideas y recordatorios</span>
+        </div>
+      </div>
+
+    </div><!-- /conv-list -->
+
+    <!-- Footer -->
+    <div class="sb-foot">
+      <div class="sb-foot-row">
+        <i data-lucide="globe-2"></i>
+        <span class="sb-foot-label">Español</span>
+        <span class="sb-foot-arrow"><i data-lucide="chevron-down"></i></span>
+      </div>
+      <div class="sb-foot-row">
+        <i data-lucide="volume-x"></i>
+        <span class="sb-foot-label">Voz desactivada</span>
+      </div>
+      <div class="sb-foot-row">
+        <i data-lucide="rotate-ccw"></i>
+        <span class="sb-foot-label">Restablecer</span>
+      </div>
+    </div>
+
+  </aside>
+
+  <!-- ══════════════════════════════════
+       MAIN CHAT
+  ══════════════════════════════════ -->
+  <main id="main">
+
+    <!-- Decorative gold arcs -->
+    <svg class="deco-svg" viewBox="0 0 400 400" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M400 0 Q280 140 160 210 Q60 265 0 400" stroke="rgba(217,154,61,0.16)" stroke-width="1.5" fill="none"/>
+      <path d="M400 50 Q270 175 165 245 Q70 295 5 400" stroke="rgba(217,154,61,0.09)" stroke-width="1"   fill="none"/>
+      <path d="M400 100 Q285 210 175 275 Q85 320 15 400" stroke="rgba(217,154,61,0.05)" stroke-width="1" fill="none"/>
+      <circle cx="370" cy="25"  r="3"   fill="rgba(217,154,61,0.2)"/>
+      <circle cx="350" cy="10"  r="1.8" fill="rgba(217,154,61,0.14)"/>
+      <circle cx="390" cy="60"  r="2.2" fill="rgba(217,154,61,0.12)"/>
+      <circle cx="360" cy="80"  r="1.2" fill="rgba(217,154,61,0.1)"/>
+      <circle cx="330" cy="45"  r="1.5" fill="rgba(217,154,61,0.09)"/>
+    </svg>
+
+    <!-- Chat header -->
+    <header id="chat-header">
+      <div class="ch-top">
+        <button class="ch-menu-btn" onclick="toggleSidebar()" title="Menú">
+          <i data-lucide="menu"></i>
+        </button>
+        <span class="ch-title" id="chat-title">Consulta activa</span>
+        <button class="ch-more" title="Más opciones">
+          <i data-lucide="more-vertical"></i>
+        </button>
+      </div>
+      <div class="voice-pill">
+        <i data-lucide="volume-x"></i>
+        <span>ARI</span>
+        <span class="vp-sep">•</span>
+        <span>Voz desactivada</span>
+      </div>
+    </header>
+
+    <!-- Messages -->
+    <div id="messages">
+
+      <div class="msg-row">
+        <div class="msg-connector">
+          <div class="avatar"><div class="av-dot"></div></div>
+          <div class="mc-line"></div>
+        </div>
+        <div class="msg-arrow"><i data-lucide="chevron-right"></i></div>
+        <div class="msg-body">
+          <div class="bubble">
+            <p>Memory search will be expanded here next.</p>
+          </div>
+          <div class="msg-meta">
+            <span>ARI</span>
+            <span>•</span>
+            <span>05:15 PM</span>
+            <div class="msg-check"><i data-lucide="check"></i></div>
           </div>
         </div>
       </div>
-      <div class="side-footer">
-        <div class="side-control">
-          <span aria-hidden="true"><svg class="lucide" viewBox="0 0 24 24"><path d="M16 9a5 5 0 0 1 0 6M19.4 5.6a10 10 0 0 1 0 12.8"/><path d="M11 5 6 9H2v6h4l5 4z"/><path d="m22 2-20 20"/></svg></span>
-          <span id="side-voice-status">Voz desactivada</span>
+
+      <div class="msg-row">
+        <div class="msg-connector">
+          <div class="avatar"><div class="av-dot"></div></div>
         </div>
-        <div style="position:relative">
-          <span aria-hidden="true" style="position:absolute;left:18px;top:18px;color:#F0B85A;z-index:1"><svg class="lucide" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 0 20"/><path d="M12 2a15.3 15.3 0 0 0 0 20"/></svg></span>
-          <select class="language-select side-control-select" id="app-language" aria-label="Language"></select>
-        </div>
-        <div class="user-card">
-          <div class="avatar">☉</div>
-          <div style="min-width:0">
-            <div class="user-name" id="sidebar-user-name">Signed out</div>
-            <div class="user-email" id="sidebar-user-email">Log in to use ARI</div>
+        <div class="msg-arrow"><i data-lucide="chevron-right"></i></div>
+        <div class="msg-body">
+          <div class="bubble">
+            <p>Activity view will be expanded here next.</p>
+          </div>
+          <div class="msg-meta">
+            <span>ARI</span>
+            <span>•</span>
+            <span>05:15 PM</span>
+            <div class="msg-check"><i data-lucide="check"></i></div>
           </div>
         </div>
       </div>
-    </aside>
 
-    <main class="main">
-      <header class="topbar">
-        <div>
-          <div class="chat-title">Active query</div>
-          <div class="chat-meta" id="chat-meta">ARI · login required</div>
-        </div>
-        <div class="actions">
-          <div class="badge"><span class="badge-dot"></span><span id="connection-label">LOGIN</span></div>
-          <button class="icon-btn" onclick="clearChat()" aria-label="Reset"><svg class="lucide" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 3v6h6"/></svg></button>
-          <button class="icon-btn" onclick="logoutUser()" aria-label="Cerrar"><svg class="lucide" viewBox="0 0 24 24"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button>
-        </div>
-      </header>
+    </div><!-- /messages -->
 
-      <section class="messages" id="messages">
-        <div class="welcome" id="welcome-state">
-          <div class="sun-wrap">
-            <svg width="56" height="56" viewBox="0 0 56 56" fill="none">
-              <circle cx="28" cy="28" r="9" stroke="#D99A3D" stroke-width=".7" opacity=".6"/>
-              <circle cx="28" cy="28" r="15" stroke="#D99A3D" stroke-width=".45" opacity=".3"/>
-              <circle cx="28" cy="28" r="21" stroke="#D99A3D" stroke-width=".35" opacity=".18"/>
-              <circle cx="28" cy="28" r="3" fill="#D99A3D" opacity=".22"/>
-              <circle cx="28" cy="28" r="1.5" fill="#D99A3D" opacity=".7"/>
-            </svg>
-          </div>
-          <div class="welcome-title">ARI is awake</div>
-          <div class="welcome-copy">A warm execution assistant for thought, memory and action.</div>
-          <div class="quick-row">
-            <button class="quick" onclick="sendQuick('Help me organize my next three priorities')">☉<b>Priorities</b><span>Shape the day into actions</span></button>
-            <button class="quick" onclick="sendQuick('Write a concise professional email')">✦<b>Writing</b><span>Draft with a clean tone</span></button>
-            <button class="quick" onclick="sendQuick('Summarize this idea into a product plan')">⊹<b>Product</b><span>Turn ideas into structure</span></button>
-            <button class="quick" onclick="sendQuick('Search my memory for launch plan')">◇<b>Memory</b><span>Recover useful context</span></button>
-          </div>
-        </div>
-      </section>
+    <!-- ════════════════════════════════
+         BOTTOM SHEET
+    ════════════════════════════════ -->
+    <div id="bottom-sheet">
 
-      <footer class="composer-wrap">
-        <div class="modes">
-          <button class="mode active" id="mode-text" onclick="setMode('text')">Text</button>
-          <button class="mode" id="mode-memory" onclick="setMode('memory')">Memory</button>
-          <button class="mode" id="mode-activity" onclick="setMode('activity')">Activity</button>
-          <button class="mode" id="mode-voice" onclick="toggleVoiceMode()">Voice</button>
-          <button class="mode" onclick="setAuthStatus('Files are not connected yet', 'error')">File</button>
+      <!-- Drag handle -->
+      <div class="bs-handle-bar" id="bs-handle"></div>
+
+      <!-- Expand arrow -->
+      <div class="bs-expand-row">
+        <button class="bs-expand-btn" id="bs-expand-btn" onclick="cycleSnap()">
+          <i data-lucide="chevron-up" id="bs-expand-icon"></i>
+        </button>
+      </div>
+
+      <!-- Tabs -->
+      <div class="bs-tabs">
+        <button class="bs-tab on" onclick="setTab(this)">
+          <i data-lucide="message-circle"></i> Texto
+        </button>
+        <button class="bs-tab off" onclick="setTab(this)">
+          <i data-lucide="brain"></i> Memoria
+        </button>
+        <button class="bs-tab off" onclick="setTab(this)">
+          <i data-lucide="trending-up"></i> Actividad
+        </button>
+      </div>
+
+      <!-- Action chips (visible at mid/open) -->
+      <div class="bs-chips" id="bs-chips">
+        <div class="chip">
+          <i data-lucide="search"></i> Buscar en memoria
         </div>
-        <div class="composer">
-          <textarea id="chat-input" rows="1" placeholder="Ask the sun..." oninput="autoResize(this)" onkeydown="handleKey(event)"></textarea>
-          <button class="voice-btn" id="voice-btn" onclick="startVoiceInput()" aria-label="Voice input">
-            <svg class="voice-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-              <path d="M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3Z"/>
-              <path d="M5 11a7 7 0 0 0 14 0M12 18v3M9 21h6"/>
-            </svg>
+        <div class="chip">
+          <i data-lucide="calendar"></i> Crear evento
+        </div>
+        <div class="chip">
+          <i data-lucide="file-text"></i> Resumir doc…
+        </div>
+      </div>
+
+      <!-- Input -->
+      <div class="bs-input-wrap">
+        <div class="bs-input-box">
+          <textarea
+            class="bs-textarea"
+            id="bs-input"
+            placeholder="Escribe un mensaje…"
+            rows="1"
+            oninput="autoResize(this)"
+            onkeydown="handleKey(event)"
+          >me dirías qué día es hoy por favor</textarea>
+          <button class="bs-mic" title="Micrófono">
+            <i data-lucide="mic"></i>
           </button>
-          <button class="send" onclick="sendMessage()" aria-label="Enviar"><svg class="lucide" viewBox="0 0 24 24"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg></button>
+          <button class="bs-send" onclick="sendMessage()" title="Enviar">
+            <i data-lucide="send"></i>
+          </button>
         </div>
-      </footer>
-    </main>
-  </div>
+      </div>
+
+      <!-- Extended content (open snap) -->
+      <div class="bs-extended" id="bs-extended">
+        <p class="bs-ext-title">Sugerencias recientes</p>
+        <div class="bs-ext-card">
+          <div class="bs-ext-card-title">¿Qué hay en mi calendario hoy?</div>
+          <div class="bs-ext-card-sub">Última consulta · hace 2 horas</div>
+        </div>
+        <div class="bs-ext-card">
+          <div class="bs-ext-card-title">Resume el documento del proyecto</div>
+          <div class="bs-ext-card-sub">Última consulta · ayer</div>
+        </div>
+        <div class="bs-ext-card">
+          <div class="bs-ext-card-title">Busca vuelos a Madrid para el viernes</div>
+          <div class="bs-ext-card-sub">Última consulta · ayer</div>
+        </div>
+      </div>
+
+    </div><!-- /bottom-sheet -->
+
+  </main>
 </div>
 
 <script>
-const cur=document.getElementById('cur'),cd=document.getElementById('cd');
-let mx=window.innerWidth/2,my=window.innerHeight/2,cx=mx,cy=my;
-let visualEffectsStarted=false;
-function animateCursor(){cx+=(mx-cx)*.09;cy+=(my-cy)*.09;cur.style.left=(cx-15)+'px';cur.style.top=(cy-15)+'px';requestAnimationFrame(animateCursor)}
+// ── LUCIDE INIT ───────────────────────────────
+lucide.createIcons();
 
-const cv=document.getElementById('cv'),ctx=cv.getContext('2d');
-function resize(){cv.width=window.innerWidth;cv.height=window.innerHeight;placeLibra()}
-window.addEventListener('resize',resize);
-
-const LIBRA_STARS=[
-  {name:'Zubenelgenubi', rx:.38,ry:.62,mag:.95,main:true},
-  {name:'Zubeneschamali',rx:.62,ry:.30,mag:1.0, main:true},
-  {name:'Zubenelakrab',  rx:.78,ry:.55,mag:.65, main:true},
-  {name:'Brachium',      rx:.18,ry:.72,mag:.60, main:false},
-  {name:'ι Lib',         rx:.55,ry:.78,mag:.45, main:false},
-  {name:'θ Lib',         rx:.30,ry:.42,mag:.40, main:false},
-  {name:'τ Lib',         rx:.70,ry:.88,mag:.38, main:false},
-  {name:'48 Lib',        rx:.45,ry:.18,mag:.35, main:false},
-  {name:'ν Lib',         rx:.88,ry:.40,mag:.32, main:false},
-];
-const LIBRA_LINES=[[0,5],[5,7],[7,1],[1,2],[0,1],[3,0],[2,8],[0,4],[1,6],[4,3]];
-let libraX=0,libraY=0,libraW=0,libraH=0;
-function placeLibra(){
-  libraW=Math.min(cv.width*.26,300);libraH=libraW*.85;libraX=60+cv.width*.03;libraY=60+cv.height*.05;
-  const lbl=document.getElementById('libra-lbl');lbl.style.left=(libraX+libraW*.3)+'px';lbl.style.top=(libraY+libraH+14)+'px';
-}
-function sp(s){return{x:libraX+s.rx*libraW,y:libraY+s.ry*libraH}}
-let fieldStars=[];
-let dust=[];
-let shoots=[];
-function addShoot(){shoots.push({x:Math.random()*cv.width,y:cv.height*.05+Math.random()*cv.height*.5,vx:2+Math.random()*3,vy:(Math.random()-.5)*.5,life:1});setTimeout(addShoot,5000+Math.random()*8000)}
-let t=0;
-function draw(){
-  t+=.008;ctx.clearRect(0,0,cv.width,cv.height);
-  const g1=ctx.createRadialGradient(cv.width*.5,cv.height*.5,0,cv.width*.5,cv.height*.5,cv.width*.55);
-  g1.addColorStop(0,'rgba(180,100,30,0.07)');g1.addColorStop(.5,'rgba(130,60,10,0.04)');g1.addColorStop(1,'transparent');ctx.fillStyle=g1;ctx.fillRect(0,0,cv.width,cv.height);
-  const g2=ctx.createRadialGradient(cv.width*.85,cv.height*.1,0,cv.width*.85,cv.height*.1,cv.width*.35);
-  g2.addColorStop(0,'rgba(200,90,30,0.05)');g2.addColorStop(1,'transparent');ctx.fillStyle=g2;ctx.fillRect(0,0,cv.width,cv.height);
-  const gL=ctx.createRadialGradient(libraX+libraW*.5,libraY+libraH*.5,0,libraX+libraW*.5,libraY+libraH*.5,libraW*.9);
-  gL.addColorStop(0,'rgba(201,169,110,0.04)');gL.addColorStop(1,'transparent');ctx.fillStyle=gL;ctx.fillRect(0,0,cv.width,cv.height);
-  fieldStars.forEach(s=>{const sx=s.x%cv.width,sy=s.y%cv.height,a=.1+.5*(.5+.5*Math.sin(t*s.sp*80+s.ph));ctx.beginPath();ctx.arc(sx,sy,s.r,0,Math.PI*2);ctx.fillStyle=s.warm?`rgba(255,215,100,${a})`:`rgba(247,242,236,${a})`;ctx.fill()});
-  dust.forEach(p=>{p.x+=p.vx;p.y+=p.vy;if(p.x<0)p.x=cv.width;if(p.x>cv.width)p.x=0;if(p.y<0)p.y=cv.height;if(p.y>cv.height)p.y=0;const a=.03+.07*(.5+.5*Math.sin(t*.3+p.x*.01));ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);ctx.fillStyle=`rgba(201,169,110,${a})`;ctx.fill()});
-  ctx.save();ctx.setLineDash([3,6]);LIBRA_LINES.forEach(([i,j])=>{const a=sp(LIBRA_STARS[i]),b=sp(LIBRA_STARS[j]);ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.strokeStyle=`rgba(201,169,110,${0.10+0.05*Math.sin(t*.35)})`;ctx.lineWidth=.65;ctx.stroke()});ctx.setLineDash([]);ctx.restore();
-  LIBRA_STARS.forEach((star,i)=>{const{x,y}=sp(star),tw=.5+.5*Math.sin(t*(1.4+i*.28)+star.rx*9),alph=star.mag*(.5+.5*tw),r=star.main?(1.8+tw*.7):(1.0+tw*.45);if(star.main){const gg=ctx.createRadialGradient(x,y,0,x,y,r*10);gg.addColorStop(0,`rgba(201,169,110,${alph*.22})`);gg.addColorStop(1,'transparent');ctx.fillStyle=gg;ctx.beginPath();ctx.arc(x,y,r*10,0,Math.PI*2);ctx.fill()}const gm=ctx.createRadialGradient(x,y,0,x,y,r*4);gm.addColorStop(0,`rgba(247,230,170,${alph*.55})`);gm.addColorStop(1,'transparent');ctx.fillStyle=gm;ctx.beginPath();ctx.arc(x,y,r*4,0,Math.PI*2);ctx.fill();ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fillStyle=`rgba(255,240,190,${.7+.3*tw})`;ctx.fill();if(star.main){const sl=5+tw*4,sa=alph*.38;ctx.save();ctx.strokeStyle=`rgba(247,220,130,${sa})`;ctx.lineWidth=.55;ctx.beginPath();ctx.moveTo(x-sl,y);ctx.lineTo(x+sl,y);ctx.stroke();ctx.beginPath();ctx.moveTo(x,y-sl);ctx.lineTo(x,y+sl);ctx.stroke();ctx.restore()}});
-  ctx.fillStyle='rgba(201,169,110,0.2)';ctx.font='200 8px Inter, sans-serif';LIBRA_STARS.filter(s=>s.main).forEach(s=>{const{x,y}=sp(s);ctx.fillText(s.name,x+8,y-6)});
-  shoots=shoots.filter(s=>{s.x+=s.vx;s.y+=s.vy;s.life-=.012;if(s.life<=0)return false;const sg=ctx.createLinearGradient(s.x-s.vx*20,s.y,s.x,s.y);sg.addColorStop(0,'transparent');sg.addColorStop(1,`rgba(201,169,110,${s.life*.5})`);ctx.beginPath();ctx.moveTo(s.x-s.vx*20,s.y);ctx.lineTo(s.x,s.y);ctx.strokeStyle=sg;ctx.lineWidth=.8;ctx.stroke();return true});
-  requestAnimationFrame(draw);
-}
-function startVisualEffects(){
-  if(visualEffectsStarted)return;
-  visualEffectsStarted=true;
-  document.body.classList.remove('booting');
-  document.addEventListener('mousemove',e=>{mx=e.clientX;my=e.clientY;cd.style.left=mx+'px';cd.style.top=my+'px'});
-  fieldStars=Array.from({length:180},()=>({x:Math.random()*9999,y:Math.random()*9999,r:.15+Math.random()*.7,ph:Math.random()*Math.PI*2,sp:.002+Math.random()*.008,warm:Math.random()<.4}));
-  dust=Array.from({length:45},()=>({x:Math.random()*window.innerWidth,y:Math.random()*window.innerHeight,vx:(Math.random()-.5)*.1,vy:(Math.random()-.5)*.1,r:.5+Math.random()*1.5}));
-  addShoot();
-  resize();
-  requestAnimationFrame(animateCursor);
-  requestAnimationFrame(draw);
-}
-
-let activeMode='text',authSession=null,authMode='login',currentConversationHasMessages=false,pendingAction=null,spokenReplies=localStorage.getItem('ari.spokenReplies')==='true',listening=false,mediaRecorder=null,voiceChunks=[];
-let userPrefs=loadUserPreferences();
-const SUPPORTED_APP_LANGUAGES=[['en','English'],['ru','Русский'],['uk','Українська'],['es','Español'],['de','Deutsch'],['it','Italiano'],['pt','Português']];
-const APP_I18N={
-  en:{align:'Align me ->',authCreate:'— create your ARI account first —',authLogin:'— log in to use ARI —',begin:'Begin your expansion',create:'Create account ->',email:'Email',forgot:'Forgot your key?',heading:'Access your light',login:'Login',newQuery:'New query ->',recent:'Recent queries',memory:'Memory',searchMemory:'Search memory',activityLog:'Activity log',returnChat:'Return to chat',signedOut:'Signed out',loginUse:'Log in to use ARI',activeQuery:'Active query',connected:'CONNECTED',loginRequired:'ARI · login required',privateUser:'Local User',text:'Text',activity:'Activity',voice:'Voice',file:'File',ask:'Ask the sun...',voiceOn:'ARI · voice replies on',voiceOff:'ARI · voice replies off',voiceSpeech:'Voice replies are on.',voiceTitle:'Speak to ARI',voiceUnsupported:'Voice input is not supported in this desktop webview',welcomeTitle:'ARI is awake',welcomeCopy:'A warm execution assistant for thought, memory and action.',priorities:'Priorities',prioritiesCopy:'Shape the day into actions',writing:'Writing',writingCopy:'Draft with a clean tone',product:'Product',productCopy:'Turn ideas into structure',memoryCopy:'Recover useful context',promptPriorities:'Help me organize my next three priorities',promptWriting:'Write a concise professional email',promptProduct:'Summarize this idea into a product plan',promptMemory:'Search my memory for launch plan',noQueries:'No queries yet'},
-  es:{align:'Entrar ->',authCreate:'— crea primero tu cuenta ARI —',authLogin:'— inicia sesion para usar ARI —',begin:'Comienza tu expansion',create:'Crear cuenta ->',email:'Email',forgot:'Olvidaste tu clave?',heading:'Accede a tu luz',login:'Entrar',newQuery:'Nueva consulta ->',recent:'Consultas recientes',memory:'Memoria',searchMemory:'Buscar memoria',activityLog:'Registro de actividad',returnChat:'Volver al chat',signedOut:'Sesion cerrada',loginUse:'Inicia sesion para usar ARI',activeQuery:'Consulta activa',connected:'CONECTADO',loginRequired:'ARI · acceso requerido',privateUser:'Usuario local',text:'Texto',activity:'Actividad',voice:'Voz',file:'Archivo',ask:'Pregunta al sol...',voiceOn:'ARI · respuestas de voz activas',voiceOff:'ARI · respuestas de voz apagadas',voiceSpeech:'Las respuestas de voz estan activas.',voiceTitle:'Hablar con ARI',voiceUnsupported:'La entrada de voz no esta soportada en esta vista desktop',welcomeTitle:'ARI esta despierta',welcomeCopy:'Un asistente calido de ejecucion para pensamiento, memoria y accion.',priorities:'Prioridades',prioritiesCopy:'Ordena el dia en acciones',writing:'Escritura',writingCopy:'Redacta con un tono limpio',product:'Producto',productCopy:'Convierte ideas en estructura',memoryCopy:'Recupera contexto util',promptPriorities:'Ayudame a organizar mis tres proximas prioridades',promptWriting:'Escribe un email profesional conciso',promptProduct:'Resume esta idea en un plan de producto',promptMemory:'Busca en mi memoria el plan de lanzamiento',noQueries:'Sin consultas todavia'}
-  ,ru:{align:'Войти ->',authCreate:'— сначала создайте аккаунт ARI —',authLogin:'— войдите, чтобы использовать ARI —',begin:'Начать расширение',create:'Создать аккаунт ->',email:'Email',forgot:'Забыли ключ?',heading:'Откройте свой свет',login:'Войти',newQuery:'Новый запрос ->',recent:'Недавние запросы',memory:'Память',searchMemory:'Поиск памяти',activityLog:'Журнал активности',returnChat:'Вернуться в чат',signedOut:'Сессия закрыта',loginUse:'Войдите, чтобы использовать ARI',activeQuery:'Активный запрос',connected:'ПОДКЛЮЧЕНО',loginRequired:'ARI · требуется вход',privateUser:'Локальный пользователь',text:'Текст',activity:'Активность',voice:'Голос',file:'Файл',ask:'Спросите солнце...',voiceOn:'ARI · голосовые ответы включены',voiceOff:'ARI · голосовые ответы выключены',voiceSpeech:'Голосовые ответы включены.',voiceTitle:'Говорить с ARI',voiceUnsupported:'Голосовой ввод не поддерживается в этом desktop webview',welcomeTitle:'ARI проснулась',welcomeCopy:'Теплый ассистент выполнения для мыслей, памяти и действий.',priorities:'Приоритеты',prioritiesCopy:'Превратить день в действия',writing:'Письмо',writingCopy:'Черновик с чистым тоном',product:'Продукт',productCopy:'Превратить идеи в структуру',memoryCopy:'Восстановить полезный контекст',promptPriorities:'Помоги организовать мои три ближайшие приоритета',promptWriting:'Напиши краткое профессиональное письмо',promptProduct:'Суммируй эту идею в продуктовый план',promptMemory:'Найди в моей памяти план запуска',noQueries:'Запросов пока нет'}
-  ,uk:{align:'Увійти ->',authCreate:'— спочатку створіть акаунт ARI —',authLogin:'— увійдіть, щоб використовувати ARI —',begin:'Почати розширення',create:'Створити акаунт ->',email:'Email',forgot:'Забули ключ?',heading:'Відкрийте своє світло',login:'Увійти',newQuery:'Новий запит ->',recent:'Нещодавні запити',memory:"Пам'ять",searchMemory:"Пошук пам'яті",activityLog:'Журнал активності',returnChat:'Повернутися до чату',signedOut:'Сесію закрито',loginUse:'Увійдіть, щоб використовувати ARI',activeQuery:'Активний запит',connected:'ПІДКЛЮЧЕНО',loginRequired:'ARI · потрібен вхід',privateUser:'Локальний користувач',text:'Текст',activity:'Активність',voice:'Голос',file:'Файл',ask:'Запитайте сонце...',voiceOn:'ARI · голосові відповіді увімкнено',voiceOff:'ARI · голосові відповіді вимкнено',voiceSpeech:'Голосові відповіді увімкнено.',voiceTitle:'Говорити з ARI',voiceUnsupported:'Голосове введення не підтримується в цьому desktop webview',welcomeTitle:'ARI прокинулась',welcomeCopy:"Теплий асистент виконання для думок, пам'яті й дій.",priorities:'Пріоритети',prioritiesCopy:'Перетвори день на дії',writing:'Письмо',writingCopy:'Чернетка з чистим тоном',product:'Продукт',productCopy:'Перетвори ідеї на структуру',memoryCopy:'Відновити корисний контекст',promptPriorities:'Допоможи організувати мої три найближчі пріоритети',promptWriting:'Напиши короткий професійний лист',promptProduct:'Підсумуй цю ідею в продуктовий план',promptMemory:"Знайди в моїй пам'яті план запуску",noQueries:'Запитів поки немає'}
-  ,de:{align:'Einloggen ->',authCreate:'— erstelle zuerst dein ARI-Konto —',authLogin:'— melde dich an, um ARI zu nutzen —',begin:'Beginne deine Erweiterung',create:'Konto erstellen ->',email:'Email',forgot:'Schlüssel vergessen?',heading:'Greife auf dein Licht zu',login:'Login',newQuery:'Neue Anfrage ->',recent:'Letzte Anfragen',memory:'Speicher',searchMemory:'Speicher suchen',activityLog:'Aktivitätsprotokoll',returnChat:'Zurück zum Chat',signedOut:'Abgemeldet',loginUse:'Melde dich an, um ARI zu nutzen',activeQuery:'Aktive Anfrage',connected:'VERBUNDEN',loginRequired:'ARI · Login erforderlich',privateUser:'Lokaler Benutzer',text:'Text',activity:'Aktivität',voice:'Stimme',file:'Datei',ask:'Frag die Sonne...',voiceOn:'ARI · Sprachantworten an',voiceOff:'ARI · Sprachantworten aus',voiceSpeech:'Sprachantworten sind aktiviert.',voiceTitle:'Mit ARI sprechen',voiceUnsupported:'Spracheingabe wird in dieser Desktop-Webview nicht unterstützt',welcomeTitle:'ARI ist wach',welcomeCopy:'Ein warmer Ausführungsassistent für Gedanken, Speicher und Aktionen.',priorities:'Prioritäten',prioritiesCopy:'Den Tag in Aktionen formen',writing:'Schreiben',writingCopy:'Entwurf mit klarem Ton',product:'Produkt',productCopy:'Ideen in Struktur verwandeln',memoryCopy:'Nützlichen Kontext wiederfinden',promptPriorities:'Hilf mir, meine nächsten drei Prioritäten zu organisieren',promptWriting:'Schreibe eine kurze professionelle E-Mail',promptProduct:'Fasse diese Idee als Produktplan zusammen',promptMemory:'Suche in meinem Speicher nach dem Launch-Plan',noQueries:'Noch keine Anfragen'}
-  ,it:{align:'Entra ->',authCreate:'— crea prima il tuo account ARI —',authLogin:'— accedi per usare ARI —',begin:'Inizia la tua espansione',create:'Crea account ->',email:'Email',forgot:'Hai dimenticato la chiave?',heading:'Accedi alla tua luce',login:'Accesso',newQuery:'Nuova query ->',recent:'Query recenti',memory:'Memoria',searchMemory:'Cerca memoria',activityLog:'Registro attività',returnChat:'Torna alla chat',signedOut:'Sessione chiusa',loginUse:'Accedi per usare ARI',activeQuery:'Query attiva',connected:'CONNESSO',loginRequired:'ARI · accesso richiesto',privateUser:'Utente locale',text:'Testo',activity:'Attività',voice:'Voce',file:'File',ask:'Chiedi al sole...',voiceOn:'ARI · risposte vocali attive',voiceOff:'ARI · risposte vocali disattivate',voiceSpeech:'Le risposte vocali sono attive.',voiceTitle:'Parla con ARI',voiceUnsupported:'Input vocale non supportato in questa desktop webview',welcomeTitle:'ARI è sveglia',welcomeCopy:'Un assistente caldo di esecuzione per pensiero, memoria e azione.',priorities:'Priorità',prioritiesCopy:'Dai forma alla giornata in azioni',writing:'Scrittura',writingCopy:'Bozza con un tono pulito',product:'Prodotto',productCopy:'Trasforma idee in struttura',memoryCopy:'Recupera contesto utile',promptPriorities:'Aiutami a organizzare le mie prossime tre priorità',promptWriting:'Scrivi una email professionale concisa',promptProduct:'Riassumi questa idea in un piano prodotto',promptMemory:'Cerca nella mia memoria il piano di lancio',noQueries:'Ancora nessuna query'}
-  ,pt:{align:'Entrar ->',authCreate:'— crie primeiro sua conta ARI —',authLogin:'— entre para usar ARI —',begin:'Comece sua expansão',create:'Criar conta ->',email:'Email',forgot:'Esqueceu sua chave?',heading:'Acesse sua luz',login:'Entrar',newQuery:'Nova consulta ->',recent:'Consultas recentes',memory:'Memória',searchMemory:'Buscar memória',activityLog:'Registro de atividade',returnChat:'Voltar ao chat',signedOut:'Sessão encerrada',loginUse:'Entre para usar ARI',activeQuery:'Consulta ativa',connected:'CONECTADO',loginRequired:'ARI · login necessário',privateUser:'Usuário local',text:'Texto',activity:'Atividade',voice:'Voz',file:'Arquivo',ask:'Pergunte ao sol...',voiceOn:'ARI · respostas de voz ativas',voiceOff:'ARI · respostas de voz desligadas',voiceSpeech:'As respostas de voz estão ativas.',voiceTitle:'Falar com ARI',voiceUnsupported:'Entrada de voz não suportada nesta desktop webview',welcomeTitle:'ARI está desperta',welcomeCopy:'Um assistente caloroso de execução para pensamento, memória e ação.',priorities:'Prioridades',prioritiesCopy:'Transforme o dia em ações',writing:'Escrita',writingCopy:'Rascunho com tom limpo',product:'Produto',productCopy:'Transforme ideias em estrutura',memoryCopy:'Recupere contexto útil',promptPriorities:'Ajude-me a organizar minhas próximas três prioridades',promptWriting:'Escreva um email profissional conciso',promptProduct:'Resuma esta ideia em um plano de produto',promptMemory:'Busque na minha memória o plano de lançamento',noQueries:'Ainda sem consultas'}
+// ── ARI REAL SESSION FLOW ─────────────────────
+const ari = {
+  token: localStorage.getItem('ari.token') || '',
+  workspaceId: localStorage.getItem('ari.workspaceId') || '',
+  currentThreadId: localStorage.getItem('ari.currentThreadId') || '',
+  spokenReplies: localStorage.getItem('ari.spokenReplies') === 'true',
+  threads: [],
 };
-function normalizeAppLanguage(value){return String(value||'en').toLowerCase().replace('_','-').split('-')[0]||'en'}
-function detectDeviceLanguage(){
-  const languages=(navigator.languages&&navigator.languages.length?navigator.languages:[navigator.language]).filter(Boolean);
-  const normalized=languages.map(normalizeAppLanguage);
-  return normalized.find(code=>APP_I18N[code])||normalized[0]||'en';
-}
-userPrefs.appLanguage=detectDeviceLanguage();
-if(!userPrefs.replyLanguage)userPrefs.replyLanguage=userPrefs.appLanguage;
-function appTranslationLanguage(){return APP_I18N[userPrefs.appLanguage]?userPrefs.appLanguage:'en'}
-function appText(key){const language=appTranslationLanguage();return APP_I18N[language]?.[key]||APP_I18N.en[key]||key}
-function appLocale(){return {de:'de-DE',en:'en-US',es:'es-ES',it:'it-IT',pt:'pt-PT',ru:'ru-RU',uk:'uk-UA'}[userPrefs.appLanguage]||userPrefs.appLanguage||'en-US'}
-function lucideIcon(name){
-  const icons={
-    message:'<svg class="lucide" viewBox="0 0 24 24"><path d="M21 15a4 4 0 0 1-4 4H7l-4 4V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"/></svg>',
-    brain:'<svg class="lucide" viewBox="0 0 24 24"><path d="M12 5a3 3 0 0 0-5.6-1.5A3.5 3.5 0 0 0 3 7a3 3 0 0 0 1 2.2A4 4 0 0 0 4 16a4 4 0 0 0 4 4h1"/><path d="M12 5a3 3 0 0 1 5.6-1.5A3.5 3.5 0 0 1 21 7a3 3 0 0 1-1 2.2A4 4 0 0 1 20 16a4 4 0 0 1-4 4h-1"/><path d="M12 5v16"/><path d="M8 8h.01"/><path d="M16 8h.01"/></svg>',
-    trend:'<svg class="lucide" viewBox="0 0 24 24"><path d="m3 17 6-6 4 4 8-8"/><path d="M14 7h7v7"/></svg>',
-    calendar:'<svg class="lucide" viewBox="0 0 24 24"><path d="M8 2v4"/><path d="M16 2v4"/><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M3 10h18"/></svg>',
-    plane:'<svg class="lucide" viewBox="0 0 24 24"><path d="M17.8 19.2 16 11l3.5-3.5c1.4-1.4 1.4-3.6 0-5s-3.6-1.4-5 0L11 6 2.8 4.2 2 5l6 4-4 4-3-.5-.5.5 3.5 3.5L7.5 20l.5-.5-.5-3 4-4 4 6z"/></svg>',
-    file:'<svg class="lucide" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M16 13H8"/><path d="M16 17H8"/><path d="M10 9H8"/></svg>',
-    folder:'<svg class="lucide" viewBox="0 0 24 24"><path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.7-.9L9.6 3.9A2 2 0 0 0 7.9 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/></svg>',
-    terminal:'<svg class="lucide" viewBox="0 0 24 24"><path d="m7 11 3-3-3-3"/><path d="M11 13h4"/><rect x="3" y="4" width="18" height="16" rx="2"/></svg>',
-    task:'<svg class="lucide" viewBox="0 0 24 24"><path d="m9 11 3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>',
-    notes:'<svg class="lucide" viewBox="0 0 24 24"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>'
-  };
-  return icons[name]||icons.message;
-}
-function normalizeIconText(value){return String(value||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'')}
-function iconForTask(text){
-  const value=normalizeIconText(text);
-  if(/\b(calendar|agenda|meeting|reunion|evento|cita|manana|schedule)\b/.test(value))return 'calendar';
-  if(/\b(viaje|travel|flight|vuelo|hotel|madrid|airport|aeropuerto|trip)\b/.test(value))return 'plane';
-  if(/\b(document|documento|pdf|resumen|summar|analisis|doc)\b/.test(value))return 'file';
-  if(/\b(file|archivo|folder|carpeta|organizar|important)\b/.test(value))return 'folder';
-  if(/\b(script|terminal|command|comando|automatizacion|shell|mac)\b/.test(value))return 'terminal';
-  if(/\b(task|tarea|pendiente|todo|checklist|lista)\b/.test(value))return 'task';
-  if(/\b(note|nota|personal|idea|recordatorio)\b/.test(value))return 'notes';
-  if(/\b(memory|memoria|remember|recuerda|recuerdo)\b/.test(value))return 'brain';
-  if(/\b(activity|actividad|log|registro|progreso)\b/.test(value))return 'trend';
-  return 'message';
-}
-function formatActiveDate(date=new Date()){
-  const language=appTranslationLanguage();
-  if(language==='es'){
-    const weekday=new Intl.DateTimeFormat('es-ES',{weekday:'short'}).format(date).replace('.', '').normalize('NFD').replace(/[\u0300-\u036f]/g,'');
-    const day=new Intl.DateTimeFormat('es-ES',{day:'numeric'}).format(date);
-    const month=new Intl.DateTimeFormat('es-ES',{month:'long'}).format(date);
-    const year=new Intl.DateTimeFormat('es-ES',{year:'numeric'}).format(date);
-    const rest=`${day} de ${month} ${year}`;
-    return `${weekday.charAt(0).toUpperCase()}${weekday.slice(1)} ${rest}`;
-  }
-  return new Intl.DateTimeFormat(appLocale(),{weekday:'short',day:'numeric',month:'long',year:'numeric'}).format(date).replace(/\./g,'');
-}
-function activeQueryMeta(){return formatActiveDate()}
-function desktopText(key){
-  const texts={
-    sessionClosed:{en:'— session closed —',ru:'— сессия закрыта —',uk:'— сесію закрито —',es:'— sesion cerrada —',de:'— Sitzung geschlossen —',it:'— sessione chiusa —',pt:'— sessão encerrada —'},
-    memoryPlaceholder:{en:'Search your memory...',ru:'Искать в памяти...',uk:"Шукати в пам'яті...",es:'Buscar en tu memoria...',de:'Speicher durchsuchen...',it:'Cerca nella memoria...',pt:'Buscar na memória...'},
-    activityReadonly:{en:'Activity is read-only...',ru:'Активность только для чтения...',uk:'Активність лише для читання...',es:'Actividad de solo lectura...',de:'Aktivität ist schreibgeschützt...',it:'Attività in sola lettura...',pt:'Atividade somente leitura...'},
-    transcribing:{en:'ARI · transcribing',ru:'ARI · расшифровка',uk:'ARI · транскрибування',es:'ARI · transcribiendo',de:'ARI · transkribiert',it:'ARI · trascrizione',pt:'ARI · transcrevendo'},
-    memoryActive:{en:'ARI · memory active',ru:'ARI · память активна',uk:"ARI · пам'ять активна",es:'ARI · memoria activa',de:'ARI · Speicher aktiv',it:'ARI · memoria attiva',pt:'ARI · memória ativa'},
-    listening:{en:'ARI · listening',ru:'ARI · слушает',uk:'ARI · слухає',es:'ARI · escuchando',de:'ARI · hört zu',it:'ARI · ascolta',pt:'ARI · ouvindo'}
-  };
-  return texts[key]?.[userPrefs.appLanguage]||texts[key]?.en||key;
-}
-function buildLanguageSelects(){
-  ['app-language'].forEach(id=>{
-    const select=document.getElementById(id);if(!select)return;
-    const options=SUPPORTED_APP_LANGUAGES.some(([code])=>code===userPrefs.appLanguage)?SUPPORTED_APP_LANGUAGES:[[userPrefs.appLanguage,userPrefs.appLanguage.toUpperCase()],...SUPPORTED_APP_LANGUAGES];
-    select.innerHTML=options.map(([code,label])=>`<option value="${code}">${label}</option>`).join('')+'<option value="__custom">Other...</option>';
-    select.value=userPrefs.appLanguage;
-    select.onchange=()=>{
-      if(select.value==='__custom'){
-        const custom=prompt('Language code, for example sv, ro, id, ca');
-        setAppLanguage(custom||userPrefs.appLanguage);
-        return;
-      }
-      setAppLanguage(select.value);
-    };
-  });
-}
-function setAppLanguage(language){
-  userPrefs.appLanguage=normalizeAppLanguage(language);
-  if(!userPrefs.replyLanguage)userPrefs.replyLanguage=userPrefs.appLanguage;
-  saveUserPreferences();
-  applyAppLanguage();
-}
-function applyAppLanguage(){
-  document.documentElement.lang=userPrefs.appLanguage;
-  ['app-language'].forEach(id=>{const el=document.getElementById(id);if(el)el.value=userPrefs.appLanguage});
-  document.getElementById('auth-heading').textContent=appText('heading');
-  document.querySelector('label[for="auth-email"], .fg label')?.replaceChildren(document.createTextNode(appText('email')));
-  document.querySelector('#forgot-row .link').textContent=appText('forgot');
-  document.querySelectorAll('.side-label')[0].textContent=userPrefs.appLanguage==='es'?'Todas las conversaciones':appText('recent');
-  document.querySelector('.chat-title').textContent=appText('activeQuery');
-  document.getElementById('mode-text').textContent=appText('text');
-  document.getElementById('mode-memory').textContent=appText('memory');
-  document.getElementById('mode-activity').textContent=appText('activity');
-  document.getElementById('mode-voice').textContent=appText('voice');
-  document.querySelector('.modes .mode:last-child').textContent=appText('file');
-  setAuthMode(authMode);
-  syncVoiceControls();
-  clearChat();
-  if(authSession)hydrateSession(authSession);else logoutLabels();
-}
-let toolCatalog={};
-const invoke=window.__TAURI__?.core?.invoke;
-const productionBackendUrl='https://ari.flusscreative.com';
-let backendUrl=productionBackendUrl;
-const localMemoryRoot='/tmp/ai-assistant-memory';
 
-function loadUserPreferences(){try{return JSON.parse(localStorage.getItem('ari.preferences')||'{}')}catch(_error){return {}}}
-function saveUserPreferences(){localStorage.setItem('ari.preferences',JSON.stringify(userPrefs))}
-window.addEventListener('keydown',event=>{
-  if((event.metaKey||event.ctrlKey)&&event.key.toLowerCase()==='r'){
-    event.preventDefault();
-    window.location.reload();
+function authHeaders(extra = {}) {
+  return {
+    ...(ari.token ? { Authorization: `Bearer ${ari.token}` } : {}),
+    ...extra,
+  };
+}
+
+async function readError(response) {
+  try {
+    const data = await response.json();
+    return data.detail || data.message || JSON.stringify(data);
+  } catch {
+    return response.statusText || 'Error';
   }
+}
+
+function normalizeTaskText(value) {
+  return String(value || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+}
+
+function iconNameForTask(text) {
+  const value = normalizeTaskText(text);
+  if (/\b(calendar|agenda|meeting|reunion|evento|cita|manana|schedule)\b/.test(value)) return 'calendar';
+  if (/\b(viaje|travel|flight|vuelo|hotel|madrid|airport|aeropuerto|trip)\b/.test(value)) return 'send';
+  if (/\b(document|documento|pdf|resumen|summar|analisis|doc)\b/.test(value)) return 'file-text';
+  if (/\b(file|archivo|folder|carpeta|organizar|important)\b/.test(value)) return 'folder';
+  if (/\b(script|terminal|command|comando|automatizacion|shell|mac)\b/.test(value)) return 'terminal';
+  if (/\b(task|tarea|pendiente|todo|checklist|lista)\b/.test(value)) return 'check-square';
+  if (/\b(note|nota|personal|idea|recordatorio)\b/.test(value)) return 'book-open';
+  if (/\b(memory|memoria|remember|recuerda|recuerdo)\b/.test(value)) return 'brain';
+  if (/\b(activity|actividad|log|registro|progreso)\b/.test(value)) return 'trending-up';
+  return 'message-circle';
+}
+
+function iconClassForTask(icon) {
+  if (icon === 'calendar') return 'ic-cal';
+  if (icon === 'send') return 'ic-plane';
+  if (icon === 'file-text') return 'ic-doc';
+  if (icon === 'folder') return 'ic-folder';
+  if (icon === 'terminal') return 'ic-term';
+  if (icon === 'check-square') return 'ic-task';
+  if (icon === 'book-open') return 'ic-notes';
+  if (icon === 'brain') return 'ic-doc';
+  if (icon === 'trending-up') return 'ic-term';
+  return 'ic-chat';
+}
+
+// ── SIDEBAR ───────────────────────────────────
+const sidebar   = document.getElementById('sidebar');
+const overlay   = document.getElementById('sb-overlay');
+const toggleBtn = document.getElementById('sb-toggle');
+let sbOpen = false;
+
+function openSidebar() {
+  sbOpen = true;
+  sidebar.classList.add('open');
+  overlay.classList.add('visible');
+  requestAnimationFrame(() => overlay.classList.add('active'));
+  updateToggleIcon();
+}
+function closeSidebar() {
+  sbOpen = false;
+  sidebar.classList.remove('open');
+  overlay.classList.remove('active');
+  setTimeout(() => overlay.classList.remove('visible'), 300);
+  updateToggleIcon();
+}
+function toggleSidebar() { sbOpen ? closeSidebar() : openSidebar(); }
+function updateToggleIcon() {
+  const icon = toggleBtn.querySelector('i');
+  icon.setAttribute('data-lucide', sbOpen ? 'x' : 'menu');
+  lucide.createIcons();
+}
+
+// Close sidebar on small screens when resized big
+window.addEventListener('resize', () => {
+  if (window.innerWidth > 900 && sbOpen) closeSidebar();
 });
-function afterFirstPaint(fn){requestAnimationFrame(()=>setTimeout(fn,0))}
-function loadFontsLater(){
-  const link=document.createElement('link');
-  link.rel='stylesheet';
-  link.href='https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@1,500&family=Inter:wght@400;500;600&display=swap';
-  document.head.appendChild(link);
+
+// ── CONVERSATIONS ─────────────────────────────
+function selectConv(el) {
+  document.querySelectorAll('.ci').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  const name = el.querySelector('.ci-name');
+  if (name) document.getElementById('chat-title').textContent = name.textContent;
+  if (el.dataset.threadId) openThread(el.dataset.threadId);
+  // On mobile, close sidebar after selecting
+  if (window.innerWidth < 700) closeSidebar();
 }
-function isLocalBackendUrl(url){
-  try{
-    const parsed=new URL(url);
-    return ['localhost','127.0.0.1','0.0.0.0','::1'].includes(parsed.hostname);
-  }catch(_error){
-    return false;
+
+// ── TABS ──────────────────────────────────────
+function setTab(btn) {
+  btn.closest('.bs-tabs').querySelectorAll('.bs-tab')
+    .forEach(t => { t.classList.remove('on'); t.classList.add('off'); });
+  btn.classList.remove('off');
+  btn.classList.add('on');
+}
+
+// ── BOTTOM SHEET SNAPS ────────────────────────
+// snap 0 = closed (small), 1 = mid, 2 = open
+const SNAPS = [0, 1, 2];
+let currentSnap = 0;
+
+function getSnapHeight(snap) {
+  const vh = window.innerHeight;
+  if (snap === 0) return Math.min(Math.max(vh * 0.22, 170), 210);
+  if (snap === 1) return Math.min(Math.max(vh * 0.42, 320), 400);
+  return  Math.min(Math.max(vh * 0.65, 420), 560);
+}
+
+const bs      = document.getElementById('bottom-sheet');
+const chips   = document.getElementById('bs-chips');
+const ext     = document.getElementById('bs-extended');
+const expIcon = document.getElementById('bs-expand-icon');
+
+function applySnap(snap, animate = true) {
+  currentSnap = snap;
+  const h = getSnapHeight(snap);
+  if (!animate) bs.style.transition = 'none';
+  bs.style.height = h + 'px';
+  if (!animate) requestAnimationFrame(() => bs.style.transition = '');
+
+  // chips visible at snap 1+
+  snap >= 1 ? chips.classList.add('visible') : chips.classList.remove('visible');
+  // extended visible at snap 2
+  snap === 2 ? ext.classList.add('visible') : ext.classList.remove('visible');
+
+  // arrow direction
+  expIcon.setAttribute('data-lucide', snap === 2 ? 'chevron-down' : 'chevron-up');
+  lucide.createIcons();
+}
+
+function cycleSnap() {
+  applySnap(currentSnap < 2 ? currentSnap + 1 : 0);
+}
+
+// Init
+applySnap(0, false);
+window.addEventListener('resize', () => applySnap(currentSnap, false));
+
+// ── BOTTOM SHEET DRAG ─────────────────────────
+const handle = document.getElementById('bs-handle');
+let dragStartY = 0, dragStartH = 0, dragging = false;
+
+function dragStart(e) {
+  dragging = true;
+  dragStartY = e.touches ? e.touches[0].clientY : e.clientY;
+  dragStartH = bs.offsetHeight;
+  bs.style.transition = 'none';
+  document.addEventListener('mousemove', dragMove);
+  document.addEventListener('mouseup',   dragEnd);
+  document.addEventListener('touchmove', dragMove, { passive: false });
+  document.addEventListener('touchend',  dragEnd);
+}
+function dragMove(e) {
+  if (!dragging) return;
+  if (e.cancelable) e.preventDefault();
+  const y   = e.touches ? e.touches[0].clientY : e.clientY;
+  const dy  = dragStartY - y;
+  const h   = Math.max(100, Math.min(dragStartH + dy, window.innerHeight * 0.9));
+  bs.style.height = h + 'px';
+  // live chip/ext visibility
+  h >= getSnapHeight(1) * 0.7 ? chips.classList.add('visible') : chips.classList.remove('visible');
+  h >= getSnapHeight(2) * 0.7 ? ext.classList.add('visible')   : ext.classList.remove('visible');
+}
+function dragEnd() {
+  dragging = false;
+  document.removeEventListener('mousemove', dragMove);
+  document.removeEventListener('mouseup',   dragEnd);
+  document.removeEventListener('touchmove', dragMove);
+  document.removeEventListener('touchend',  dragEnd);
+  bs.style.transition = '';
+  // Snap to nearest
+  const h = bs.offsetHeight;
+  const dists = SNAPS.map(s => Math.abs(getSnapHeight(s) - h));
+  const nearest = dists.indexOf(Math.min(...dists));
+  applySnap(nearest);
+}
+handle.addEventListener('mousedown',  dragStart);
+handle.addEventListener('touchstart', dragStart, { passive: true });
+
+// ── TEXTAREA AUTO RESIZE ──────────────────────
+function autoResize(el) {
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 96) + 'px';
+}
+autoResize(document.getElementById('bs-input'));
+
+// ── SEND MESSAGE ──────────────────────────────
+async function sendMessage() {
+  const input = document.getElementById('bs-input');
+  const text  = input.value.trim();
+  if (!text) return;
+
+  input.value = '';
+  input.style.height = 'auto';
+  appendMessage(text, 'user');
+
+  if (!ari.token || !ari.workspaceId) {
+    appendMessage('Esta vista ya está conectada al diseño final. Inicia sesión en ARI para usar memoria y acciones reales.', 'ai');
+    applySnap(0);
+    return;
   }
-}
-async function loadDefaultBackendUrl(){
-  if(!invoke)return;
-  try{
-    backendUrl=await invoke('default_backend_url')||productionBackendUrl;
-  }catch(_error){
-    backendUrl=productionBackendUrl;
-  }
-}
-async function loadToolCatalog(){
-  try{
-    const response=await fetch(`${backendUrl}/api/v1/tools/`);
-    if(!response.ok)throw new Error(`tool catalog returned ${response.status}`);
-    const tools=await response.json();
-    toolCatalog=Object.fromEntries(tools.map(tool=>[tool.name,tool]));
-    document.getElementById('connection-label').title=`${tools.length} tools available`;
-    return tools;
-  }catch(_error){
-    toolCatalog={};
-    document.getElementById('connection-label').title='Tool catalog unavailable; using local fallbacks';
-    return [];
-  }
-}
-function toolMeta(actionOrName){const name=typeof actionOrName==='string'?actionOrName:actionOrName.tool;return toolCatalog[name]||null}
-function toolRequiresConfirmation(action,fallback=false){
-  const meta=toolMeta(action);
-  return meta?Boolean(meta.requires_confirmation):fallback;
-}
-function toolRiskLabel(action){const meta=toolMeta(action);return meta&&meta.risk_level?meta.risk_level:'local'}
-function actionParams(action){
-  if(action.tool==='create_calendar_event'){
-    const d=action.draft||{};
-    return {calendar:d.calendar,title:d.title,start:d.start,end:d.end};
-  }
-  if(action.tool==='create_reminder'){
-    const d=action.draft||{};
-    return {list:d.list,title:d.title,due:d.due};
-  }
-  if(action.tool==='open_browser_url')return {url:action.url};
-  if(action.tool==='append_journal_entry')return {section:action.section,text:action.text,date:action.date};
-  if(action.tool==='read_journal_overview')return {date:action.date};
-  if(action.tool==='search_memory')return {query:action.query,limit:action.limit};
-  if(action.tool==='get_weather')return {city:action.city,latitude:action.latitude,longitude:action.longitude};
-  return {};
-}
-function actionFromModelIntent(intent){
-  if(!intent||intent.intent!=='tool'||!intent.tool_name||intent.confidence<0.65)return null;
-  const params=intent.params&&typeof intent.params==='object'?intent.params:{};
-  const language=intent.language||replyLanguage('');
-  if(intent.tool_name==='create_calendar_event'){
-    const start=params.start?new Date(params.start):null,end=params.end?new Date(params.end):null;
-    const durationMinutes=start&&end?Math.max(1,Math.round((end-start)/60000)):30;
-    const draft={
-      title:params.title||'',
-      calendar:params.calendar||'',
-      start:params.start||'',
-      end:params.end||'',
-      durationMinutes,
-      language
-    };
-    if(start&&!Number.isNaN(start.getTime())){
-      draft.date=localDateString(start);
-      draft.dateLabel=draft.date;
-      draft.hour=start.getHours();
-      draft.minute=start.getMinutes();
-      draft.timeLabel=`${pad2(draft.hour)}:${pad2(draft.minute)}`;
-    }
-    const missing=Array.isArray(intent.missing)?intent.missing:[];
-    draft.missingCalendar=missing.includes('calendar');
-    return {tool:'create_calendar_event',draft,missing,modelInterpreted:true,orchestratorReply:intent.reply};
-  }
-  if(intent.tool_name==='create_reminder'){
-    const due=params.due?new Date(params.due):null;
-    const draft={title:params.title||'',list:params.list||'',due:params.due||'',language};
-    if(due&&!Number.isNaN(due.getTime())){
-      draft.date=localDateString(due);
-      draft.dateLabel=draft.date;
-      draft.hour=due.getHours();
-      draft.minute=due.getMinutes();
-      draft.timeLabel=`${pad2(draft.hour)}:${pad2(draft.minute)}`;
-    }
-    const missing=Array.isArray(intent.missing)?intent.missing:[];
-    draft.missingList=missing.includes('list');
-    return {tool:'create_reminder',draft,missing,modelInterpreted:true,orchestratorReply:intent.reply};
-  }
-  if(intent.tool_name==='open_browser_url')return {tool:'open_browser_url',url:params.url,modelInterpreted:true,orchestratorReply:intent.reply};
-  if(intent.tool_name==='list_calendars')return {tool:'list_calendars',modelInterpreted:true,orchestratorReply:intent.reply};
-  if(intent.tool_name==='list_reminder_lists')return {tool:'list_reminder_lists',modelInterpreted:true,orchestratorReply:intent.reply};
-  if(intent.tool_name==='get_weather')return {tool:'get_weather',city:params.city,latitude:params.latitude,longitude:params.longitude,language,modelInterpreted:true,orchestratorReply:intent.reply};
-  return null;
-}
-function pendingActionPayload(){
-  return pendingAction?{tool:pendingAction.tool,params:actionParams(pendingAction),missing:pendingAction.missing||[]}:null;
-}
-async function orchestrateUserMessage(text){
-  if(!invoke||!authSession)return null;
-  const result=await invoke('orchestrate_with_ari',{
-    message:text,
-    pendingAction:pendingActionPayload(),
-    useMemory:true,
-    memoryLimit:8
-  });
-  const action=actionFromModelIntent({
-    intent:result.tool_name?'tool':'none',
-    tool_name:result.tool_name,
-    params:result.params,
-    missing:result.missing,
-    confidence:result.confidence,
-    language:result.language,
-    reply:result.reply
-  });
-  return {...result,action};
-}
-function toolSpecNameForAction(action){
-  if(action.tool==='create_calendar_event')return 'calendar_event';
-  if(action.tool==='create_reminder')return 'reminder';
-  if(action.tool==='open_browser_url')return 'open_url';
-  if(action.tool==='get_weather')return 'weather';
-  return action.tool;
-}
-function missingRequiredToolFields(action){
-  const meta=toolMeta(action),required=meta?.schema?.required||[];
-  if(!required.length)return [];
-  const params=actionParams(action);
-  return required.filter(name=>params[name]===undefined||params[name]===null||params[name]==='');
-}
-function auditPayload(action,extra={}){
-  return {
-    tool: action.tool,
-    params: actionParams(action),
-    risk_level: toolRiskLabel(action),
-    requires_confirmation: toolRequiresConfirmation(action,false),
-    ...extra
-  };
-}
-async function auditToolEvent(eventType,action,extra={}){
-  if(!invoke||!authSession||!action?.tool)return;
-  try{
-    await invoke('audit_tool_event',{
-      eventType,
-      toolName:action.tool,
-      payload:auditPayload(action,extra)
+
+  try {
+    await ensureActiveThread(text);
+    const response = await fetch(`/api/v1/messages/${ari.workspaceId}/chat`, {
+      method: 'POST',
+      headers: authHeaders({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify({ message: text, thread_id: ari.currentThreadId, use_memory: true, memory_limit: 8 }),
     });
-  }catch(_error){}
-}
-function makeIdempotencyKey(action){
-  if(action.idempotencyKey)return action.idempotencyKey;
-  const random=window.crypto?.randomUUID?.()||`${Date.now()}-${Math.random().toString(16).slice(2)}`;
-  action.idempotencyKey=`ari-${action.tool}-${random}`;
-  return action.idempotencyKey;
-}
-async function createBackendActionFor(action,extra={}){
-  if(!invoke||!authSession||!action?.tool||action.backendAction||!toolMeta(action))return null;
-  const backendAction=await invoke('create_backend_action',{
-    toolName:action.tool,
-    params:actionParams(action),
-    idempotencyKey:makeIdempotencyKey(action)
-  });
-  action.backendAction=backendAction;
-  await auditToolEvent('action_created',action,{backend_action_id:backendAction.id,status:backendAction.status,...extra});
-  return backendAction;
-}
-async function confirmBackendActionFor(action){
-  if(!invoke||!authSession||!action?.tool||!toolMeta(action))return null;
-  const backendAction=action.backendAction||await createBackendActionFor(action,{created_during:'confirm'});
-  if(!backendAction?.requires_confirmation)return backendAction;
-  if(!backendAction.confirmation_token)throw new Error('Backend did not return a confirmation token for this action.');
-  const confirmed=await invoke('confirm_backend_action',{
-    actionId:backendAction.id,
-    confirmationToken:backendAction.confirmation_token
-  });
-  action.backendAction=confirmed;
-  await auditToolEvent('action_confirmed',action,{backend_action_id:confirmed.id,status:confirmed.status});
-  return confirmed;
-}
-async function rejectBackendActionFor(action){
-  if(!invoke||!authSession||!action?.backendAction?.id)return null;
-  try{
-    const rejected=await invoke('reject_backend_action',{actionId:action.backendAction.id});
-    action.backendAction=rejected;
-    await auditToolEvent('action_rejected',action,{backend_action_id:rejected.id,status:rejected.status});
-    return rejected;
-  }catch(error){
-    await auditToolEvent('action_reject_failed',action,{error:commandError(error)});
-    return null;
-  }
-}
-async function completeBackendActionFor(action,status,result){
-  if(!invoke||!authSession||!action?.backendAction?.id)return null;
-  try{
-    const completed=await invoke('complete_backend_action',{
-      actionId:action.backendAction.id,
-      status,
-      result
-    });
-    action.backendAction=completed;
-    await auditToolEvent(status==='done'?'action_completed':'action_failed',action,{backend_action_id:completed.id,status:completed.status,result});
-    return completed;
-  }catch(error){
-    await auditToolEvent('action_result_update_failed',action,{error:commandError(error),requested_status:status});
-    return null;
-  }
-}
-function languageName(code){
-  return {en:'English',es:'español',ru:'русский',uk:'українська',it:'italiano',fr:'français',de:'Deutsch',pt:'português'}[code]||code;
-}
-function setAuthStatus(text,tone='muted'){const el=document.getElementById('auth-status');el.textContent=text;if(tone==='error')el.style.color='var(--rose)';else if(tone==='ok')el.style.color='var(--gold)';else el.style.color='rgba(201,169,110,0.3)'}
-function commandError(error){if(error&&typeof error==='object'&&'message'in error)return `${error.kind||'error'}: ${error.message}`;return String(error)}
-function isAuthError(error){return error&&typeof error==='object'&&error.kind==='auth'}
-function authArgs(){return{backendUrl,email:document.getElementById('auth-email').value.trim(),password:document.getElementById('auth-password').value,localMemoryRoot}}
-function recoveryTokenValue(){
-  const value=document.getElementById('auth-reset-token').value.trim();
-  try{
-    const url=new URL(value);
-    return url.searchParams.get('reset_token')||value;
-  }catch(_error){
-    return value.replace(/^.*reset_token=/,'').trim();
-  }
-}
-function eyeIcon(){return '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6-10-6-10-6Z"/><circle cx="12" cy="12" r="3"/></svg>'}
-function eyeOffIcon(){return '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3l18 18"/><path d="M10.6 10.6a3 3 0 0 0 2.8 2.8"/><path d="M9.9 5.2A10.7 10.7 0 0 1 12 5c6.5 0 10 7 10 7a18.5 18.5 0 0 1-3.1 4.1"/><path d="M6.7 6.7C3.8 8.6 2 12 2 12s3.5 7 10 7c1.9 0 3.5-.5 4.9-1.2"/></svg>'}
-function updatePasswordToggle(){
-  const input=document.getElementById('auth-password'),toggle=document.getElementById('auth-password-toggle'),visible=input.type==='text';
-  toggle.innerHTML=visible?eyeOffIcon():eyeIcon();
-  toggle.setAttribute('aria-pressed',String(visible));
-  toggle.setAttribute('aria-label',visible?'Hide password':'Show password');
-}
-function togglePasswordVisibility(){
-  const input=document.getElementById('auth-password');
-  input.type=input.type==='password'?'text':'password';
-  updatePasswordToggle();
-  input.focus();
-}
-function setAuthMode(mode){
-  authMode=mode;const isRegister=mode==='register',isForgot=mode==='forgot',isReset=mode==='reset';
-  document.getElementById('auth-heading').textContent=isRegister?appText('begin'):appText('heading');
-  document.getElementById('auth-primary').textContent=isRegister?appText('create'):isForgot?'Send recovery ->':isReset?'Change password ->':appText('align');
-  document.getElementById('auth-footer-text').textContent=authMode==='login'?'First time here?':'Already aligned?';
-  const toggle=document.getElementById('auth-toggle');toggle.textContent=authMode==='login'?appText('begin'):'Return to login';toggle.onclick=()=>setAuthMode(authMode==='login'?'register':'login');
-  document.getElementById('auth-email-group').style.display=isReset?'none':'block';
-  document.getElementById('auth-reset-token-group').style.display=isReset?'block':'none';
-  document.getElementById('auth-password-group').style.display=isForgot?'none':'block';
-  document.getElementById('forgot-row').style.display=authMode==='login'?'block':'none';
-  document.getElementById('auth-social').style.display=authMode==='login'?'flex':'none';
-  document.getElementById('auth-divider').style.display=authMode==='login'?'flex':'none';
-  setAuthStatus(isRegister?appText('authCreate'):isForgot?'— send a recovery link —':isReset?'— paste recovery link and choose a new password —':appText('authLogin'));
-}
-function submitAuth(){authMode==='register'?registerUser():authMode==='forgot'?forgotPassword():authMode==='reset'?resetPassword():loginUser()}
-function showScreen(id){if(id==='screen-chat'&&!authSession){setAuthStatus('— log in before opening ARI —','error');id='screen-login'}document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active')}
-function hydrateSession(auth){
-  authSession=auth;const email=auth.email||document.getElementById('auth-email').value.trim();
-  document.getElementById('sidebar-user-name').textContent=email?email.split('@')[0]:appText('privateUser');
-  document.getElementById('sidebar-user-email').textContent=email||auth.user_id;
-  document.getElementById('chat-meta').textContent=activeQueryMeta();
-  document.getElementById('connection-label').textContent=appText('connected');
-  setAuthStatus('— session active —','ok');
-  loadToolCatalog();
-  loadRecentQueries();
-}
-async function loginUser(){if(!invoke){setAuthStatus('Tauri IPC unavailable','error');return}setAuthStatus('— connecting —');try{const auth=await invoke('login',authArgs());hydrateSession(auth);showScreen('screen-chat')}catch(error){setAuthStatus(commandError(error),'error')}}
-async function registerUser(){if(!invoke){setAuthStatus('Tauri IPC unavailable','error');return}setAuthStatus('— creating account —');try{await invoke('register',authArgs());setAuthMode('login');setAuthStatus('— account created, log in now —','ok');document.getElementById('auth-password').focus()}catch(error){setAuthStatus(commandError(error),'error')}}
-async function forgotPassword(){
-  if(!invoke){setAuthStatus('Tauri IPC unavailable','error');return}
-  const email=document.getElementById('auth-email').value.trim();
-  if(!email){setAuthStatus('— email is required —','error');return}
-  setAuthStatus('— sending recovery —');
-  try{
-    const recovery=await invoke('forgot_password',{backendUrl,email});
-    if(recovery?.reset_url){
-      document.getElementById('auth-reset-token').value=recovery.reset_url;
-      setAuthMode('reset');
-      setAuthStatus('— local recovery ready, choose a new password —','ok');
-      document.getElementById('auth-password').focus();
-      return;
-    }
-    setAuthMode('reset');
-    setAuthStatus('— check your email and paste the recovery link —','ok');
-  }catch(error){setAuthStatus(commandError(error),'error')}
-}
-async function resetPassword(){
-  if(!invoke){setAuthStatus('Tauri IPC unavailable','error');return}
-  const token=recoveryTokenValue(),password=document.getElementById('auth-password').value;
-  if(!token||!password){setAuthStatus('— recovery code and password are required —','error');return}
-  setAuthStatus('— changing password —');
-  try{
-    await invoke('reset_password',{backendUrl,token,password});
-    document.getElementById('auth-reset-token').value='';
-    document.getElementById('auth-password').value='';
-    setAuthMode('login');
-    setAuthStatus('— password updated, log in now —','ok');
-  }catch(error){setAuthStatus(commandError(error),'error')}
-}
-async function loginWithGoogle(){
-  if(!invoke){setAuthStatus('Tauri IPC unavailable','error');return}
-  try{
-    setAuthStatus('— opening Google —');
-    const auth=await invoke('login_with_google',{backendUrl,localMemoryRoot});
-    hydrateSession(auth);
-    showScreen('screen-chat');
-  }catch(error){
-    setAuthStatus(commandError(error),'error');
-  }
-}
-function logoutLabels(){document.getElementById('connection-label').textContent='LOGIN';document.getElementById('sidebar-user-name').textContent=appText('signedOut');document.getElementById('sidebar-user-email').textContent=appText('loginUse');document.getElementById('chat-meta').textContent=appText('loginRequired')}
-async function logoutUser(){authSession=null;logoutLabels();if(invoke){try{await invoke('clear_desktop_config')}catch(_error){}}setAuthMode('login');setAuthStatus(desktopText('sessionClosed'));showScreen('screen-login')}
-async function loadDesktopSession(){
-  if(!invoke)return;
-  try{
-    const config=await invoke('load_desktop_config');
-    if(!config)return;
-    if(config.backend_url&&isLocalBackendUrl(config.backend_url)&&!isLocalBackendUrl(backendUrl)){
-      await invoke('clear_desktop_config');
-      document.getElementById('connection-label').textContent='LOGIN';
-      setAuthStatus('— local session cleared, log in to final server —','ok');
-      return;
-    }
-    if(config.backend_url)backendUrl=config.backend_url;
-    document.getElementById('connection-label').textContent='LOGIN';
-    setAuthStatus('— log in to use ARI —');
-  }catch(_error){
-    document.getElementById('connection-label').textContent='LOCAL';
+    if (!response.ok) throw new Error(await readError(response));
+    const data = await response.json();
+    appendMessage(data.reply || 'ARI no devolvió una respuesta.', 'ai');
+    await loadThreads();
+    applySnap(0);
+  } catch (error) {
+    appendMessage(error.message || String(error), 'ai');
   }
 }
 
-function autoResize(el){el.style.height='auto';el.style.height=Math.min(el.scrollHeight,110)+'px'}
-function handleKey(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMessage()}}
-function setMode(mode){
-  activeMode=mode;document.querySelectorAll('.mode').forEach(b=>b.classList.remove('active'));const btn=document.getElementById('mode-'+mode);if(btn)btn.classList.add('active');
-  document.getElementById('chat-input').placeholder=mode==='memory'?desktopText('memoryPlaceholder'):mode==='activity'?desktopText('activityReadonly'):appText('ask');
-  if(mode==='activity')loadActivityLog();
+function handleKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
 }
-function syncVoiceControls(){
-  const voiceMode=document.getElementById('mode-voice'),voiceBtn=document.getElementById('voice-btn');
-  const sideVoiceStatus=document.getElementById('side-voice-status');
-  if(voiceMode)voiceMode.classList.toggle('active',spokenReplies);
-  if(sideVoiceStatus)sideVoiceStatus.textContent=(spokenReplies?appText('voiceOn'):appText('voiceOff')).replace(/^ARI ·\s*/i,'');
-  if(voiceBtn){
-    voiceBtn.classList.toggle('active',spokenReplies);
-    voiceBtn.disabled=!window.MediaRecorder;
-    voiceBtn.title=window.MediaRecorder?appText('voiceTitle'):appText('voiceUnsupported');
+function escHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+async function loadThreads() {
+  if (!ari.token || !ari.workspaceId) {
+    document.querySelector('.voice-pill span:last-child').textContent = 'Sesión local';
+    return;
   }
-}
-function toggleVoiceMode(){
-  spokenReplies=!spokenReplies;localStorage.setItem('ari.spokenReplies',String(spokenReplies));syncVoiceControls();
-  document.getElementById('chat-meta').textContent=spokenReplies?appText('voiceOn'):appText('voiceOff');
-  if(spokenReplies)speakText(appText('voiceSpeech'));
-}
-async function startVoiceInput(){
-  if(!authSession){showScreen('screen-login');setAuthStatus('— log in before using voice —','error');return}
-  if(!window.MediaRecorder){addMessage(appText('voiceUnsupported'),'ai');return}
-  if(listening&&mediaRecorder){mediaRecorder.stop();return}
-  try{
-    const stream=await navigator.mediaDevices.getUserMedia({audio:true});
-    voiceChunks=[];
-    mediaRecorder=new MediaRecorder(stream);
-    mediaRecorder.ondataavailable=event=>{if(event.data&&event.data.size>0)voiceChunks.push(event.data)};
-    mediaRecorder.onstop=async()=>{
-      stream.getTracks().forEach(track=>track.stop());
-      listening=false;document.getElementById('voice-btn').classList.remove('listening');document.getElementById('chat-meta').textContent=desktopText('transcribing');
-      await sendVoiceAudio(new Blob(voiceChunks,{type:mediaRecorder.mimeType||'audio/webm'}));
-      document.getElementById('chat-meta').textContent=spokenReplies?appText('voiceOn'):desktopText('memoryActive');
-    };
-    listening=true;document.getElementById('voice-btn').classList.add('listening');document.getElementById('chat-meta').textContent=desktopText('listening');
-    mediaRecorder.start();
-  }catch(error){
-    listening=false;document.getElementById('voice-btn').classList.remove('listening');
-    addMessage(`Voice input stopped: ${error.message||'microphone unavailable'}.`,'ai');
-  }
-}
-async function sendVoiceAudio(blob){
-  if(!blob.size||!authSession)return;
-  const token=authSession.access_token||authSession.accessToken||authSession.token;
-  const workspaceId=authSession.default_workspace_id||authSession.defaultWorkspaceId;
-  if(!token||!workspaceId){addMessage('Voice session is missing authentication. Please log in again.','ai');return}
-  const form=new FormData();
-  form.append('audio',blob,'ari-voice.webm');
-  form.append('language',userPrefs.appLanguage);
-  form.append('tts','true');
-  form.append('use_memory','true');
-  form.append('memory_limit','8');
-  showTyping();document.getElementById('voice-btn').disabled=true;
-  try{
-    const response=await fetch(`${backendUrl}/api/v1/messages/${workspaceId}/voice`,{
-      method:'POST',
-      headers:{Authorization:`Bearer ${token}`},
-      body:form
+  try {
+    const response = await fetch(`/api/v1/messages/${ari.workspaceId}/threads?limit=30`, {
+      headers: authHeaders(),
     });
-    if(!response.ok)throw new Error(await readFetchError(response));
-    const data=await response.json();
-    removeTyping();addMessage(data.transcript,'user');
-    const wasSpoken=spokenReplies;
-    if(data.audio_base64)spokenReplies=false;
-    addMessage(data.reply||'ARI did not return a response.','ai');
-    spokenReplies=wasSpoken;
-    if(data.audio_base64)playAudioBase64(data.audio_base64,data.audio_content_type||'audio/mpeg');
-    addRecentQuery(data.transcript);setTimeout(loadRecentQueries,400);
-  }catch(error){
-    removeTyping();addMessage(error.message,'ai');
-  }finally{
-    document.getElementById('voice-btn').disabled=false;
+    if (!response.ok) throw new Error(await readError(response));
+    ari.threads = await response.json();
+    renderConversationList(ari.threads);
+  } catch (error) {
+    console.warn('Could not load ARI threads', error);
   }
 }
-async function readFetchError(response){
-  try{const data=await response.json();return data.detail||JSON.stringify(data)}catch(_error){return response.statusText||'Request failed'}
-}
-function playAudioBase64(audioBase64,contentType){
-  const audio=new Audio(`data:${contentType};base64,${audioBase64}`);
-  audio.play().catch(()=>{});
-}
-function speakText(text){
-  if(!('speechSynthesis' in window))return;
-  const cleaned=String(text||'').replace(/\s+/g,' ').trim();if(!cleaned)return;
-  window.speechSynthesis.cancel();
-  const utterance=new SpeechSynthesisUtterance(cleaned.slice(0,1200));
-  utterance.lang=appLocale();utterance.rate=.96;utterance.pitch=.92;
-  window.speechSynthesis.speak(utterance);
-}
-function escapeHtml(value){return String(value).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;').replace(/\n/g,'<br>')}
-function escapeAttr(value){return String(value).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;').replace(/\n/g,' ')}
-function addMessage(text,from){
-  const welcome=document.getElementById('welcome-state');if(welcome)welcome.remove();
-  currentConversationHasMessages=true;
-  const msgs=document.getElementById('messages'),div=document.createElement('div'),time=new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
-  div.className=`message ${from}`;
-  div.innerHTML=`<div class="msg-avatar">${from==='ai'?'☉':'◇'}</div><div><div class="bubble">${escapeHtml(text)}</div><div class="msg-time">${from==='ai'?'ARI':'YOU'} · ${time}</div></div>`;
-  msgs.appendChild(div);msgs.scrollTop=msgs.scrollHeight;
-  if(from==='ai'&&spokenReplies)speakText(text);
-}
-function showTyping(){const msgs=document.getElementById('messages'),div=document.createElement('div');div.className='message';div.id='typing-msg';div.innerHTML='<div class="msg-avatar">☉</div><div class="typing"><span></span><span></span><span></span></div>';msgs.appendChild(div);msgs.scrollTop=msgs.scrollHeight}
-function removeTyping(){const t=document.getElementById('typing-msg');if(t)t.remove()}
-function clearChat(){
-  currentConversationHasMessages=false;
-  document.getElementById('messages').innerHTML=`<div class="welcome" id="welcome-state"><div class="sun-wrap"><svg width="56" height="56" viewBox="0 0 56 56" fill="none"><circle cx="28" cy="28" r="9" stroke="#D99A3D" stroke-width=".7" opacity=".6"/><circle cx="28" cy="28" r="15" stroke="#D99A3D" stroke-width=".45" opacity=".3"/><circle cx="28" cy="28" r="21" stroke="#D99A3D" stroke-width=".35" opacity=".18"/><circle cx="28" cy="28" r="3" fill="#D99A3D" opacity=".22"/><circle cx="28" cy="28" r="1.5" fill="#D99A3D" opacity=".7"/></svg></div><div class="welcome-title">${escapeHtml(appText('welcomeTitle'))}</div><div class="welcome-copy">${escapeHtml(appText('welcomeCopy'))}</div><div class="quick-row"><button class="quick" onclick="sendQuick('${escapeAttr(appText('promptPriorities'))}')">☉<b>${escapeHtml(appText('priorities'))}</b><span>${escapeHtml(appText('prioritiesCopy'))}</span></button><button class="quick" onclick="sendQuick('${escapeAttr(appText('promptWriting'))}')">✦<b>${escapeHtml(appText('writing'))}</b><span>${escapeHtml(appText('writingCopy'))}</span></button><button class="quick" onclick="sendQuick('${escapeAttr(appText('promptProduct'))}')">⊹<b>${escapeHtml(appText('product'))}</b><span>${escapeHtml(appText('productCopy'))}</span></button><button class="quick" onclick="sendQuick('${escapeAttr(appText('promptMemory'))}')">◇<b>${escapeHtml(appText('memory'))}</b><span>${escapeHtml(appText('memoryCopy'))}</span></button></div></div>`;
-  if(authSession)document.getElementById('chat-meta').textContent=activeQueryMeta();
-}
-function sendQuick(text){document.getElementById('chat-input').value=text;sendMessage()}
-function detectOpenUrlAction(text){
-  const lower=text.toLowerCase();
-  if(!/\b(open|abre|abrir|go to|visit|navega|navigate)\b/.test(lower))return null;
-  const match=text.match(/(https?:\/\/[^\s]+|(?:[a-z0-9-]+\.)+[a-z]{2,}(?:\/[^\s]*)?)/i);
-  if(!match)return null;
-  const raw=match[1].replace(/[),.;!?]+$/,'');
-  const url=raw.includes('://')?raw:`https://${raw}`;
-  return {tool:'open_browser_url',url};
-}
-function detectListCalendarsAction(text){
-  const lower=text.toLowerCase();
-  if(!/\b(calendar|calendars|calendario|calendarios|agenda)\b/.test(lower))return null;
-  if(!/\b(list|show|see|what|which|lista|listar|muestra|ver|cu[aá]les|que|qué)\b/.test(lower))return null;
-  return {tool:'list_calendars'};
-}
-function detectListReminderListsAction(text){
-  const lower=text.toLowerCase();
-  if(!/\b(reminder|reminders|recordatorio|recordatorios|lista|listas|tasks|tareas)\b/.test(lower))return null;
-  if(!/\b(list|show|see|what|which|lista|listar|muestra|ver|cu[aá]les|que|qué)\b/.test(lower))return null;
-  if(/\b(calendar|calendario|agenda)\b/.test(lower))return null;
-  return {tool:'list_reminder_lists'};
-}
-function detectWeatherAction(text){
-  const lower=text.toLowerCase();
-  const asksWeather=/\b(weather|temperature|temp|forecast|clima|tiempo|temperatura|grados|calor|fr[ií]o)\b/.test(lower);
-  const naturalWeather=/\b(qu[eé]\s+(?:temperatura|tiempo)\s+hace|how\s+(?:hot|cold)|what'?s\s+the\s+(?:weather|temperature))\b/i.test(lower);
-  if(!asksWeather&&!naturalWeather)return null;
-  return {tool:'get_weather',city:extractCity(text),language:replyLanguage(text)};
-}
-function detectDateAction(text){
-  const lower=text.toLowerCase().trim();
-  if(/\b(qu[eé]\s+d[ií]a\s+es\s+hoy|que\s+dia\s+es\s+hoy|fecha\s+de\s+hoy|what\s+day\s+is\s+it|what'?s\s+today'?s\s+date|what\s+date\s+is\s+it)\b/i.test(lower)){
-    return {tool:'get_current_date',language:replyLanguage(text)};
-  }
-  return null;
-}
-function detectPreferenceAction(text){
-  const lower=text.toLowerCase().trim();
-  const language=detectExplicitLanguage(text);
-  if(language&&/\b(responde|contesta|reply|answer|speak|habla|respond)\b/i.test(text)){
-    return {tool:'set_preference',key:'replyLanguage',value:language};
-  }
-  const calendar=text.match(/\b(?:mi\s+)?(?:calendario)\s+(?:por\s+defecto|predeterminado|principal)\s+(?:es|ser[aá]|=)\s+(.+)$/i)
-    || text.match(/\b(?:usa|usar|utiliza|establece|set|use)\s+(.+?)\s+(?:como|as)\s+(?:mi\s+)?(?:calendario)\s+(?:por\s+defecto|predeterminado|principal|default)\b/i);
-  if(calendar&&calendar[1]&&!isVagueLocalCalendarName(calendar[1]))return {tool:'set_preference',key:'defaultCalendar',value:calendar[1].trim().replace(/[.?!]+$/,'')};
-  const list=text.match(/\b(?:mi\s+)?(?:lista)\s+(?:de\s+recordatorios\s+)?(?:por\s+defecto|predeterminada|principal)\s+(?:es|ser[aá]|=)\s+(.+)$/i)
-    || text.match(/\b(?:usa|usar|utiliza|establece|set|use)\s+(.+?)\s+(?:como|as)\s+(?:mi\s+)?(?:lista)\s+(?:de\s+recordatorios\s+)?(?:por\s+defecto|predeterminada|principal|default)\b/i);
-  if(list&&list[1])return {tool:'set_preference',key:'defaultReminderList',value:list[1].trim().replace(/[.?!]+$/,'')};
-  if(/\b(olvida|borra|quita|clear|remove)\b.*\b(calendario|calendar)\b.*\b(defecto|default|predeterminado|principal)\b/i.test(text))return {tool:'clear_preference',key:'defaultCalendar'};
-  if(/\b(olvida|borra|quita|clear|remove)\b.*\b(lista|list|recordatorios|reminders)\b.*\b(defecto|default|predeterminada|principal)\b/i.test(text))return {tool:'clear_preference',key:'defaultReminderList'};
-  return null;
-}
-function extractCity(text){
-  const match=text.match(/\b(?:en|in)\s+([a-záéíóúñüç\s.-]{2,})$/i);
-  if(!match)return null;
-  const city=match[1].trim().replace(/[.?!]+$/,'');
-  if(/\b(mi|my|ubicaci[oó]n|location|dispositivo|device|ordenador|mac)\b/i.test(city))return null;
-  return city;
-}
-function detectLanguage(text){
-  return detectExplicitLanguage(text)||(/[ñáéíóú]|calendario|agenda|mañan|manana|hoy|reuni[oó]n|crea|creame|créame|tarea/i.test(text)?'es':'en');
-}
-function detectExplicitLanguage(text){
-  const lower=text.toLowerCase();
-  if(/\b(russian|ruso|русском|русский|по-русски)\b|[ёъыэ]/i.test(text))return 'ru';
-  if(/\b(ukrainian|ucraniano|ukraniano|українською|українська)\b|[іїєґ]/i.test(text))return 'uk';
-  if(/\b(italian|italiano|italiana)\b/.test(lower))return 'it';
-  if(/\b(french|franc[eé]s|frances|fran[çc]ais)\b/.test(lower))return 'fr';
-  if(/\b(german|alem[aá]n|aleman|deutsch)\b/.test(lower))return 'de';
-  if(/\b(portuguese|portugu[eé]s|portugues|portugu[eê]s)\b/.test(lower))return 'pt';
-  if(/\b(spanish|español|espanol|castellano)\b/.test(lower))return 'es';
-  if(/\b(english|ingl[eé]s|ingles)\b/.test(lower))return 'en';
-  return null;
-}
-function replyLanguage(text){return detectExplicitLanguage(text)||userPrefs.replyLanguage||detectLanguage(text)}
-function speaksSpanish(text){return detectLanguage(text)==='es'}
-function pad2(value){return String(value).padStart(2,'0')}
-function localDateString(date){return `${date.getFullYear()}-${pad2(date.getMonth()+1)}-${pad2(date.getDate())}`}
-function localDateTimeString(date){return `${localDateString(date)}T${pad2(date.getHours())}:${pad2(date.getMinutes())}:00`}
-function parseDateInfo(text){
-  const lower=text.toLowerCase();
-  const explicit=text.match(/\b(20\d{2})-(\d{2})-(\d{2})\b/);
-  if(explicit)return {date:explicit[0],label:explicit[0]};
-  const date=new Date();date.setHours(0,0,0,0);
-  if(/\b(tomorrow|mañana?|manana?)\b/.test(lower)){date.setDate(date.getDate()+1);return {date:localDateString(date),label:speaksSpanish(text)?'mañana':'tomorrow'}}
-  if(/\b(today|hoy)\b/.test(lower))return {date:localDateString(date),label:speaksSpanish(text)?'hoy':'today'};
-  return null;
-}
-function parseTimeInfo(text){
-  const clock=text.match(/\b(\d{1,2})[:.](\d{2})\s*(am|pm)?\b/i);
-  const loose=text.match(/\b(?:at|a las|sobre las|para las)\s+(\d{1,2})(?:\s*h|h|:|\.|\s+)?(\d{2})?\s*(am|pm)?\b/i);
-  const match=clock||loose;if(!match)return null;
-  let hour=Number(match[1]),minute=Number(match[2]||0);
-  const period=(match[3]||'').toLowerCase();
-  if(period==='pm'&&hour<12)hour+=12;
-  if(period==='am'&&hour===12)hour=0;
-  if(hour>23||minute>59)return null;
-  return {hour,minute,label:`${pad2(hour)}:${pad2(minute)}`};
-}
-function parseCalendarName(text,allowBare=false){
-  const trimmed=text.trim();
-  const withoutTitle=trimmed.replace(/\b(?:called|named|titled|with title|titulado|titulada|llamado|llamada|que se llame)\s+.+$/i,'').trim();
-  if(userPrefs.defaultCalendar&&/\b(default|defecto|predeterminado|principal|por defecto)\b/i.test(trimmed))return userPrefs.defaultCalendar;
-  const named=withoutTitle.match(/\b(?:in|en)\s+(?:el\s+|the\s+)?(?:calendar|calendario|agenda)\s+(.+)$/i);
-  if(named&&named[1].trim()){
-    const value=named[1].trim().replace(/[.?!]+$/,'');
-    if(!isVagueLocalCalendarName(value))return value;
-  }
-  const bare=withoutTitle.match(/\b(?:in|en)\s+([a-záéíóúñ0-9 _-]{2,})$/i);
-  if(bare&&bare[1].trim()&&!/\b(calendar|calendario|agenda)\b/i.test(bare[1])){
-    const value=bare[1].trim().replace(/[.?!]+$/,'');
-    if(!isVagueLocalCalendarName(value))return value;
-  }
-  if(allowBare&&trimmed.length>1&&!/\b(yes|no|si|sí|confirm|cancel|a las|at)\b/i.test(trimmed)&&!isVagueLocalCalendarName(trimmed))return trimmed.replace(/[.?!]+$/,'');
-  return null;
-}
-function isVagueLocalCalendarName(value){
-  return /\b(mi|m[ií]o|mio|el de|la de|el que|la que|ordenador|computador|computer|mac|default|defecto|principal|predeterminado|calendario)\b/i.test(value.trim());
-}
-function parseDurationMinutes(text){
-  const lower=text.toLowerCase();
-  const hours=lower.match(/\b(?:durante|dure|dura|for)\s+(\d+(?:[.,]\d+)?)\s*(?:h|hora|horas|hour|hours)\b/);
-  if(hours)return Math.max(1,Math.round(Number(hours[1].replace(',','.'))*60));
-  const minutes=lower.match(/\b(?:durante|dure|dura|for)\s+(\d+)\s*(?:m|min|mins|minuto|minutos|minute|minutes)\b/);
-  if(minutes)return Math.max(1,Number(minutes[1]));
-  return null;
-}
-function cleanActionTitle(value){
-  return value
-    .replace(/\b(?:today|hoy|tomorrow|mañana?|manana?)\b.*$/i,'')
-    .replace(/\b(?:at|a las|sobre las|para las)\s+\d{1,2}(?::\d{2})?\s*(?:am|pm)?\b.*$/i,'')
-    .replace(/\b(?:en|in)\s+(?:mi\s+|el\s+|la\s+|the\s+)?(?:calendar|calendario|agenda|list|lista)?\s*[a-záéíóúñ0-9 _-]+$/i,'')
-    .replace(/\b(?:durante|dure|dura|for)\s+.+$/i,'')
-    .trim();
-}
-function isBareTitleCandidate(text){
-  const trimmed=cleanActionTitle(text.trim());
-  if(!trimmed||trimmed.length<2)return false;
-  if(parseDateInfo(trimmed)||parseTimeInfo(trimmed)||parseCalendarName(trimmed,false))return false;
-  return !/\b(yes|no|si|sí|confirm|cancel|cancela|hazlo|do it|a las|at|en|in)\b/i.test(trimmed);
-}
-function extractEventTitle(text){
-  const lower=text.toLowerCase();
-  if(/\breuni[oó]n\b/.test(lower))return 'Reunión';
-  if(/\bmeeting\b/.test(lower))return 'Meeting';
-  const eventFor=text.match(/\b(?:crea|crear|cr[eé]ame|add|create|schedule)\s+(?:un\s+|una\s+|an?\s+)?(?:evento|event|cita|appointment)\s+(?:para|de|about|for)\s+([^.,;!?]+)/i);
-  if(eventFor&&cleanActionTitle(eventFor[1]))return cleanActionTitle(eventFor[1]);
-  const call=text.match(/\b(?:llamar|call)\s+(?:a\s+)?([^.,;!?]+)/i);
-  if(call)return `${speaksSpanish(text)?'Llamar a':'Call'} ${cleanActionTitle(call[1])}`;
-  const task=text.match(/\b(?:tarea|task)\s+(?:de\s+|to\s+)?([^.,;!?]+)/i);
-  if(task&&cleanActionTitle(task[1])&&!/^(en|in|para|for)\b/i.test(cleanActionTitle(task[1])))return cleanActionTitle(task[1]);
-  return null;
-}
-function parseReminderListName(text,allowBare=false){
-  const trimmed=text.trim();
-  if(userPrefs.defaultReminderList&&/\b(default|defecto|predeterminada|principal|por defecto)\b/i.test(trimmed))return userPrefs.defaultReminderList;
-  const named=trimmed.match(/\b(?:in|en)\s+(?:la\s+|the\s+)?(?:list|lista)\s+(.+)$/i);
-  if(named&&named[1].trim())return named[1].trim().replace(/[.?!]+$/,'');
-  const bare=trimmed.match(/\b(?:in|en)\s+([a-záéíóúñ0-9 _-]{2,})$/i);
-  if(bare&&bare[1].trim()&&!/\b(calendar|calendario|agenda|lista|list)\b/i.test(bare[1]))return bare[1].trim().replace(/[.?!]+$/,'');
-  if(allowBare&&trimmed.length>1&&!/\b(yes|no|si|sí|confirm|cancel|a las|at|mañana|manana|tomorrow|hoy|today)\b/i.test(trimmed))return trimmed.replace(/[.?!]+$/,'');
-  return null;
-}
-function cleanReminderTitle(value){
-  return value
-    .replace(/\b(?:today|hoy|tomorrow|mañana?|manana?)\b.*$/i,'')
-    .replace(/\b(?:at|a las|sobre las|para las)\s+\d{1,2}(?::\d{2})?\s*(?:am|pm)?\b.*$/i,'')
-    .replace(/\b(?:in|en)\s+(?:la\s+|the\s+)?(?:list|lista)?\s*[a-záéíóúñ0-9 _-]+$/i,'')
-    .trim();
-}
-function extractReminderTitle(text){
-  const patterns=[
-    /\b(?:recordarme|recu[eé]rdame|remind me to)\s+([^.,;!?]+)/i,
-    /\b(?:crea|crear|cr[eé]ame|add|create)\s+(?:una\s+|un\s+|a\s+)?(?:tarea|task|recordatorio|reminder)\s+(?:para|de|to)?\s*([^.,;!?]+)/i,
-    /\b(?:tarea|task|recordatorio|reminder)\s+(?:para|de|to)\s+([^.,;!?]+)/i
-  ];
-  for(const pattern of patterns){
-    const match=text.match(pattern);
-    if(match&&cleanReminderTitle(match[1]))return cleanReminderTitle(match[1]);
-  }
-  return null;
-}
-function buildReminderDraft(text,baseDraft={}){
-  const dateInfo=parseDateInfo(text),timeInfo=parseTimeInfo(text),list=parseReminderListName(text,baseDraft.missingList),title=extractReminderTitle(text);
-  const draft={...baseDraft};
-  draft.language=baseDraft.language||replyLanguage(text);
-  if(title)draft.title=title;
-  if(dateInfo){draft.date=dateInfo.date;draft.dateLabel=dateInfo.label}
-  if(timeInfo){draft.hour=timeInfo.hour;draft.minute=timeInfo.minute;draft.timeLabel=timeInfo.label}
-  if(list)draft.list=list;
-  const missing=[];
-  if(!draft.title)missing.push('title');
-  if(!draft.date)missing.push('date');
-  if(draft.hour===undefined||draft.minute===undefined)missing.push('time');
-  if(!draft.list)missing.push('list');
-  draft.missingList=missing.includes('list');
-  const dueDate=draft.date&&draft.hour!==undefined?new Date(`${draft.date}T${pad2(draft.hour)}:${pad2(draft.minute)}:00`):null;
-  if(dueDate)draft.due=localDateTimeString(dueDate);
-  return {tool:'create_reminder',draft,missing};
-}
-function detectCreateReminderAction(text){
-  const lower=text.toLowerCase();
-  if(/\b(calendar|calendario|agenda)\b/.test(lower))return null;
-  const hasCreate=/\b(create|add|schedule|put|remind|crea|crear|creame|cr[eé]ame|agrega|añade|anade|programa|pon|recordarme|recu[eé]rdame)\b/.test(lower);
-  const hasTask=/\b(task|todo|reminder|tarea|recordatorio)\b/.test(lower);
-  if(!(hasCreate&&hasTask))return null;
-  return buildReminderDraft(text);
-}
-function describeReminderDraft(action){
-  if(action.orchestratorReply)return action.orchestratorReply;
-  const d=action.draft,when=`${d.dateLabel||d.date} ${d.timeLabel}`;
-  return d.language==='es'
-    ? `Crearé la tarea "${d.title}" en la lista ${d.list}, para ${when}. ¿Confirmas?`
-    : `I will create the task "${d.title}" in ${d.list}, due ${when}. Confirm?`;
-}
-function reminderMissingQuestion(action){
-  if(action.orchestratorReply)return action.orchestratorReply;
-  const lang=action.draft.language||'en',missing=action.missing;
-  if(lang==='es'){
-    const parts=[];
-    if(missing.includes('title'))parts.push('qué tarea es');
-    if(missing.includes('date'))parts.push('qué día');
-    if(missing.includes('time'))parts.push('a qué hora');
-    if(missing.includes('list'))parts.push('en qué lista de Recordatorios');
-    return `Necesito ${parts.join(', ')}.`;
-  }
-  const parts=[];
-  if(missing.includes('title'))parts.push('what the task is');
-  if(missing.includes('date'))parts.push('which day');
-  if(missing.includes('time'))parts.push('what time');
-  if(missing.includes('list'))parts.push('which Reminders list');
-  return `I need ${parts.join(', ')}.`;
-}
-function handlePreferenceAction(action){
-  if(action.tool==='set_preference'){
-    userPrefs[action.key]=action.value;
-    saveUserPreferences();
-    if(action.key==='replyLanguage')return `Done. I will reply in ${languageName(action.value)} until you ask me to change.`;
-    if(action.key==='defaultCalendar')return `Done. I will use "${action.value}" when you explicitly ask for your default calendar.`;
-    if(action.key==='defaultReminderList')return `Done. I will use "${action.value}" when you explicitly ask for your default reminders list.`;
-  }
-  if(action.tool==='clear_preference'){
-    delete userPrefs[action.key];
-    saveUserPreferences();
-    if(action.key==='defaultCalendar')return 'Done. I removed the default calendar preference.';
-    if(action.key==='defaultReminderList')return 'Done. I removed the default reminders list preference.';
-  }
-  return 'Done.';
-}
-function detectMemoryWriteAction(text){
-  const lower=text.toLowerCase();
-  if(/\b(remind me|recu[eé]rdame|recordarme)\b/i.test(text))return null;
-  const hasMemoryVerb=/\b(remember|save|store|note that|write down|guarda|guardar|recuerda que|apunta|anota|memoriza)\b/i.test(text);
-  const hasMemoryTarget=/\b(memory|memoria|journal|diario)\b/i.test(text);
-  const explicitSection=/\b(task|tarea|decision|decisi[oó]n|pending|pendiente|note|nota)\b/i.test(text);
-  if(!hasMemoryVerb&&!hasMemoryTarget&&!explicitSection)return null;
-  let section='facts';
-  if(/\b(task|tasks|tarea|tareas)\b/i.test(text))section='tasks';
-  else if(/\b(decision|decisions|decisi[oó]n|decisiones|decidimos)\b/i.test(text))section='decisions';
-  else if(/\b(pending|pendiente|pendientes|todo|to-do)\b/i.test(text))section='pending';
-  let memoryText=text
-    .replace(/^\s*(please\s+)?(?:remember that|save(?: this)?(?: to memory)?|store(?: this)?(?: in memory)?|note that|write down|guarda(?: esto)?(?: en memoria)?|guardar(?: esto)?(?: en memoria)?|recuerda que|apunta(?: esto)?|anota(?: esto)?|memoriza(?: esto)?)[\s:,-]*/i,'')
-    .replace(/^\s*(?:task|tarea|decision|decisi[oó]n|pending|pendiente|note|nota)[\s:,-]+/i,'')
-    .trim();
-  if(!memoryText||memoryText.length<2)memoryText=text.trim();
-  const dateInfo=parseDateInfo(text);
-  return {tool:'append_journal_entry',section,text:memoryText,date:dateInfo?dateInfo.date:localDateString(new Date()),language:replyLanguage(text)};
-}
-function detectMemoryOverviewAction(text){
-  const lower=text.toLowerCase();
-  const asksMemory=/\b(memory|memoria|journal|diario)\b/.test(lower);
-  const asksOverview=/\b(overview|summary|resumen|qu[eé]\s+tengo|what\s+do\s+i\s+have|mu[eé]strame|show me|leer|read)\b/i.test(text);
-  if(!asksMemory||!asksOverview)return null;
-  const dateInfo=parseDateInfo(text);
-  return {tool:'read_journal_overview',date:dateInfo?dateInfo.date:localDateString(new Date()),language:replyLanguage(text)};
-}
-function formatMemoryOverview(overview,language='en'){
-  const sections=overview.sections||{};
-  const lines=[];
-  Object.entries(sections).forEach(([section,value])=>{
-    const items=Array.isArray(value)?value:[value];
-    const clean=items.map(item=>String(item).trim()).filter(Boolean);
-    if(clean.length)lines.push(`${section}\n${clean.map(item=>`- ${item}`).join('\n')}`);
-  });
-  if(lines.length)return lines.join('\n\n');
-  return language==='es'?'No hay memoria guardada para ese día.':'No memory entries are saved for that day.';
-}
-function memorySavedReply(action,result){
-  return action.language==='es'
-    ? `Guardado en memoria (${action.section}) para ${result.date}.`
-    : `Saved to memory (${action.section}) for ${result.date}.`;
-}
-function buildCalendarEventDraft(text,baseDraft={}){
-  const dateInfo=parseDateInfo(text),timeInfo=parseTimeInfo(text),calendar=parseCalendarName(text,baseDraft.missingCalendar);
-  const draft={...baseDraft};
-  draft.language=baseDraft.language||replyLanguage(text);
-  draft.userText=baseDraft.userText||text;
-  const title=extractEventTitle(text)||extractEventTitle(draft.userText)||(!baseDraft.title&&isBareTitleCandidate(text)&&!/\b(crea|crear|cr[eé]ame|create|add|schedule|evento|event|cita|appointment)\b/i.test(text)?cleanActionTitle(text):null);
-  if(title)draft.title=title;
-  const duration=parseDurationMinutes(text);
-  if(duration)draft.durationMinutes=duration;
-  if(dateInfo){draft.date=dateInfo.date;draft.dateLabel=dateInfo.label}
-  if(timeInfo){draft.hour=timeInfo.hour;draft.minute=timeInfo.minute;draft.timeLabel=timeInfo.label}
-  if(calendar)draft.calendar=calendar;
-  const missing=[];
-  if(!draft.title)missing.push('title');
-  if(!draft.date)missing.push('date');
-  if(draft.hour===undefined||draft.minute===undefined)missing.push('time');
-  if(!draft.calendar)missing.push('calendar');
-  draft.durationMinutes=draft.durationMinutes||30;
-  draft.missingCalendar=missing.includes('calendar');
-  const startDate=draft.date&&draft.hour!==undefined?new Date(`${draft.date}T${pad2(draft.hour)}:${pad2(draft.minute)}:00`):null;
-  if(startDate){
-    const endDate=new Date(startDate.getTime()+draft.durationMinutes*60*1000);
-    draft.start=localDateTimeString(startDate);
-    draft.end=localDateTimeString(endDate);
-  }
-  return {tool:'create_calendar_event',draft,missing};
-}
-function detectCreateCalendarEventAction(text){
-  const lower=text.toLowerCase();
-  const hasCalendar=/\b(calendar|calendario|agenda)\b/.test(lower);
-  const hasCreate=/\b(create|add|schedule|put|crea|crear|agrega|añade|anade|programa|pon)\b/.test(lower);
-  const hasEvent=/\b(event|meeting|appointment|task|evento|reuni[oó]n|cita|tarea)\b/.test(lower);
-  if(!(hasCalendar&&(hasCreate||hasEvent)))return null;
-  return buildCalendarEventDraft(text);
-}
-function describeCalendarDraft(action){
-  if(action.orchestratorReply)return action.orchestratorReply;
-  const d=action.draft;
-  const when=`${d.dateLabel||d.date} ${d.timeLabel}`;
-  return d.language==='es'
-    ? `Crearé "${d.title}" en ${d.calendar}, ${when}, durante ${d.durationMinutes} minutos. ¿Confirmas?`
-    : `I will create "${d.title}" in ${d.calendar}, ${when}, for ${d.durationMinutes} minutes. Confirm?`;
-}
-function calendarMissingQuestion(action){
-  if(action.orchestratorReply)return action.orchestratorReply;
-  const lang=action.draft.language||'en',missing=action.missing;
-  if(lang==='es'){
-    if(missing.includes('title')&&missing.includes('calendar'))return '¿Qué título quieres ponerle y qué calendario exacto quieres usar?';
-    if(missing.includes('title')&&missing.includes('time'))return '¿Qué título y hora quieres usar?';
-    if(missing.includes('title'))return '¿Qué título quieres ponerle?';
-    if(missing.includes('time')&&missing.includes('calendar'))return '¿A qué hora y en qué calendario quieres crearla?';
-    if(missing.includes('calendar'))return 'No tengo un calendario por defecto configurado. ¿Cuál calendario exacto quieres usar?';
-    if(missing.includes('time'))return '¿A qué hora quieres crearla?';
-    return '¿Qué fecha quieres usar?';
-  }
-  if(missing.includes('title')&&missing.includes('calendar'))return 'What title should I use, and which exact calendar should I use?';
-  if(missing.includes('time')&&missing.includes('calendar'))return 'What time and which calendar should I use?';
-  if(missing.includes('calendar'))return 'I do not have a default calendar configured. Which exact calendar should I use?';
-  if(missing.includes('time'))return 'What time should I use?';
-  return 'What date should I use?';
-}
-function isConfirmText(text){
-  const lower=text.trim().toLowerCase();
-  if(/^(yes|y|ok|okay|confirm|confirmed|do it|sí|si|dale|confirma|confirmo|hazlo)$/i.test(lower))return true;
-  return /\b(s[ií]|yes|confirmo|confirma|confirm|confirmed|hazlo|do it|adelante|dale)\b/i.test(lower)&&!/\b(no|cancel|cancela|cancelar|don't|dont)\b/i.test(lower);
-}
-function isCancelText(text){return /^(no|cancel|stop|never mind|cancela|cancelar)$/i.test(text.trim())}
-function getDevicePosition(){
-  return new Promise((resolve,reject)=>{
-    if(!navigator.geolocation){reject(new Error('location is not available on this device'));return}
-    navigator.geolocation.getCurrentPosition(
-      position=>resolve(position),
-      error=>{
-        if(error.code===error.PERMISSION_DENIED)reject(new Error('location permission was denied'));
-        else if(error.code===error.POSITION_UNAVAILABLE)reject(new Error('device location is unavailable'));
-        else if(error.code===error.TIMEOUT)reject(new Error('location request timed out'));
-        else reject(new Error('could not read device location'));
-      },
-      {enableHighAccuracy:false,timeout:9000,maximumAge:10*60*1000}
-    );
-  });
-}
-function weatherDescription(code){
-  const map={
-    0:{en:'clear sky',es:'cielo despejado',ru:'ясно',uk:'ясно',it:'cielo sereno',fr:'ciel dégagé',de:'klarer Himmel',pt:'céu limpo'},
-    1:{en:'mainly clear',es:'mayormente despejado',ru:'преимущественно ясно',uk:'переважно ясно',it:'prevalentemente sereno',fr:'plutôt dégagé',de:'überwiegend klar',pt:'predominantemente limpo'},
-    2:{en:'partly cloudy',es:'parcialmente nublado',ru:'переменная облачность',uk:'мінлива хмарність',it:'parzialmente nuvoloso',fr:'partiellement nuageux',de:'teilweise bewölkt',pt:'parcialmente nublado'},
-    3:{en:'overcast',es:'nublado',ru:'пасмурно',uk:'хмарно',it:'coperto',fr:'couvert',de:'bedeckt',pt:'encoberto'},
-    45:{en:'fog',es:'niebla',ru:'туман',uk:'туман',it:'nebbia',fr:'brouillard',de:'Nebel',pt:'nevoeiro'},
-    61:{en:'light rain',es:'lluvia ligera',ru:'слабый дождь',uk:'легкий дощ',it:'pioggia leggera',fr:'pluie légère',de:'leichter Regen',pt:'chuva fraca'},
-    63:{en:'rain',es:'lluvia',ru:'дождь',uk:'дощ',it:'pioggia',fr:'pluie',de:'Regen',pt:'chuva'},
-    65:{en:'heavy rain',es:'lluvia fuerte',ru:'сильный дождь',uk:'сильний дощ',it:'pioggia forte',fr:'forte pluie',de:'starker Regen',pt:'chuva forte'},
-    71:{en:'light snow',es:'nieve ligera',ru:'слабый снег',uk:'легкий сніг',it:'neve leggera',fr:'neige légère',de:'leichter Schnee',pt:'neve fraca'},
-    73:{en:'snow',es:'nieve',ru:'снег',uk:'сніг',it:'neve',fr:'neige',de:'Schnee',pt:'neve'},
-    75:{en:'heavy snow',es:'nieve fuerte',ru:'сильный снег',uk:'сильний сніг',it:'neve forte',fr:'forte neige',de:'starker Schnee',pt:'neve forte'},
-    80:{en:'light showers',es:'chubascos ligeros',ru:'небольшие ливни',uk:'невеликі зливи',it:'rovesci leggeri',fr:'averses légères',de:'leichte Schauer',pt:'aguaceiros fracos'},
-    81:{en:'showers',es:'chubascos',ru:'ливни',uk:'зливи',it:'rovesci',fr:'averses',de:'Schauer',pt:'aguaceiros'},
-    82:{en:'heavy showers',es:'chubascos fuertes',ru:'сильные ливни',uk:'сильні зливи',it:'rovesci forti',fr:'fortes averses',de:'starke Schauer',pt:'aguaceiros fortes'},
-    95:{en:'thunderstorm',es:'tormenta',ru:'гроза',uk:'гроза',it:'temporale',fr:'orage',de:'Gewitter',pt:'trovoada'}
-  };
-  return map[code]||{en:'current conditions',es:'condiciones actuales',ru:'текущие условия',uk:'поточні умови',it:'condizioni attuali',fr:'conditions actuelles',de:'aktuelle Bedingungen',pt:'condições atuais'};
-}
-function localText(language,key,vars={}){
-  const texts={
-    date:{en:'Today is {date}.',es:'Hoy es {date}.',ru:'Сегодня {date}.',uk:'Сьогодні {date}.',it:'Oggi è {date}.',fr:'Nous sommes le {date}.',de:'Heute ist {date}.',pt:'Hoje é {date}.'},
-    cityMissing:{en:'I cannot find "{city}". Which city should I use?',es:'No encuentro "{city}". ¿Qué ciudad quieres usar?',ru:'Я не нашла «{city}». Какой город использовать?',uk:'Я не знайшла «{city}». Яке місто використати?',it:'Non trovo "{city}". Quale città devo usare?',fr:'Je ne trouve pas « {city} ». Quelle ville dois-je utiliser ?',de:'Ich finde „{city}“ nicht. Welche Stadt soll ich verwenden?',pt:'Não encontrei "{city}". Que cidade devo usar?'},
-    locationDenied:{en:'I cannot read the device location: {error}. Tell me a city and I will continue with the weather.',es:'No puedo leer la ubicación del dispositivo: {error}. Dime una ciudad y sigo con el clima.',ru:'Я не могу прочитать местоположение устройства: {error}. Назови город, и я продолжу с погодой.',uk:'Я не можу прочитати місцезнаходження пристрою: {error}. Назви місто, і я продовжу з погодою.',it:'Non posso leggere la posizione del dispositivo: {error}. Dimmi una città e continuo con il meteo.',fr:'Je ne peux pas lire la position de l’appareil : {error}. Donne-moi une ville et je continue avec la météo.',de:'Ich kann den Gerätestandort nicht lesen: {error}. Nenne mir eine Stadt, dann mache ich mit dem Wetter weiter.',pt:'Não consigo ler a localização do dispositivo: {error}. Diz-me uma cidade e continuo com o clima.'},
-    currentLocation:{en:'your current location',es:'tu ubicación actual',ru:'твоём текущем местоположении',uk:'твоєму поточному місцезнаходженні',it:'la tua posizione attuale',fr:'ta position actuelle',de:'deinem aktuellen Standort',pt:'a tua localização atual'},
-    weather:{en:'Right now in {label}, it is {temp}{tempUnit}, feeling like {feels}{feelsUnit}. Conditions are {description}; humidity {humidity}{humidityUnit} and wind {wind} {windUnit}.',es:'Ahora mismo en {label}, hace {temp}{tempUnit} y se siente como {feels}{feelsUnit}. El cielo está {description}; humedad {humidity}{humidityUnit} y viento {wind} {windUnit}.',ru:'Сейчас в {label}: {temp}{tempUnit}, ощущается как {feels}{feelsUnit}. Условия: {description}; влажность {humidity}{humidityUnit}, ветер {wind} {windUnit}.',uk:'Зараз у {label}: {temp}{tempUnit}, відчувається як {feels}{feelsUnit}. Умови: {description}; вологість {humidity}{humidityUnit}, вітер {wind} {windUnit}.',it:'Adesso a {label} ci sono {temp}{tempUnit}, percepiti {feels}{feelsUnit}. Condizioni: {description}; umidità {humidity}{humidityUnit} e vento {wind} {windUnit}.',fr:'En ce moment à {label}, il fait {temp}{tempUnit}, ressenti {feels}{feelsUnit}. Conditions : {description} ; humidité {humidity}{humidityUnit} et vent {wind} {windUnit}.',de:'Aktuell in {label}: {temp}{tempUnit}, gefühlt {feels}{feelsUnit}. Bedingungen: {description}; Luftfeuchtigkeit {humidity}{humidityUnit} und Wind {wind} {windUnit}.',pt:'Agora em {label}, estão {temp}{tempUnit}, sensação de {feels}{feelsUnit}. Condições: {description}; humidade {humidity}{humidityUnit} e vento {wind} {windUnit}.'}
-  };
-  let value=(texts[key]&&texts[key][language])||(texts[key]&&texts[key].en)||'';
-  Object.entries(vars).forEach(([name,val])=>{value=value.replaceAll(`{${name}}`,String(val))});
-  return value;
-}
-function currentDateReply(language){
-  const now=new Date();
-  const locale={es:'es-ES',ru:'ru-RU',uk:'uk-UA',it:'it-IT',de:'de-DE',pt:'pt-PT',en:'en-US'}[language]||'en-US';
-  const formatted=new Intl.DateTimeFormat(locale,{weekday:'long',year:'numeric',month:'long',day:'numeric'}).format(now);
-  return localText(language,'date',{date:formatted});
-}
-async function geocodeCity(city){
-  const url=`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city)}&count=1&language=es&format=json`;
-  const response=await fetch(url);
-  if(!response.ok)throw new Error(`geocoding service returned ${response.status}`);
-  const data=await response.json();
-  if(!data.results||!data.results.length)return null;
-  const result=data.results[0];
-  return {
-    latitude: result.latitude,
-    longitude: result.longitude,
-    label: [result.name,result.admin1,result.country].filter(Boolean).join(', ')
-  };
-}
-async function getWeatherReply(action){
-  const lang=action.language||'en';
-  let latitude,longitude,label;
-  if(action.city){
-    const place=await geocodeCity(action.city);
-    if(!place){
-      pendingAction={tool:'weather_city',language:lang};
-      return localText(lang,'cityMissing',{city:action.city});
-    }
-    latitude=place.latitude;longitude=place.longitude;label=place.label;
-  }else{
-    let position;
-    try{position=await getDevicePosition()}catch(error){
-      pendingAction={tool:'weather_city',language:lang};
-      return localText(lang,'locationDenied',{error:error.message});
-    }
-    latitude=position.coords.latitude;longitude=position.coords.longitude;
-    label=localText(lang,'currentLocation');
-  }
-  return await getWeatherByCoordinates({latitude,longitude,label,language:lang});
-}
-async function getWeatherByCoordinates({latitude,longitude,label,language}){
-  const lang=language||'en';
-  const url=`https://api.open-meteo.com/v1/forecast?latitude=${encodeURIComponent(latitude.toFixed(4))}&longitude=${encodeURIComponent(longitude.toFixed(4))}&current=temperature_2m,apparent_temperature,relative_humidity_2m,wind_speed_10m,weather_code&timezone=auto`;
-  const response=await fetch(url);
-  if(!response.ok)throw new Error(`weather service returned ${response.status}`);
-  const data=await response.json(),current=data.current||{},units=data.current_units||{};
-  const temp=Math.round(Number(current.temperature_2m));
-  const feels=Math.round(Number(current.apparent_temperature));
-  const humidity=current.relative_humidity_2m;
-  const wind=Math.round(Number(current.wind_speed_10m));
-  const description=weatherDescription(Number(current.weather_code));
-  return localText(lang,'weather',{label,temp,tempUnit:units.temperature_2m||'°C',feels,feelsUnit:units.apparent_temperature||'°C',description:description[lang]||description.en,humidity,humidityUnit:units.relative_humidity_2m||'%',wind,windUnit:units.wind_speed_10m||'km/h'});
-}
-const TOOL_REGISTRY=[
-  {name:'preferences',detect:detectPreferenceAction,confirm:false,run:async action=>handlePreferenceAction(action)},
-  {name:'current_date',detect:detectDateAction,confirm:false,run:async action=>currentDateReply(action.language)},
-  {name:'weather',detect:detectWeatherAction,confirm:false,run:getWeatherReply},
-  {name:'calendar_event',detect:detectCreateCalendarEventAction,confirm:true,missing:action=>action.missing&&action.missing.length,missingReply:calendarMissingQuestion,confirmReply:describeCalendarDraft},
-  {name:'reminder',detect:detectCreateReminderAction,confirm:true,missing:action=>action.missing&&action.missing.length,missingReply:reminderMissingQuestion,confirmReply:describeReminderDraft},
-  {name:'memory_overview',detect:detectMemoryOverviewAction,confirm:false,run:async action=>{
-    const overview=await invoke('read_journal_overview',{date:action.date});
-    return formatMemoryOverview(overview,action.language);
-  }},
-  {name:'memory_write',detect:detectMemoryWriteAction,confirm:false,run:async action=>{
-    const result=await invoke('append_journal_entry',{section:action.section,text:action.text,timestamp:new Date().toISOString(),date:action.date});
-    return memorySavedReply(action,result);
-  }},
-  {name:'list_calendars',detect:detectListCalendarsAction,confirm:true,confirmReply:action=>`I can list your Mac calendars (${toolRiskLabel(action)} risk). Confirm?`},
-  {name:'list_reminder_lists',detect:detectListReminderListsAction,confirm:true,confirmReply:action=>`I can list your Mac Reminders lists (${toolRiskLabel(action)} risk). Confirm?`},
-  {name:'open_url',detect:detectOpenUrlAction,confirm:true,confirmReply:action=>`I can open ${action.url} (${toolRiskLabel(action)} risk). Confirm?`}
-];
-function detectRegisteredToolAction(text){
-  for(const spec of TOOL_REGISTRY){
-    const action=spec.detect(text);
-    if(action)return {spec,action};
-  }
-  return null;
-}
-async function handleRegisteredToolAction(spec,action,shouldCreateRecentQuery,text){
-  removeTyping();
-  action.userText=action.userText||text;
-  await auditToolEvent('tool_detected',action,{user_text:text,registry_name:spec.name,model_interpreted:Boolean(action.modelInterpreted)});
-  if(spec.missing&&spec.missing(action)){
-    pendingAction=action;
-    addMessage(spec.missingReply(action),'ai');
-  }else if(missingRequiredToolFields(action).length){
-    pendingAction=action;
-    addMessage(`I still need: ${missingRequiredToolFields(action).join(', ')}.`,'ai');
-  }else if(toolRequiresConfirmation(action,Boolean(spec.confirm))){
-    await createBackendActionFor(action,{user_text:text,registry_name:spec.name});
-    pendingAction=action;
-    addMessage(spec.confirmReply(action),'ai');
-  }else{
-    showTyping();
-    await createBackendActionFor(action,{user_text:text,registry_name:spec.name});
-    try{
-      const reply=await spec.run(action);
-      await completeBackendActionFor(action,'done',{reply});
-      await auditToolEvent('tool_completed',action,{result:{reply}});
-      removeTyping();
-      addMessage(reply,'ai');
-    }catch(error){
-      await completeBackendActionFor(action,'failed',{error:commandError(error)});
-      throw error;
-    }
-  }
-  if(shouldCreateRecentQuery){addRecentQuery(text);setTimeout(loadRecentQueries,400)}
-  return true;
-}
-async function runPendingAction(){
-  if(!pendingAction)return false;
-  const action=pendingAction;pendingAction=null;showTyping();
-  await auditToolEvent('tool_confirmed',action);
-  try{
-    await confirmBackendActionFor(action);
-    if(action.tool==='open_browser_url'){
-      const result=await invoke('open_browser_url',{url:action.url});
-      await completeBackendActionFor(action,'done',result);
-      await auditToolEvent('tool_completed',action,{result});
-      removeTyping();addMessage(`Done. I opened ${result.url}.`,'ai');
-      return true;
-    }
-    if(action.tool==='list_calendars'){
-      const result=await invoke('list_calendars');
-      await completeBackendActionFor(action,'done',result);
-      await auditToolEvent('tool_completed',action,{result});
-      removeTyping();
-      const names=(result.calendars||[]).join(', ');
-      addMessage(names?`I found these calendars: ${names}.`:'I could not find any calendars.','ai');
-      return true;
-    }
-    if(action.tool==='list_reminder_lists'){
-      const result=await invoke('list_reminder_lists');
-      await completeBackendActionFor(action,'done',result);
-      await auditToolEvent('tool_completed',action,{result});
-      removeTyping();
-      const names=(result.lists||[]).join(', ');
-      addMessage(names?`I found these Reminders lists: ${names}.`:'I could not find any Reminders lists.','ai');
-      return true;
-    }
-    if(action.tool==='create_calendar_event'){
-      const d=action.draft;
-      const result=await invoke('create_calendar_event',{calendar:d.calendar,title:d.title,start:d.start,end:d.end});
-      await completeBackendActionFor(action,'done',result);
-      await auditToolEvent('tool_completed',action,{result});
-      removeTyping();
-      addMessage(d.language==='es'
-        ? `Hecho. Creé "${result.title}" en ${result.calendar}.`
-        : `Done. I created "${result.title}" in ${result.calendar}.`,'ai');
-      return true;
-    }
-    if(action.tool==='create_reminder'){
-      const d=action.draft;
-      const result=await invoke('create_reminder',{list:d.list,title:d.title,due:d.due});
-      await completeBackendActionFor(action,'done',result);
-      await auditToolEvent('tool_completed',action,{result});
-      removeTyping();
-      addMessage(d.language==='es'
-        ? `Hecho. Creé la tarea "${result.title}" en ${result.list}.`
-        : `Done. I created the task "${result.title}" in ${result.list}.`,'ai');
-      return true;
-    }
-    removeTyping();addMessage(`I do not know how to run ${action.tool} yet.`,'ai');
-    return true;
-  }catch(error){
-    removeTyping();
-    const message=commandError(error);
-    await completeBackendActionFor(action,'failed',{error:message});
-    await auditToolEvent('tool_failed',action,{error:message});
-    if(action.tool==='create_calendar_event'&&/Calendar not found/i.test(message)){
-      action.draft.calendar='';
-      action.draft.missingCalendar=true;
-      action.missing=['calendar'];
-      pendingAction=action;
-      try{
-        const result=await invoke('list_calendars');
-        const names=(result.calendars||[]).join(', ');
-        addMessage(names?`No encuentro ese calendario. Tienes estos calendarios: ${names}. ¿Cuál uso?`:'No encuentro ese calendario. ¿Cuál es el nombre exacto del calendario?','ai');
-      }catch(_listError){
-        addMessage('No encuentro ese calendario. ¿Cuál es el nombre exacto del calendario?','ai');
-      }
-      return true;
-    }
-    addMessage(message,'ai');return true
-  }
-}
-async function handleOrchestrationResult(result,shouldCreateRecentQuery,text){
-  if(!result)return false;
-  removeTyping();
-  if(result.mode==='reply'||(!result.action&&result.mode!=='ask')){
-    addMessage(result.reply||'I am here. Tell me what you want to do.','ai');
-    if(shouldCreateRecentQuery){addRecentQuery(text);setTimeout(loadRecentQueries,400)}
-    return true;
-  }
-  if(result.action){
-    const action=result.action;
-    if(result.mode==='ask'||(action.missing&&action.missing.length)){
-      pendingAction=action;
-      addMessage(result.reply||action.orchestratorReply||'I need one more detail.','ai');
-      if(shouldCreateRecentQuery){addRecentQuery(text);setTimeout(loadRecentQueries,400)}
-      return true;
-    }
-    const spec=TOOL_REGISTRY.find(item=>item.name===toolSpecNameForAction(action));
-    if(spec){
-      action.orchestratorReply=result.reply||action.orchestratorReply;
-      await handleRegisteredToolAction(spec,action,shouldCreateRecentQuery,text);
-      return true;
-    }
-  }
-  addMessage(result.reply||'I need one more detail.','ai');
-  if(shouldCreateRecentQuery){addRecentQuery(text);setTimeout(loadRecentQueries,400)}
-  return true;
-}
-async function sendMessage(){
-  if(!authSession){showScreen('screen-login');setAuthStatus('— log in before sending a query —','error');return}
-  if(activeMode==='activity'){setAuthStatus('— activity is read-only; switch to Text to chat —','error');return}
-  const input=document.getElementById('chat-input'),text=input.value.trim();if(!text)return;
-  const shouldCreateRecentQuery=!currentConversationHasMessages;
-  addMessage(text,'user');input.value='';input.style.height='auto';showTyping();
-  if(!invoke){setTimeout(()=>{removeTyping();addMessage('Design preview loaded. Open the Tauri app to use ARI.','ai')},500);return}
-  try{
-    if(pendingAction){
-      removeTyping();
-      if(isConfirmText(text)){await runPendingAction();return}
-      if(isCancelText(text)){await rejectBackendActionFor(pendingAction);await auditToolEvent('tool_cancelled',pendingAction);pendingAction=null;addMessage('Cancelled.','ai');return}
-      try{
-        showTyping();
-        const orchestration=await orchestrateUserMessage(text);
-        if(await handleOrchestrationResult(orchestration,shouldCreateRecentQuery,text))return;
-      }catch(_orchestrationError){removeTyping()}
-      if(pendingAction.tool==='weather_city'){
-        const city=extractCity(text)||text.trim().replace(/[.?!]+$/,'');
-        const language=pendingAction.language||replyLanguage(text);
-        pendingAction=null;
-        showTyping();
-        const reply=await getWeatherReply({tool:'get_weather',city,language});
-        removeTyping();addMessage(reply,'ai');return;
-      }
-      if(pendingAction.tool==='create_calendar_event'&&pendingAction.missing&&pendingAction.missing.length){
-        pendingAction=buildCalendarEventDraft(text,pendingAction.draft);
-        if(pendingAction.missing.length){addMessage(calendarMissingQuestion(pendingAction),'ai');return}
-        await createBackendActionFor(pendingAction,{completed_missing_fields:true});
-        addMessage(describeCalendarDraft(pendingAction),'ai');return;
-      }
-      if(pendingAction.tool==='create_reminder'&&pendingAction.missing&&pendingAction.missing.length){
-        pendingAction=buildReminderDraft(text,pendingAction.draft);
-        if(pendingAction.missing.length){addMessage(reminderMissingQuestion(pendingAction),'ai');return}
-        await createBackendActionFor(pendingAction,{completed_missing_fields:true});
-        addMessage(describeReminderDraft(pendingAction),'ai');return;
-      }
-      addMessage('Please confirm or cancel the pending action first.','ai');return;
-    }
-    try{
-      const orchestration=await orchestrateUserMessage(text);
-      if(await handleOrchestrationResult(orchestration,shouldCreateRecentQuery,text))return;
-    }catch(_orchestrationError){removeTyping();showTyping()}
-    const registered=detectRegisteredToolAction(text);
-    if(registered){await handleRegisteredToolAction(registered.spec,registered.action,shouldCreateRecentQuery,text);return}
-    if(activeMode==='memory'){const results=await invoke('search_memory',{query:text,limit:8});removeTyping();addMessage(results.length?formatSearchResults(results):'No memory entries matched that query.','ai');return}
-    const response=await invoke('chat_with_ari',{message:text,useMemory:true,memoryLimit:8});removeTyping();addMessage(response.reply||'ARI did not return a response.','ai');if(shouldCreateRecentQuery){addRecentQuery(text);setTimeout(loadRecentQueries,400)}
-  }catch(error){removeTyping();addMessage(commandError(error),'ai');if(isAuthError(error))setTimeout(logoutUser,700)}
-}
-function formatSearchResults(results){return results.map(item=>`${item.date} · line ${item.line_number}\n${item.line}`).join('\n\n')}
-function summarizeAuditPayload(payload={}){
-  const params=payload.params||{},result=payload.result||{},bits=[];
-  if(params.title)bits.push(`title: ${params.title}`);
-  if(params.calendar)bits.push(`calendar: ${params.calendar}`);
-  if(params.list)bits.push(`list: ${params.list}`);
-  if(params.url)bits.push(`url: ${params.url}`);
-  if(params.section)bits.push(`section: ${params.section}`);
-  if(params.text)bits.push(`text: ${String(params.text).slice(0,90)}`);
-  if(payload.error)bits.push(`error: ${payload.error}`);
-  if(result.title)bits.push(`result: ${result.title}`);
-  if(result.url)bits.push(`result: ${result.url}`);
-  if(!bits.length&&payload.user_text)bits.push(`request: ${payload.user_text}`);
-  return bits.length?bits.join(' · '):JSON.stringify(payload).slice(0,220);
-}
-function renderActivityLog(events){
-  const msgs=document.getElementById('messages');
-  currentConversationHasMessages=true;
-  document.getElementById('chat-meta').textContent=`ARI · activity · ${events.length} events`;
-  const cards=events.map(event=>{
-    const payload=event.payload||{},tool=payload.tool_name||payload.tool||'system';
-    const time=new Date(event.created_at).toLocaleString([], {month:'short',day:'2-digit',hour:'2-digit',minute:'2-digit'});
-    const hash=String(event.hash_current||'').slice(0,16);
-    return `<div class="activity-card">
-      <div>
-        <div class="activity-type">${escapeHtml(event.event_type)}</div>
-        <div class="activity-time">${escapeHtml(time)}</div>
-      </div>
-      <div>
-        <div class="activity-tool">${escapeHtml(tool)}</div>
-        <div class="activity-time">${escapeHtml(payload.risk_level||'')}</div>
-      </div>
-      <div>
-        <div class="activity-payload">${escapeHtml(summarizeAuditPayload(payload))}</div>
-        <div class="activity-hash">hash ${escapeHtml(hash)}</div>
-      </div>
-    </div>`;
+
+function renderConversationList(threads) {
+  const list = document.getElementById('conv-list');
+  if (!threads.length) return;
+  list.innerHTML = threads.map((thread, index) => {
+    const title = thread.title || 'Consulta activa';
+    const sub = thread.summary || thread.last_message || 'ARI';
+    const icon = iconNameForTask(`${title} ${sub}`);
+    const active = thread.id === ari.currentThreadId || (!ari.currentThreadId && index === 0);
+    const time = thread.updated_at
+      ? new Intl.DateTimeFormat(undefined, { hour: '2-digit', minute: '2-digit' }).format(new Date(thread.updated_at))
+      : index === 0 ? 'Ahora' : '';
+    return `
+      <div class="ci ${active ? 'active' : ''}" data-thread-id="${escHtml(thread.id || '')}" onclick="selectConv(this)">
+        <div class="ci-icon ${iconClassForTask(icon)}"><i data-lucide="${icon}"></i></div>
+        <div class="ci-body">
+          <div class="ci-top"><span class="ci-name">${escHtml(title)}</span><span class="ci-time">${escHtml(time)}</span></div>
+          <span class="ci-sub">${escHtml(sub)}</span>
+        </div>
+        ${active ? '<span class="ci-dot"></span>' : ''}
+      </div>`;
   }).join('');
-  msgs.innerHTML=`<div class="activity-view">
-    <div class="activity-head">
-      <div>
-        <div class="activity-title">Activity log</div>
-        <div class="activity-sub">Tool detection, confirmation and execution trail</div>
-      </div>
-      <button class="cta activity-refresh" onclick="loadActivityLog()">Refresh</button>
-    </div>
-    ${cards||'<div class="activity-card"><div class="activity-type">empty</div><div class="activity-tool">No events yet</div><div class="activity-payload">Run a tool action and it will appear here.</div></div>'}
-  </div>`;
+  lucide.createIcons();
 }
-async function loadActivityLog(){
-  if(!invoke||!authSession)return;
-  const msgs=document.getElementById('messages');
-  msgs.innerHTML='<div class="welcome"><div class="welcome-title">Reading activity...</div></div>';
-  try{
-    const events=await invoke('list_audit_events',{limit:50});
-    renderActivityLog(events);
-  }catch(error){
-    msgs.innerHTML='';
-    addMessage(commandError(error),'ai');
+
+async function ensureActiveThread(title) {
+  if (ari.currentThreadId || !ari.token || !ari.workspaceId) return ari.currentThreadId;
+  const response = await fetch(`/api/v1/messages/${ari.workspaceId}/threads`, {
+    method: 'POST',
+    headers: authHeaders({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify({ title }),
+  });
+  if (!response.ok) throw new Error(await readError(response));
+  const thread = await response.json();
+  ari.currentThreadId = thread.id;
+  localStorage.setItem('ari.currentThreadId', thread.id);
+  ari.threads = [thread, ...ari.threads.filter(item => item.id !== thread.id)];
+  renderConversationList(ari.threads);
+  return thread.id;
+}
+
+async function openThread(threadId) {
+  if (!ari.token || !ari.workspaceId || !threadId) return;
+  try {
+    const response = await fetch(`/api/v1/messages/${ari.workspaceId}/threads/${encodeURIComponent(threadId)}`, {
+      headers: authHeaders(),
+    });
+    if (!response.ok) throw new Error(await readError(response));
+    const thread = await response.json();
+    ari.currentThreadId = thread.id;
+    localStorage.setItem('ari.currentThreadId', thread.id);
+    document.getElementById('chat-title').textContent = thread.title || 'Consulta activa';
+    renderThreadMessages(thread.messages || []);
+  } catch (error) {
+    appendMessage(error.message, 'ai');
   }
 }
-function renderRecentQueries(items){
-  const container=document.getElementById('recent-queries');
-  if(!items.length){container.innerHTML=`<div class="recent-item active"><span class="query-icon">${lucideIcon('message')}</span><span class="recent-copy"><span class="recent-title">${appText('noQueries')}</span><span class="recent-sub">ARI</span></span><span class="recent-time">--</span></div>`;return}
-  container.innerHTML=items.map((item,index)=>{
-    const title=escapeHtml(item.title||appText('activeQuery'));
-    const date=escapeHtml(item.date||'ARI');
-    const time=item.updated_at?new Intl.DateTimeFormat(appLocale(),{hour:'2-digit',minute:'2-digit'}).format(new Date(item.updated_at)):(index===0?'Ahora':'');
-    const icon=iconForTask(`${item.title||''} ${item.summary||''} ${item.last_message||''}`);
-    return `<div class="recent-item ${index===0?'active':''}" data-query="${escapeAttr(item.title)}" data-date="${escapeAttr(item.date||'')}" data-line="${item.line_number||''}" onclick="openConversation(this)"><span class="query-icon">${lucideIcon(icon)}</span><span class="recent-copy"><span class="recent-title">${title}</span><span class="recent-sub">${date} · ARI</span></span><span class="recent-time">${escapeHtml(time)}</span></div>`;
-  }).join('');
+
+function renderThreadMessages(messages) {
+  const wrap = document.getElementById('messages');
+  wrap.innerHTML = '';
+  messages.forEach(message => appendMessage(message.content, message.role === 'user' ? 'user' : 'ai'));
+  wrap.scrollTop = wrap.scrollHeight;
 }
-function addRecentQuery(title){const container=document.getElementById('recent-queries');const existing=Array.from(container.querySelectorAll('.recent-item')).map(item=>item.textContent.trim()).filter(item=>item&&item!=='No queries yet'&&item!==title);renderRecentQueries([{title},...existing.slice(0,7).map(item=>({title:item}))])}
-async function loadRecentQueries(){if(!invoke||!authSession)return;try{const items=await invoke('list_recent_messages',{limit:8});renderRecentQueries(items)}catch(_error){renderRecentQueries([])}}
-async function openConversation(el){
-  if(!invoke||!authSession)return;const date=el.dataset.date,lineNumber=Number(el.dataset.line);
-  if(!date||!lineNumber){sendQuick(el.dataset.query||el.textContent.trim());return}
-  try{const conversation=await invoke('read_conversation',{date,lineNumber});renderConversation(conversation);document.querySelectorAll('#recent-queries .recent-item').forEach(item=>item.classList.remove('active'));el.classList.add('active')}catch(error){addMessage(commandError(error),'ai')}
+
+function appendMessage(text, from = 'ai') {
+  const msgs = document.getElementById('messages');
+  const isUser = from === 'user';
+  const row = document.createElement('div');
+  row.className = 'msg-row';
+  if (isUser) row.style.justifyContent = 'flex-end';
+  row.innerHTML = isUser
+    ? `<div class="msg-body" style="max-width:72%;"><div class="bubble" style="border-radius:16px 4px 16px 16px; background:rgba(217,154,61,.1);"><p style="font-family:var(--font-ui); font-style:normal; font-size:clamp(13px,1.6vw,15px);">${escHtml(text)}</p></div></div>`
+    : `<div class="msg-connector"><div class="avatar"><div class="av-dot"></div></div></div><div class="msg-arrow"><i data-lucide="chevron-right"></i></div><div class="msg-body"><div class="bubble"><p>${escHtml(text)}</p></div><div class="msg-meta"><span>ARI</span><span>•</span><span>${new Date().toLocaleTimeString('es',{hour:'2-digit',minute:'2-digit'})}</span><div class="msg-check"><i data-lucide="check"></i></div></div></div>`;
+  msgs.appendChild(row);
+  lucide.createIcons();
+  msgs.scrollTop = msgs.scrollHeight;
 }
-function renderConversation(conversation){const msgs=document.getElementById('messages');msgs.innerHTML='';currentConversationHasMessages=false;conversation.messages.forEach(message=>addMessage(message.content,message.role==='assistant'?'ai':'user'));currentConversationHasMessages=true;document.querySelector('.chat-title').textContent=conversation.title||appText('activeQuery');document.getElementById('chat-meta').textContent=activeQueryMeta();showScreen('screen-chat')}
-async function initializeApp(){
-  buildLanguageSelects();
-  applyAppLanguage();
-  document.getElementById('auth-password-toggle').addEventListener('click',togglePasswordVisibility);
-  updatePasswordToggle();
-  syncVoiceControls();
-  afterFirstPaint(async()=>{
-    setTimeout(startVisualEffects,120);
-    setTimeout(loadFontsLater,900);
-    await loadDefaultBackendUrl();
-    await loadDesktopSession();
-  });
-}
-initializeApp();
+
+loadThreads();
+
+// ── LUCIDE RE-INIT (after dynamic content) ────
+lucide.createIcons();
 </script>
 </body>
 </html>
