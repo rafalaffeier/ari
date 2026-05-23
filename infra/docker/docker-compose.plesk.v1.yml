@@ -20,8 +20,8 @@ services:
 
   backend:
     build:
-      context: ../../backend
-      dockerfile: ../infra/docker/Dockerfile.backend
+      context: ../..
+      dockerfile: infra/docker/Dockerfile.backend
     restart: unless-stopped
     ports:
       - "127.0.0.1:${BACKEND_BIND_PORT}:8000"
@@ -48,8 +48,8 @@ services:
 
   worker:
     build:
-      context: ../../backend
-      dockerfile: ../infra/docker/Dockerfile.backend
+      context: ../..
+      dockerfile: infra/docker/Dockerfile.backend
     restart: unless-stopped
     command: celery -A app.jobs.celery_app worker --loglevel=info
     environment:

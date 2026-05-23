@@ -63,8 +63,8 @@ services:
 
   backend:
     build:
-      context: ../../backend
-      dockerfile: ../infra/docker/Dockerfile.backend
+      context: ../..
+      dockerfile: infra/docker/Dockerfile.backend
     restart: unless-stopped
     environment:
       ENV: staging
@@ -95,8 +95,8 @@ services:
 
   worker:
     build:
-      context: ../../backend
-      dockerfile: ../infra/docker/Dockerfile.backend
+      context: ../..
+      dockerfile: infra/docker/Dockerfile.backend
     restart: unless-stopped
     command: celery -A app.jobs.celery_app worker --loglevel=info
     environment:
