@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "AI Assistant",
+  "productName": "ARI",
   "version": "0.1.0",
-  "identifier": "com.local.ai-assistant",
+  "identifier": "com.flusscreative.ari",
   "build": {
     "frontendDist": "ui"
   },
