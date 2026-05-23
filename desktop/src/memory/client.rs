@@ -43,12 +43,18 @@ struct RegisterRequest<'a> {
     password: &'a str,
 }
 
+#[derive(Debug, Serialize)]
+struct GoogleExchangeRequest<'a> {
+    code: &'a str,
+}
+
 #[derive(Debug, Deserialize, Serialize)]
 pub struct AuthResponse {
     pub access_token: String,
     pub token_type: String,
     pub user_id: String,
     pub default_workspace_id: Option<String>,
+    pub email: Option<String>,
 }
 
 #[derive(Debug, Serialize)]
@@ -329,6 +335,19 @@ impl MemoryClient {
             self.http
                 .post(url)
                 .form(&[("username", email), ("password", password)]),
+        )
+        .await
+    }
+
+    pub async fn exchange_google_code(
+        &self,
+        code: &str,
+    ) -> Result<AuthResponse, MemoryClientError> {
+        let url = format!("{}/api/v1/auth/google/exchange", self.backend_url);
+        self.send_json(
+            self.http
+                .post(url)
+                .json(&GoogleExchangeRequest { code }),
         )
         .await
     }

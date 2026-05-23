@@ -5,6 +5,7 @@ export type AuthResponse = {
   token_type: string;
   user_id: string;
   default_workspace_id: string | null;
+  email?: string | null;
 };
 
 export type Workspace = {
@@ -67,6 +68,13 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
 }
 
 export const api = {
+  googleAuthUrl: (client: "web" | "desktop" | "mobile" = "mobile") =>
+    `${BASE_URL}/auth/google/start?client=${encodeURIComponent(client)}`,
+  exchangeGoogleCode: (code: string) =>
+    request<AuthResponse>("/auth/google/exchange", {
+      method: "POST",
+      body: JSON.stringify({ code }),
+    }),
   login: (email: string, password: string) =>
     request<AuthResponse>("/auth/login", {
       method: "POST",

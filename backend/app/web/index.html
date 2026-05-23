@@ -153,6 +153,25 @@
     }
     .link:hover { color: var(--gold); }
 
+    .social {
+      width: 100%;
+      min-height: 44px;
+      margin-bottom: 18px;
+      border: 1px solid rgba(201,169,110,0.2);
+      background: rgba(201,169,110,0.035);
+      color: var(--soft-2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      font-size: 9px;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+    }
+    .social:hover { border-color: rgba(201,169,110,0.48); color: var(--cream); }
+    .s-pulse { width: 8px; height: 8px; border-radius: 50%; background: var(--gold); box-shadow: 0 0 14px var(--gold); }
+    .orn-div { display: flex; align-items: center; gap: 12px; margin-bottom: 18px; color: rgba(201,169,110,.28); font-size: 9px; letter-spacing: 3px; justify-content: center; }
+
     .app {
       width: 100%;
       height: 100%;
@@ -294,6 +313,13 @@
           <button class="tab" id="registerTab" type="button">Create</button>
         </div>
 
+        <button class="social" id="googleBtn" type="button">
+          <span class="s-pulse"></span>
+          Continue with Google
+        </button>
+
+        <div class="orn-div" id="authDivider">✦ or ✦</div>
+
         <form id="authForm">
           <div class="fg">
             <label for="email">Email</label>
@@ -418,6 +444,8 @@
     const authForm = document.getElementById("authForm");
     const authFooterText = document.getElementById("authFooterText");
     const authToggle = document.getElementById("authToggle");
+    const googleBtn = document.getElementById("googleBtn");
+    const authDivider = document.getElementById("authDivider");
     const chatMeta = document.getElementById("chatMeta");
     const connectionLabel = document.getElementById("connectionLabel");
     const sidebarUserName = document.getElementById("sidebarUserName");
@@ -440,6 +468,8 @@
       authBtn.textContent = mode === "login" ? "Align me →" : "Create light →";
       authFooterText.textContent = mode === "login" ? "First time here?" : "Already aligned?";
       authToggle.textContent = mode === "login" ? "Begin your expansion" : "Return to login";
+      googleBtn.style.display = mode === "login" ? "flex" : "none";
+      authDivider.style.display = mode === "login" ? "flex" : "none";
       setStatus(mode === "login" ? "— log in to use ARI —" : "— create your private account —");
     }
 
@@ -534,6 +564,10 @@
     authToggle.addEventListener("click", () => setAuthMode(state.mode === "login" ? "register" : "login"));
     loginTab.addEventListener("click", () => setAuthMode("login"));
     registerTab.addEventListener("click", () => setAuthMode("register"));
+    googleBtn.addEventListener("click", () => {
+      const returnTo = `${window.location.origin}/`;
+      window.location.href = `/api/v1/auth/google/start?client=web&return_to=${encodeURIComponent(returnTo)}`;
+    });
     document.getElementById("logoutBtn").addEventListener("click", clearSession);
     document.getElementById("clearBtn").addEventListener("click", clearChat);
     document.getElementById("newQueryBtn").addEventListener("click", clearChat);
@@ -702,6 +736,31 @@
     drawSky();
     setAuthMode("login");
     syncSession();
+    hydrateGoogleCallback();
+
+    async function hydrateGoogleCallback() {
+      const rawHash = window.location.hash.startsWith("#") ? window.location.hash.slice(1) : window.location.hash;
+      if (!rawHash) return;
+      const params = new URLSearchParams(rawHash);
+      const googleAuth = params.get("google_auth");
+      const googleError = params.get("google_error");
+      if (googleError) setStatus(decodeURIComponent(googleError), "error");
+      if (!googleAuth) return;
+      try {
+        const response = await fetch("/api/v1/auth/google/exchange", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ code: googleAuth }),
+        });
+        if (!response.ok) throw new Error(await readError(response));
+        const auth = await response.json();
+        saveSession(auth, auth.email || "google");
+        setStatus("— Google session active —", "ok");
+        history.replaceState(null, "", window.location.pathname + window.location.search);
+      } catch (error) {
+        setStatus(error.message, "error");
+      }
+    }
   </script>
 </body>
 </html>

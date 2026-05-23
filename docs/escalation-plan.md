@@ -263,6 +263,7 @@ Build:
 - Logs and metrics. Started with container log commands and baseline metrics in `docs/production-staging-runbook.md`.
 - Rate limiting. Started with Redis-backed fixed-window middleware enabled by staging config.
 - Admin runbook. Started in `docs/production-staging-runbook.md`.
+- Google OAuth login. Started with backend Google authorization-code flow, web automatic callback, and desktop/mobile code exchange while preserving ARI JWT sessions.
 
 Exit criteria:
 
@@ -283,6 +284,7 @@ Evidence:
 - `/ready` now checks database and Redis connectivity.
 - Sync object storage can be selected with `SYNC_STORAGE_BACKEND=s3`; local remains the developer default.
 - Rate limiting is configurable with `RATE_LIMIT_ENABLED`, `RATE_LIMIT_REQUESTS`, and `RATE_LIMIT_WINDOW_SECONDS`.
+- Google OAuth requires `GOOGLE_OAUTH_CLIENT_ID`, `GOOGLE_OAUTH_CLIENT_SECRET`, and `GOOGLE_OAUTH_REDIRECT_URI`; Google tokens are used transiently and are not stored.
 
 ## Control Rules
 

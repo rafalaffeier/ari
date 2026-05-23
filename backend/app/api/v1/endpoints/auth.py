@@ -1,9 +1,15 @@
 import uuid
+from datetime import datetime, timedelta, timezone
+from urllib.parse import quote, urlencode
 
-from fastapi import APIRouter, Depends, HTTPException, status
+import httpx
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
+from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.security import OAuth2PasswordRequestForm
+from jose import JWTError, jwt
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+from app.core.config import settings
 from app.core.database import get_db
 from app.core.security import verify_password, create_access_token, hash_password
 from app.models.user import User
@@ -12,15 +18,26 @@ from pydantic import BaseModel, EmailStr
 
 router = APIRouter()
 
+GOOGLE_AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth"
+GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token"
+GOOGLE_TOKENINFO_URL = "https://oauth2.googleapis.com/tokeninfo"
+GOOGLE_SCOPES = "openid email profile"
+GOOGLE_STATE_TTL_MINUTES = 10
+GOOGLE_EXCHANGE_TTL_MINUTES = 5
+
 class RegisterRequest(BaseModel):
     email: EmailStr
     password: str
+
+class GoogleExchangeRequest(BaseModel):
+    code: str
 
 class TokenResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
     user_id: uuid.UUID
     default_workspace_id: uuid.UUID | None = None
+    email: EmailStr | None = None
 
 @router.post("/register", response_model=TokenResponse, status_code=201)
 async def register(body: RegisterRequest, db: AsyncSession = Depends(get_db)):
@@ -38,7 +55,7 @@ async def register(body: RegisterRequest, db: AsyncSession = Depends(get_db)):
     await db.refresh(user)
     await db.refresh(workspace)
     token = create_access_token(str(user.id))
-    return TokenResponse(access_token=token, user_id=user.id, default_workspace_id=workspace.id)
+    return TokenResponse(access_token=token, user_id=user.id, default_workspace_id=workspace.id, email=user.email)
 
 @router.post("/login", response_model=TokenResponse)
 async def login(form: OAuth2PasswordRequestForm = Depends(), db: AsyncSession = Depends(get_db)):
@@ -55,4 +72,210 @@ async def login(form: OAuth2PasswordRequestForm = Depends(), db: AsyncSession = 
         access_token=token,
         user_id=user.id,
         default_workspace_id=default_workspace.workspace_id if default_workspace else None,
+        email=user.email,
     )
+
+@router.get("/google/start")
+async def google_start(
+    request: Request,
+    client: str = Query("web", pattern="^(web|desktop|mobile)$"),
+    return_to: str = "",
+):
+    _require_google_oauth_configured()
+    redirect_uri = _google_redirect_uri(request)
+    state = _encode_google_state(client=client, return_to=return_to)
+    params = {
+        "client_id": settings.GOOGLE_OAUTH_CLIENT_ID,
+        "redirect_uri": redirect_uri,
+        "response_type": "code",
+        "scope": GOOGLE_SCOPES,
+        "state": state,
+        "access_type": "online",
+        "prompt": "select_account",
+    }
+    return RedirectResponse(f"{GOOGLE_AUTH_URL}?{urlencode(params)}", status_code=302)
+
+@router.get("/google/callback", name="google_callback")
+async def google_callback(
+    request: Request,
+    code: str = "",
+    state: str = "",
+    error: str = "",
+    db: AsyncSession = Depends(get_db),
+):
+    _require_google_oauth_configured()
+    state_payload = _decode_google_state(state)
+    client = state_payload.get("client", "web")
+
+    if error:
+        return _google_error_response(client, f"Google rejected the login: {error}")
+    if not code:
+        return _google_error_response(client, "Google did not return an authorization code")
+
+    profile = await _exchange_google_code(request, code)
+    user, workspace = await _get_or_create_google_user(db, profile["email"])
+    auth = TokenResponse(
+        access_token=create_access_token(str(user.id)),
+        user_id=user.id,
+        default_workspace_id=workspace.id,
+        email=user.email,
+    )
+
+    if client == "web":
+        return_to = _safe_return_to(state_payload.get("return_to") or "/")
+        payload = _encode_google_exchange_code(auth)
+        separator = "&" if "#" in return_to else "#"
+        return RedirectResponse(f"{return_to}{separator}google_auth={payload}", status_code=302)
+
+    exchange_code = _encode_google_exchange_code(auth)
+    return HTMLResponse(_google_code_page(exchange_code))
+
+@router.post("/google/exchange", response_model=TokenResponse)
+async def google_exchange(body: GoogleExchangeRequest):
+    try:
+        payload = jwt.decode(body.code.strip(), settings.SECRET_KEY, algorithms=["HS256"])
+    except JWTError:
+        raise HTTPException(status_code=400, detail="Invalid or expired Google login code")
+    if payload.get("typ") != "google_exchange":
+        raise HTTPException(status_code=400, detail="Invalid Google login code")
+    auth = payload.get("auth") or {}
+    try:
+        return TokenResponse(**auth)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid Google login payload")
+
+def _require_google_oauth_configured() -> None:
+    if not settings.GOOGLE_OAUTH_CLIENT_ID or not settings.GOOGLE_OAUTH_CLIENT_SECRET:
+        raise HTTPException(status_code=503, detail="Google OAuth is not configured")
+
+def _google_redirect_uri(request: Request) -> str:
+    if settings.GOOGLE_OAUTH_REDIRECT_URI:
+        return settings.GOOGLE_OAUTH_REDIRECT_URI
+    return str(request.url_for("google_callback"))
+
+def _encode_google_state(client: str, return_to: str) -> str:
+    expire = datetime.now(timezone.utc) + timedelta(minutes=GOOGLE_STATE_TTL_MINUTES)
+    return jwt.encode(
+        {"typ": "google_oauth_state", "client": client, "return_to": return_to, "exp": expire},
+        settings.SECRET_KEY,
+        algorithm="HS256",
+    )
+
+def _decode_google_state(state: str) -> dict:
+    try:
+        payload = jwt.decode(state, settings.SECRET_KEY, algorithms=["HS256"])
+    except JWTError:
+        raise HTTPException(status_code=400, detail="Invalid or expired Google OAuth state")
+    if payload.get("typ") != "google_oauth_state":
+        raise HTTPException(status_code=400, detail="Invalid Google OAuth state")
+    return payload
+
+def _encode_google_exchange_code(auth: TokenResponse) -> str:
+    expire = datetime.now(timezone.utc) + timedelta(minutes=GOOGLE_EXCHANGE_TTL_MINUTES)
+    return jwt.encode(
+        {"typ": "google_exchange", "auth": auth.model_dump(mode="json"), "exp": expire},
+        settings.SECRET_KEY,
+        algorithm="HS256",
+    )
+
+async def _exchange_google_code(request: Request, code: str) -> dict:
+    redirect_uri = _google_redirect_uri(request)
+    async with httpx.AsyncClient(timeout=12.0) as client:
+        token_response = await client.post(
+            GOOGLE_TOKEN_URL,
+            data={
+                "code": code,
+                "client_id": settings.GOOGLE_OAUTH_CLIENT_ID,
+                "client_secret": settings.GOOGLE_OAUTH_CLIENT_SECRET,
+                "redirect_uri": redirect_uri,
+                "grant_type": "authorization_code",
+            },
+        )
+        if token_response.status_code >= 400:
+            raise HTTPException(status_code=401, detail="Google token exchange failed")
+        token_data = token_response.json()
+        id_token = token_data.get("id_token")
+        if not id_token:
+            raise HTTPException(status_code=401, detail="Google did not return an id token")
+        profile_response = await client.get(GOOGLE_TOKENINFO_URL, params={"id_token": id_token})
+        if profile_response.status_code >= 400:
+            raise HTTPException(status_code=401, detail="Google id token verification failed")
+        profile = profile_response.json()
+    if profile.get("aud") != settings.GOOGLE_OAUTH_CLIENT_ID:
+        raise HTTPException(status_code=401, detail="Google token audience mismatch")
+    if profile.get("email_verified") not in {True, "true", "True", "1"}:
+        raise HTTPException(status_code=401, detail="Google email is not verified")
+    email = str(profile.get("email") or "").strip().lower()
+    if not email:
+        raise HTTPException(status_code=401, detail="Google profile did not include an email")
+    return {"email": email, "sub": profile.get("sub")}
+
+async def _get_or_create_google_user(db: AsyncSession, email: str) -> tuple[User, Workspace]:
+    result = await db.execute(select(User).where(User.email == email))
+    user = result.scalar_one_or_none()
+    if not user:
+        user = User(email=email, password_hash=hash_password(uuid.uuid4().hex + uuid.uuid4().hex))
+        db.add(user)
+        await db.flush()
+        workspace = Workspace(name="Personal", owner_user_id=user.id)
+        db.add(workspace)
+        await db.flush()
+        db.add(WorkspaceUser(workspace_id=workspace.id, user_id=user.id, role=WorkspaceRole.owner))
+        await db.commit()
+        await db.refresh(user)
+        await db.refresh(workspace)
+        return user, workspace
+
+    workspace_result = await db.execute(
+        select(Workspace).join(WorkspaceUser).where(
+            WorkspaceUser.user_id == user.id,
+            WorkspaceUser.role == WorkspaceRole.owner,
+        )
+    )
+    workspace = workspace_result.scalar_one_or_none()
+    if not workspace:
+        workspace = Workspace(name="Personal", owner_user_id=user.id)
+        db.add(workspace)
+        await db.flush()
+        db.add(WorkspaceUser(workspace_id=workspace.id, user_id=user.id, role=WorkspaceRole.owner))
+        await db.commit()
+        await db.refresh(workspace)
+    return user, workspace
+
+def _safe_return_to(return_to: str) -> str:
+    if return_to.startswith("/"):
+        return return_to
+    if any(return_to.startswith(origin) for origin in settings.ALLOWED_ORIGINS):
+        return return_to
+    return "/"
+
+def _google_error_response(client: str, detail: str):
+    if client == "web":
+        return RedirectResponse(f"/#google_error={quote(detail)}", status_code=302)
+    return HTMLResponse(f"<h1>ARI Google login failed</h1><p>{detail}</p>", status_code=400)
+
+def _google_code_page(exchange_code: str) -> str:
+    return f"""
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ARI Google Login</title>
+  <style>
+    body {{ margin:0; min-height:100vh; display:grid; place-items:center; background:#1A1208; color:#F7F2EC; font-family:Georgia,serif; }}
+    main {{ width:min(720px, calc(100% - 32px)); border:1px solid rgba(201,169,110,.28); padding:32px; background:rgba(20,12,4,.86); }}
+    h1 {{ font-weight:300; font-style:italic; letter-spacing:3px; }}
+    p {{ color:rgba(247,242,236,.72); line-height:1.5; }}
+    code {{ display:block; margin-top:18px; padding:18px; overflow-wrap:anywhere; color:#C9A96E; border:1px solid rgba(201,169,110,.22); background:rgba(201,169,110,.04); font-family:ui-monospace,monospace; }}
+  </style>
+</head>
+<body>
+  <main>
+    <h1>ARI is ready</h1>
+    <p>Copy this short-lived login code back into the desktop or mobile app. The code expires in {GOOGLE_EXCHANGE_TTL_MINUTES} minutes.</p>
+    <code>{exchange_code}</code>
+  </main>
+</body>
+</html>
+"""

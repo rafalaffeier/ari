@@ -152,6 +152,23 @@ async fn register(
 }
 
 #[tauri::command]
+async fn exchange_google_code(
+    app: tauri::AppHandle,
+    state: State<'_, AppState>,
+    backend_url: String,
+    code: String,
+    local_memory_root: String,
+) -> Result<AuthResponse, DesktopError> {
+    let normalized_backend_url = normalize_backend_url(&backend_url)?;
+    permissions::validate_local_memory_root(local_memory_root.clone())
+        .map_err(DesktopError::configuration)?;
+    let client = MemoryClient::for_backend(normalized_backend_url.clone())?;
+    let auth = client.exchange_google_code(&code).await?;
+    persist_auth_state(app, state, normalized_backend_url, local_memory_root, &auth).await?;
+    Ok(auth)
+}
+
+#[tauri::command]
 async fn load_desktop_config(
     app: tauri::AppHandle,
     state: State<'_, AppState>,
@@ -642,6 +659,7 @@ pub fn run() {
             configure_desktop,
             login,
             register,
+            exchange_google_code,
             load_desktop_config,
             clear_desktop_config,
             ensure_workspace_key,

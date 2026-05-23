@@ -19,6 +19,10 @@ class Settings(BaseSettings):
     AI_MODEL: str = "gpt-4o"
     AI_CONFIDENCE_THRESHOLD: float = 0.75
 
+    GOOGLE_OAUTH_CLIENT_ID: str = ""
+    GOOGLE_OAUTH_CLIENT_SECRET: str = ""
+    GOOGLE_OAUTH_REDIRECT_URI: str = ""
+
     MEMORY_ROOT: str = "data/memory"
     SYNC_STORAGE_ROOT: str = "data/sync"
     SYNC_STORAGE_BACKEND: str = "local"
@@ -44,6 +48,8 @@ class Settings(BaseSettings):
                 raise ValueError("ALLOWED_ORIGINS must be explicit for staging/production")
             if self.SYNC_STORAGE_BACKEND == "s3" and not self.S3_BUCKET:
                 raise ValueError("S3_BUCKET is required when SYNC_STORAGE_BACKEND=s3")
+            if bool(self.GOOGLE_OAUTH_CLIENT_ID) != bool(self.GOOGLE_OAUTH_CLIENT_SECRET):
+                raise ValueError("GOOGLE_OAUTH_CLIENT_ID and GOOGLE_OAUTH_CLIENT_SECRET must be set together")
         if self.SYNC_STORAGE_BACKEND not in {"local", "s3"}:
             raise ValueError("SYNC_STORAGE_BACKEND must be local or s3")
         if self.RATE_LIMIT_REQUESTS < 1:

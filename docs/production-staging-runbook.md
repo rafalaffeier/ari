@@ -20,6 +20,7 @@ Port `8069` is intentionally unused. The staging compose file maps only `8080:80
 Use this profile when deploying behind Plesk:
 
 - Compose file: `infra/docker/docker-compose.plesk.yml`
+- Debian 10 / docker-compose v1 fallback: `infra/docker/docker-compose.plesk.v1.yml`
 - Environment example: `infra/docker/.env.plesk.example`
 - Plesk nginx snippet: `infra/docker/nginx/plesk-additional-directives.conf`
 
@@ -36,6 +37,17 @@ Edit `.env.plesk` and replace every placeholder. Then start the stack:
 ```sh
 docker compose --env-file .env.plesk -f docker-compose.plesk.yml up -d --build
 docker compose --env-file .env.plesk -f docker-compose.plesk.yml exec backend alembic upgrade head
+curl http://127.0.0.1:18000/ready
+```
+
+On Debian 10 servers with legacy `docker-compose 1.x`, use:
+
+```sh
+set -a
+. ./.env.plesk
+set +a
+docker-compose -p ari -f docker-compose.plesk.v1.yml up -d --build
+docker-compose -p ari -f docker-compose.plesk.v1.yml exec backend alembic upgrade head
 curl http://127.0.0.1:18000/ready
 ```
 

@@ -241,7 +241,7 @@ button{cursor:none}
       <div class="heading" id="auth-heading">Access your light</div>
       <div class="sub-h" id="auth-status">— log in to use ARI —</div>
 
-      <button class="social" id="auth-social" type="button" onclick="setAuthStatus('Google is not connected yet', 'error')">
+      <button class="social" id="auth-social" type="button" onclick="loginWithGoogle()">
         <span class="s-pulse"></span>
         Continue with Google
       </button>
@@ -631,7 +631,7 @@ function setAuthMode(mode){
 function submitAuth(){authMode==='register'?registerUser():loginUser()}
 function showScreen(id){if(id==='screen-chat'&&!authSession){setAuthStatus('— log in before opening ARI —','error');id='screen-login'}document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active')}
 function hydrateSession(auth){
-  authSession=auth;const email=document.getElementById('auth-email').value.trim();
+  authSession=auth;const email=auth.email||document.getElementById('auth-email').value.trim();
   document.getElementById('sidebar-user-name').textContent=email?email.split('@')[0]:'Local User';
   document.getElementById('sidebar-user-email').textContent=email||auth.user_id;
   document.getElementById('chat-meta').textContent=`ARI · workspace ${auth.default_workspace_id||'local'} · ${new Date().toLocaleDateString('en-US')}`;
@@ -642,6 +642,22 @@ function hydrateSession(auth){
 }
 async function loginUser(){if(!invoke){setAuthStatus('Tauri IPC unavailable','error');return}setAuthStatus('— connecting —');try{const auth=await invoke('login',authArgs());hydrateSession(auth);showScreen('screen-chat')}catch(error){setAuthStatus(commandError(error),'error')}}
 async function registerUser(){if(!invoke){setAuthStatus('Tauri IPC unavailable','error');return}setAuthStatus('— creating account —');try{await invoke('register',authArgs());setAuthMode('login');setAuthStatus('— account created, log in now —','ok');document.getElementById('auth-password').focus()}catch(error){setAuthStatus(commandError(error),'error')}}
+async function loginWithGoogle(){
+  if(!invoke){setAuthStatus('Tauri IPC unavailable','error');return}
+  try{
+    setAuthStatus('— opening Google —');
+    const url=`${backendUrl}/api/v1/auth/google/start?client=desktop`;
+    await invoke('open_browser_url',{url});
+    const code=window.prompt('Paste the ARI Google login code from your browser');
+    if(!code){setAuthStatus('— Google login cancelled —');return}
+    setAuthStatus('— verifying Google —');
+    const auth=await invoke('exchange_google_code',{backendUrl,code,localMemoryRoot});
+    hydrateSession(auth);
+    showScreen('screen-chat');
+  }catch(error){
+    setAuthStatus(commandError(error),'error');
+  }
+}
 async function logoutUser(){authSession=null;document.getElementById('connection-label').textContent='LOGIN';document.getElementById('sidebar-user-name').textContent='Signed out';document.getElementById('sidebar-user-email').textContent='Log in to use ARI';document.getElementById('chat-meta').textContent='ARI · login required';if(invoke){try{await invoke('clear_desktop_config')}catch(_error){}}setAuthMode('login');setAuthStatus('— session closed —');showScreen('screen-login')}
 async function loadDesktopSession(){if(!invoke)return;try{const config=await invoke('load_desktop_config');if(config){document.getElementById('connection-label').textContent='LOGIN';setAuthStatus('— log in to use ARI —')}}catch(_error){document.getElementById('connection-label').textContent='LOCAL'}}
 

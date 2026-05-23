@@ -3,6 +3,7 @@ import {
   ActivityIndicator,
   Alert,
   KeyboardAvoidingView,
+  Linking,
   Platform,
   Pressable,
   SafeAreaView,
@@ -38,6 +39,7 @@ export default function App() {
   const { token, userId, workspaceId, setSession, logout } = useAuthStore();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [googleCode, setGoogleCode] = useState("");
   const [mode, setMode] = useState<"login" | "register">("login");
   const [tab, setTab] = useState<Tab>("timeline");
   const [timeline, setTimeline] = useState<TimelineDay[]>([]);
@@ -100,6 +102,43 @@ export default function App() {
     } catch (error) {
       setIsOffline(true);
       setStatus(error instanceof Error ? error.message : "Unable to sign in");
+    } finally {
+      setIsBusy(false);
+    }
+  }
+
+  async function openGoogleLogin() {
+    setStatus("Opening Google");
+    try {
+      await Linking.openURL(api.googleAuthUrl("mobile"));
+      setStatus("Paste the ARI code from your browser");
+    } catch (error) {
+      setIsOffline(true);
+      setStatus("Unable to open Google");
+    }
+  }
+
+  async function exchangeGoogleCode() {
+    if (!googleCode.trim()) {
+      Alert.alert("Missing code", "Paste the ARI Google login code first.");
+      return;
+    }
+    setIsBusy(true);
+    setStatus("Verifying Google");
+    try {
+      const auth = await api.exchangeGoogleCode(googleCode.trim());
+      setSession(auth.access_token, auth.user_id, auth.default_workspace_id);
+      await memoryCache.saveSession({
+        token: auth.access_token,
+        userId: auth.user_id,
+        workspaceId: auth.default_workspace_id,
+      });
+      setGoogleCode("");
+      setIsOffline(false);
+      setStatus("Google session active");
+    } catch (error) {
+      setIsOffline(true);
+      setStatus(error instanceof Error ? error.message : "Unable to verify Google");
     } finally {
       setIsBusy(false);
     }
@@ -246,6 +285,24 @@ export default function App() {
               <SegmentButton active={mode === "login"} label="Login" onPress={() => setMode("login")} />
               <SegmentButton active={mode === "register"} label="Create" onPress={() => setMode("register")} />
             </View>
+            {mode === "login" && (
+              <>
+                <Pressable disabled={isBusy} onPress={openGoogleLogin} style={styles.googleButton}>
+                  <Text style={styles.googleButtonText}>☉ Continue with Google</Text>
+                </Pressable>
+                <TextInput
+                  autoCapitalize="none"
+                  onChangeText={setGoogleCode}
+                  placeholder="Paste ARI Google code"
+                  placeholderTextColor="rgba(201,169,110,0.34)"
+                  style={styles.input}
+                  value={googleCode}
+                />
+                <Pressable disabled={isBusy || !googleCode.trim()} onPress={exchangeGoogleCode} style={styles.ghostButton}>
+                  <Text style={styles.ghostButtonText}>Verify Google</Text>
+                </Pressable>
+              </>
+            )}
             <TextInput
               autoCapitalize="none"
               keyboardType="email-address"
@@ -602,6 +659,22 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     minHeight: 50,
     justifyContent: "center",
+  },
+  googleButton: {
+    alignItems: "center",
+    backgroundColor: "rgba(201, 169, 110, 0.04)",
+    borderColor: "rgba(201, 169, 110, 0.24)",
+    borderRadius: 1,
+    borderWidth: 1,
+    minHeight: 46,
+    justifyContent: "center",
+  },
+  googleButtonText: {
+    color: "#F7F2EC",
+    fontSize: 10,
+    fontWeight: "500",
+    letterSpacing: 2,
+    textTransform: "uppercase",
   },
   primaryButtonText: {
     color: "#F7F2EC",
