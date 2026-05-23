@@ -266,8 +266,8 @@
       "type": "object",
       "required": ["origin", "destination", "departure_date"],
       "properties": {
-        "origin": {"type": "string"},
-        "destination": {"type": "string"},
+        "origin": {"type": "string", "minLength": 3, "maxLength": 3, "pattern": "^[A-Za-z]{3}$"},
+        "destination": {"type": "string", "minLength": 3, "maxLength": 3, "pattern": "^[A-Za-z]{3}$"},
         "departure_date": {"type": "string", "format": "date"},
         "return_date": {"type": "string", "format": "date"},
         "passengers": {"type": "integer", "default": 1},
