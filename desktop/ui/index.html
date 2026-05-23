@@ -717,23 +717,23 @@ function isAuthError(error){return error&&typeof error==='object'&&error.kind===
 function authArgs(){return{backendUrl,email:document.getElementById('auth-email').value.trim(),password:document.getElementById('auth-password').value,localMemoryRoot}}
 function setAuthMode(mode){
   authMode=mode;const isRegister=mode==='register';
-  document.getElementById('auth-heading').textContent=isRegister?'Begin your expansion':'Access your light';
-  document.getElementById('auth-primary').textContent=isRegister?'Create account →':'Align me →';
+  document.getElementById('auth-heading').textContent=isRegister?appText('begin'):appText('heading');
+  document.getElementById('auth-primary').textContent=isRegister?appText('create'):appText('align');
   document.getElementById('auth-footer-text').textContent=isRegister?'Already aligned?':'First time here?';
-  const toggle=document.getElementById('auth-toggle');toggle.textContent=isRegister?'Return to login':'Begin your expansion';toggle.onclick=()=>setAuthMode(isRegister?'login':'register');
+  const toggle=document.getElementById('auth-toggle');toggle.textContent=isRegister?'Return to login':appText('begin');toggle.onclick=()=>setAuthMode(isRegister?'login':'register');
   document.getElementById('forgot-row').style.display=isRegister?'none':'block';
   document.getElementById('auth-social').style.display=isRegister?'none':'flex';
   document.getElementById('auth-divider').style.display=isRegister?'none':'flex';
-  setAuthStatus(isRegister?'— create your ARI account first —':'— log in to use ARI —');
+  setAuthStatus(isRegister?appText('authCreate'):appText('authLogin'));
 }
 function submitAuth(){authMode==='register'?registerUser():loginUser()}
 function showScreen(id){if(id==='screen-chat'&&!authSession){setAuthStatus('— log in before opening ARI —','error');id='screen-login'}document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active')}
 function hydrateSession(auth){
   authSession=auth;const email=auth.email||document.getElementById('auth-email').value.trim();
-  document.getElementById('sidebar-user-name').textContent=email?email.split('@')[0]:'Local User';
+  document.getElementById('sidebar-user-name').textContent=email?email.split('@')[0]:appText('privateUser');
   document.getElementById('sidebar-user-email').textContent=email||auth.user_id;
-  document.getElementById('chat-meta').textContent=`ARI · workspace ${auth.default_workspace_id||'local'} · ${new Date().toLocaleDateString('en-US')}`;
-  document.getElementById('connection-label').textContent='CONNECTED';
+  document.getElementById('chat-meta').textContent=`ARI · workspace ${auth.default_workspace_id||'local'} · ${new Date().toLocaleDateString(appLocale())}`;
+  document.getElementById('connection-label').textContent=appText('connected');
   setAuthStatus('— session active —','ok');
   loadToolCatalog();
   loadRecentQueries();
@@ -751,7 +751,8 @@ async function loginWithGoogle(){
     setAuthStatus(commandError(error),'error');
   }
 }
-async function logoutUser(){authSession=null;document.getElementById('connection-label').textContent='LOGIN';document.getElementById('sidebar-user-name').textContent='Signed out';document.getElementById('sidebar-user-email').textContent='Log in to use ARI';document.getElementById('chat-meta').textContent='ARI · login required';if(invoke){try{await invoke('clear_desktop_config')}catch(_error){}}setAuthMode('login');setAuthStatus('— session closed —');showScreen('screen-login')}
+function logoutLabels(){document.getElementById('connection-label').textContent='LOGIN';document.getElementById('sidebar-user-name').textContent=appText('signedOut');document.getElementById('sidebar-user-email').textContent=appText('loginUse');document.getElementById('chat-meta').textContent=appText('loginRequired')}
+async function logoutUser(){authSession=null;logoutLabels();if(invoke){try{await invoke('clear_desktop_config')}catch(_error){}}setAuthMode('login');setAuthStatus(userPrefs.appLanguage==='es'?'— sesion cerrada —':'— session closed —');showScreen('screen-login')}
 async function loadDesktopSession(){
   if(!invoke)return;
   try{
@@ -775,7 +776,7 @@ function autoResize(el){el.style.height='auto';el.style.height=Math.min(el.scrol
 function handleKey(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMessage()}}
 function setMode(mode){
   activeMode=mode;document.querySelectorAll('.mode').forEach(b=>b.classList.remove('active'));const btn=document.getElementById('mode-'+mode);if(btn)btn.classList.add('active');
-  document.getElementById('chat-input').placeholder=mode==='memory'?'Search your memory...':mode==='activity'?'Activity is read-only...':'Ask the sun...';
+  document.getElementById('chat-input').placeholder=mode==='memory'?(userPrefs.appLanguage==='es'?'Buscar en tu memoria...':'Search your memory...'):mode==='activity'?(userPrefs.appLanguage==='es'?'Actividad de solo lectura...':'Activity is read-only...'):appText('ask');
   if(mode==='activity')loadActivityLog();
 }
 function syncVoiceControls(){
@@ -784,17 +785,17 @@ function syncVoiceControls(){
   if(voiceBtn){
     voiceBtn.classList.toggle('active',spokenReplies);
     voiceBtn.disabled=!window.MediaRecorder;
-    voiceBtn.title=window.MediaRecorder?'Speak to ARI':'Voice input is not supported in this desktop webview';
+    voiceBtn.title=window.MediaRecorder?appText('voiceTitle'):appText('voiceUnsupported');
   }
 }
 function toggleVoiceMode(){
   spokenReplies=!spokenReplies;localStorage.setItem('ari.spokenReplies',String(spokenReplies));syncVoiceControls();
-  document.getElementById('chat-meta').textContent=spokenReplies?'ARI · voice replies on':'ARI · voice replies off';
-  if(spokenReplies)speakText('Voice replies are on.');
+  document.getElementById('chat-meta').textContent=spokenReplies?appText('voiceOn'):appText('voiceOff');
+  if(spokenReplies)speakText(appText('voiceSpeech'));
 }
 async function startVoiceInput(){
   if(!authSession){showScreen('screen-login');setAuthStatus('— log in before using voice —','error');return}
-  if(!window.MediaRecorder){addMessage('Voice input is not supported in this desktop webview yet.','ai');return}
+  if(!window.MediaRecorder){addMessage(appText('voiceUnsupported'),'ai');return}
   if(listening&&mediaRecorder){mediaRecorder.stop();return}
   try{
     const stream=await navigator.mediaDevices.getUserMedia({audio:true});
@@ -803,11 +804,11 @@ async function startVoiceInput(){
     mediaRecorder.ondataavailable=event=>{if(event.data&&event.data.size>0)voiceChunks.push(event.data)};
     mediaRecorder.onstop=async()=>{
       stream.getTracks().forEach(track=>track.stop());
-      listening=false;document.getElementById('voice-btn').classList.remove('listening');document.getElementById('chat-meta').textContent='ARI · transcribing';
+      listening=false;document.getElementById('voice-btn').classList.remove('listening');document.getElementById('chat-meta').textContent=userPrefs.appLanguage==='es'?'ARI · transcribiendo':'ARI · transcribing';
       await sendVoiceAudio(new Blob(voiceChunks,{type:mediaRecorder.mimeType||'audio/webm'}));
-      document.getElementById('chat-meta').textContent=spokenReplies?'ARI · voice replies on':'ARI · memory active';
+      document.getElementById('chat-meta').textContent=spokenReplies?appText('voiceOn'):(userPrefs.appLanguage==='es'?'ARI · memoria activa':'ARI · memory active');
     };
-    listening=true;document.getElementById('voice-btn').classList.add('listening');document.getElementById('chat-meta').textContent='ARI · listening';
+    listening=true;document.getElementById('voice-btn').classList.add('listening');document.getElementById('chat-meta').textContent=userPrefs.appLanguage==='es'?'ARI · escuchando':'ARI · listening';
     mediaRecorder.start();
   }catch(error){
     listening=false;document.getElementById('voice-btn').classList.remove('listening');
@@ -821,7 +822,7 @@ async function sendVoiceAudio(blob){
   if(!token||!workspaceId){addMessage('Voice session is missing authentication. Please log in again.','ai');return}
   const form=new FormData();
   form.append('audio',blob,'ari-voice.webm');
-  form.append('language',(navigator.language||'es').slice(0,2));
+  form.append('language',userPrefs.appLanguage);
   form.append('tts','true');
   form.append('use_memory','true');
   form.append('memory_limit','8');
@@ -859,7 +860,7 @@ function speakText(text){
   const cleaned=String(text||'').replace(/\s+/g,' ').trim();if(!cleaned)return;
   window.speechSynthesis.cancel();
   const utterance=new SpeechSynthesisUtterance(cleaned.slice(0,1200));
-  utterance.lang=navigator.language||'es-ES';utterance.rate=.96;utterance.pitch=.92;
+  utterance.lang=appLocale();utterance.rate=.96;utterance.pitch=.92;
   window.speechSynthesis.speak(utterance);
 }
 function escapeHtml(value){return String(value).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;').replace(/\n/g,'<br>')}
@@ -877,8 +878,8 @@ function showTyping(){const msgs=document.getElementById('messages'),div=documen
 function removeTyping(){const t=document.getElementById('typing-msg');if(t)t.remove()}
 function clearChat(){
   currentConversationHasMessages=false;
-  document.getElementById('messages').innerHTML=`<div class="welcome" id="welcome-state"><div class="sun-wrap"><svg width="56" height="56" viewBox="0 0 56 56" fill="none"><circle cx="28" cy="28" r="9" stroke="#C9A96E" stroke-width=".7" opacity=".6"/><circle cx="28" cy="28" r="15" stroke="#C9A96E" stroke-width=".45" opacity=".3"/><circle cx="28" cy="28" r="21" stroke="#C9A96E" stroke-width=".35" opacity=".18"/><circle cx="28" cy="28" r="3" fill="#C9A96E" opacity=".22"/><circle cx="28" cy="28" r="1.5" fill="#C9A96E" opacity=".7"/></svg></div><div class="welcome-title">ARI is awake</div><div class="welcome-copy">A warm execution assistant for thought, memory and action.</div></div>`;
-  if(authSession)document.getElementById('chat-meta').textContent=`ARI · workspace ${authSession.default_workspace_id||'local'} · ${new Date().toLocaleDateString('en-US')}`;
+  document.getElementById('messages').innerHTML=`<div class="welcome" id="welcome-state"><div class="sun-wrap"><svg width="56" height="56" viewBox="0 0 56 56" fill="none"><circle cx="28" cy="28" r="9" stroke="#C9A96E" stroke-width=".7" opacity=".6"/><circle cx="28" cy="28" r="15" stroke="#C9A96E" stroke-width=".45" opacity=".3"/><circle cx="28" cy="28" r="21" stroke="#C9A96E" stroke-width=".35" opacity=".18"/><circle cx="28" cy="28" r="3" fill="#C9A96E" opacity=".22"/><circle cx="28" cy="28" r="1.5" fill="#C9A96E" opacity=".7"/></svg></div><div class="welcome-title">${escapeHtml(appText('welcomeTitle'))}</div><div class="welcome-copy">${escapeHtml(appText('welcomeCopy'))}</div><div class="quick-row"><button class="quick" onclick="sendQuick('${escapeAttr(appText('promptPriorities'))}')">☉<b>${escapeHtml(appText('priorities'))}</b><span>${escapeHtml(appText('prioritiesCopy'))}</span></button><button class="quick" onclick="sendQuick('${escapeAttr(appText('promptWriting'))}')">✦<b>${escapeHtml(appText('writing'))}</b><span>${escapeHtml(appText('writingCopy'))}</span></button><button class="quick" onclick="sendQuick('${escapeAttr(appText('promptProduct'))}')">⊹<b>${escapeHtml(appText('product'))}</b><span>${escapeHtml(appText('productCopy'))}</span></button><button class="quick" onclick="sendQuick('${escapeAttr(appText('promptMemory'))}')">◇<b>${escapeHtml(appText('memory'))}</b><span>${escapeHtml(appText('memoryCopy'))}</span></button></div></div>`;
+  if(authSession)document.getElementById('chat-meta').textContent=`ARI · workspace ${authSession.default_workspace_id||'local'} · ${new Date().toLocaleDateString(appLocale())}`;
 }
 function sendQuick(text){document.getElementById('chat-input').value=text;sendMessage()}
 function detectOpenUrlAction(text){
@@ -1612,7 +1613,7 @@ async function loadActivityLog(){
 }
 function renderRecentQueries(items){
   const container=document.getElementById('recent-queries'),glyphs=['☉','✦','⊹','◇','☽'];
-  if(!items.length){container.innerHTML='<div class="recent-item active"><span class="glyph">☉</span>No queries yet</div>';return}
+  if(!items.length){container.innerHTML=`<div class="recent-item active"><span class="glyph">☉</span>${appText('noQueries')}</div>`;return}
   container.innerHTML=items.map((item,index)=>`<div class="recent-item ${index===0?'active':''}" data-query="${escapeAttr(item.title)}" data-date="${escapeAttr(item.date||'')}" data-line="${item.line_number||''}" onclick="openConversation(this)"><span class="glyph">${glyphs[index%glyphs.length]}</span>${escapeHtml(item.title)}</div>`).join('');
 }
 function addRecentQuery(title){const container=document.getElementById('recent-queries');const existing=Array.from(container.querySelectorAll('.recent-item')).map(item=>item.textContent.trim()).filter(item=>item&&item!=='No queries yet'&&item!==title);renderRecentQueries([{title},...existing.slice(0,7).map(item=>({title:item}))])}
@@ -1624,6 +1625,8 @@ async function openConversation(el){
 }
 function renderConversation(conversation){const msgs=document.getElementById('messages');msgs.innerHTML='';currentConversationHasMessages=false;conversation.messages.forEach(message=>addMessage(message.content,message.role==='assistant'?'ai':'user'));currentConversationHasMessages=true;document.getElementById('chat-meta').textContent=`ARI · ${conversation.date} · line ${conversation.line_number}`;showScreen('screen-chat')}
 async function initializeApp(){
+  buildLanguageSelects();
+  applyAppLanguage();
   syncVoiceControls();
   afterFirstPaint(async()=>{
     setTimeout(startVisualEffects,120);
