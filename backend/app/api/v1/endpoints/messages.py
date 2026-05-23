@@ -484,14 +484,27 @@ async def _log_ai_usage(
 
 
 def _tool_catalog_context() -> str:
-    lines = []
+    executable_lines = []
+    planned_lines = []
     for tool in load_tool_catalog():
         required = ", ".join(tool.get("schema", {}).get("required", [])) or "none"
         confirmation = "confirmation required" if tool.get("requires_confirmation") else "no confirmation"
-        lines.append(
+        line = (
             f"- {tool['name']} ({tool['scope']}, {tool.get('risk_level', 'low')}, {confirmation}; required: {required})"
         )
-    return "\n".join(lines)
+        if tool.get("name") in EXECUTABLE_TOOL_NAMES:
+            executable_lines.append(line)
+        else:
+            planned_lines.append(f"{line} [planned/non-executable]")
+    return "\n".join(
+        [
+            "Executable tools:",
+            *(executable_lines or ["- none"]),
+            "",
+            "Planned/non-executable tools:",
+            *(planned_lines or ["- none"]),
+        ]
+    )
 
 
 _ARI_ORCHESTRATOR_SYSTEM_PROMPT = """

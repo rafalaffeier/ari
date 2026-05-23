@@ -117,6 +117,35 @@ class MemoryApiTest(unittest.TestCase):
         self.assertEqual(conversation.json()["messages"][0], {"role": "user", "content": user_message})
         self.assertEqual(conversation.json()["messages"][1], {"role": "assistant", "content": "Launch plan noted."})
 
+    def test_chat_prompt_marks_travel_as_planned_not_executable(self):
+        original_api_key = settings.OPENAI_API_KEY
+        original_complete_text = messages.complete_text
+
+        async def fake_complete_text(user_prompt: str, system_prompt: str):
+            self.assertIn("Executable tools:", user_prompt)
+            self.assertIn("Planned/non-executable tools:", user_prompt)
+            self.assertIn("search_flights", user_prompt)
+            self.assertIn("[planned/non-executable]", user_prompt)
+            self.assertIn("do not say you are searching", system_prompt)
+            return "Todavía no tengo búsqueda real de vuelos conectada."
+
+        settings.OPENAI_API_KEY = "test-key"
+        messages.complete_text = fake_complete_text
+        try:
+            response = self.client.post(
+                f"/api/v1/messages/{WORKSPACE_ID}/chat",
+                json={
+                    "message": "Busca vuelos baratos de Barcelona a Tokyo y dame 3 opciones con precios.",
+                    "use_memory": False,
+                },
+            )
+        finally:
+            settings.OPENAI_API_KEY = original_api_key
+            messages.complete_text = original_complete_text
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("no tengo", response.json()["reply"])
+
     def test_chat_requires_openai_api_key(self):
         original_api_key = settings.OPENAI_API_KEY
         settings.OPENAI_API_KEY = ""
