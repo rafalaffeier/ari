@@ -105,6 +105,12 @@ async def google_callback(
     db: AsyncSession = Depends(get_db),
 ):
     _require_google_oauth_configured()
+    raw_state_payload = _decode_google_jwt_state(state)
+    if raw_state_payload.get("typ") == "google_integration_state":
+        from app.api.v1.endpoints.integrations import handle_google_integration_callback
+
+        return await handle_google_integration_callback(code=code, state=state, error=error, db=db)
+
     state_payload = _decode_google_state(state)
     client = state_payload.get("client", "web")
 
@@ -171,12 +177,16 @@ def _encode_google_state(client: str, return_to: str) -> str:
     )
 
 def _decode_google_state(state: str) -> dict:
+    payload = _decode_google_jwt_state(state)
+    if payload.get("typ") != "google_oauth_state":
+        raise HTTPException(status_code=400, detail="Invalid Google OAuth state")
+    return payload
+
+def _decode_google_jwt_state(state: str) -> dict:
     try:
         payload = jwt.decode(state, settings.SECRET_KEY, algorithms=["HS256"])
     except JWTError:
         raise HTTPException(status_code=400, detail="Invalid or expired Google OAuth state")
-    if payload.get("typ") != "google_oauth_state":
-        raise HTTPException(status_code=400, detail="Invalid Google OAuth state")
     return payload
 
 def _encode_google_exchange_code(auth: TokenResponse) -> str:

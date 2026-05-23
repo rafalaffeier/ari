@@ -7,6 +7,7 @@ pub fn has_permission(permission_key: &str) -> bool {
         "filesystem.read"
             | "filesystem.write"
             | "browser.open"
+            | "phone.call"
             | "calendar.read"
             | "calendar.write"
             | "reminders.read"

@@ -466,6 +466,20 @@ async fn open_browser_url(url: String) -> Result<serde_json::Value, DesktopError
 }
 
 #[tauri::command]
+async fn call_phone_number(phone_number: String, display_name: Option<String>) -> Result<serde_json::Value, DesktopError> {
+    if !permissions::has_permission("phone.call") {
+        return Err(DesktopError::tool("missing permission: phone.call"));
+    }
+    let normalized = tools::phone::call_phone_number(&phone_number).map_err(DesktopError::tool)?;
+    Ok(serde_json::json!({
+        "tool": "call_phone_number",
+        "status": "done",
+        "phone_number": normalized,
+        "display_name": display_name
+    }))
+}
+
+#[tauri::command]
 async fn list_calendars() -> Result<serde_json::Value, DesktopError> {
     if !permissions::has_permission("calendar.read") {
         return Err(DesktopError::tool("missing permission: calendar.read"));
@@ -803,6 +817,7 @@ pub fn run() {
             reject_backend_action,
             complete_backend_action,
             open_browser_url,
+            call_phone_number,
             list_calendars,
             create_calendar_event,
             list_reminder_lists,

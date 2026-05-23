@@ -24,6 +24,9 @@ router = APIRouter()
 
 EXECUTABLE_TOOL_NAMES = {
     "open_browser_url",
+    "call_phone_number",
+    "search_google_contacts",
+    "create_google_calendar_event",
     "list_calendars",
     "create_calendar_event",
     "list_reminder_lists",

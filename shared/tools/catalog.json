@@ -64,6 +64,60 @@
     }
   },
   {
+    "name": "call_phone_number",
+    "version": "1.0",
+    "scope": "desktop",
+    "permission_key": "phone.call",
+    "risk_level": "high",
+    "requires_confirmation": true,
+    "retryable": false,
+    "schema": {
+      "type": "object",
+      "required": ["phone_number"],
+      "properties": {
+        "phone_number": {"type": "string"},
+        "display_name": {"type": "string"}
+      }
+    }
+  },
+  {
+    "name": "search_google_contacts",
+    "version": "1.0",
+    "scope": "backend",
+    "permission_key": "google.contacts.read",
+    "risk_level": "low",
+    "requires_confirmation": false,
+    "retryable": true,
+    "schema": {
+      "type": "object",
+      "required": ["query"],
+      "properties": {
+        "query": {"type": "string"}
+      }
+    }
+  },
+  {
+    "name": "create_google_calendar_event",
+    "version": "1.0",
+    "scope": "backend",
+    "permission_key": "google.calendar.write",
+    "risk_level": "medium",
+    "requires_confirmation": true,
+    "retryable": true,
+    "schema": {
+      "type": "object",
+      "required": ["title", "start", "end"],
+      "properties": {
+        "title": {"type": "string"},
+        "start": {"type": "string"},
+        "end": {"type": "string"},
+        "timezone": {"type": "string"},
+        "description": {"type": "string"},
+        "location": {"type": "string"}
+      }
+    }
+  },
+  {
     "name": "list_calendars",
     "version": "1.0",
     "scope": "desktop",
