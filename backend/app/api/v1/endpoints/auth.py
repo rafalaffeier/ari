@@ -81,7 +81,8 @@ async def google_start(
     client: str = Query("web", pattern="^(web|desktop|mobile)$"),
     return_to: str = "",
 ):
-    _require_google_oauth_configured()
+    if not settings.GOOGLE_OAUTH_CLIENT_ID or not settings.GOOGLE_OAUTH_CLIENT_SECRET:
+        return _google_error_response(client, "Google OAuth is not configured")
     redirect_uri = _google_redirect_uri(request)
     state = _encode_google_state(client=client, return_to=return_to)
     params = {
