@@ -464,6 +464,47 @@ class MemoryApiTest(unittest.TestCase):
         self.assertEqual(payload["tool_name"], "search_flights")
         self.assertEqual(payload["params"]["origin"], "BCN")
 
+    def test_orchestrate_asks_for_fixed_flight_route_when_anywhere(self):
+        original_api_key = settings.OPENAI_API_KEY
+        original_complete = messages.complete
+
+        async def fake_complete(user_prompt: str, system_prompt: str):
+            self.assertIn("cualquier parte", system_prompt)
+            return """
+            {
+              "mode": "tool_ready",
+              "reply": "Busco vuelos ahora.",
+              "tool_name": "search_flights",
+              "params": {
+                "origin": "cualquier parte",
+                "destination": "BER",
+                "departure_date": "2026-07-10",
+                "passengers": 1
+              },
+              "missing": [],
+              "requires_confirmation": false,
+              "confidence": 0.8,
+              "language": "es"
+            }
+            """
+
+        settings.OPENAI_API_KEY = "test-key"
+        messages.complete = fake_complete
+        try:
+            response = self.client.post(
+                f"/api/v1/messages/{WORKSPACE_ID}/orchestrate",
+                json={"message": "Ari quiero viajar a Berlin desde cualquier parte del mundo"},
+            )
+        finally:
+            settings.OPENAI_API_KEY = original_api_key
+            messages.complete = original_complete
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertEqual(payload["mode"], "ask")
+        self.assertEqual(payload["tool_name"], "search_flights")
+        self.assertIn("origin", payload["missing"])
+
     def test_orchestrate_prepares_google_maps_url(self):
         original_api_key = settings.OPENAI_API_KEY
         original_complete = messages.complete
