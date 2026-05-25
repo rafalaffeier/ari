@@ -530,6 +530,10 @@ export default function App() {
     if (signedIn) refreshTimeline();
   }, [signedIn]);
 
+  useEffect(() => {
+    if (signedIn) loadMobileThreads();
+  }, [signedIn, token, workspaceId]);
+
   const visiblePending = useMemo(
     () => pendingEntries.filter((entry) => entry.workspaceId === workspaceId),
     [pendingEntries, workspaceId],
