@@ -317,6 +317,7 @@ body.app-ready #auth-screen { display: none; }
 #sidebar:not(.open) .sb-sec,
 #sidebar:not(.open) .sb-search,
 #sidebar:not(.open) #conv-list,
+#sidebar:not(.open) .sb-select,
 #sidebar:not(.open) .sb-foot-label,
 #sidebar:not(.open) .sb-foot-arrow { display: none; }
 
@@ -356,6 +357,19 @@ body.app-ready #auth-screen { display: none; }
 .sb-foot-row svg   { flex-shrink: 0; width: 16px; height: 16px; color: var(--t3); }
 .sb-foot-arrow     { margin-left: auto; }
 .sb-foot-arrow svg { width: 12px; height: 12px; }
+.sb-select {
+  flex: 1;
+  min-width: 0;
+  background: transparent;
+  border: 0;
+  color: var(--t2);
+  font: inherit;
+  outline: none;
+}
+.sb-select option {
+  background: var(--panel);
+  color: var(--t1);
+}
 
 /* ── MAIN CHAT AREA ───────────────────────────── */
 #main {
@@ -519,9 +533,14 @@ body.app-ready #auth-screen { display: none; }
 /* Tabs */
 .bs-tabs {
   display: flex; gap: 6px;
-  padding: 0 20px 10px;
+  padding: 0 20px;
   flex-shrink: 0;
+  max-height: 0;
+  opacity: 0;
+  overflow: hidden;
+  transition: max-height .25s ease, opacity .25s ease, padding .25s ease;
 }
+.bs-tabs.visible { max-height: 54px; opacity: 1; padding: 0 20px 10px; }
 .bs-tab {
   display: flex; align-items: center; gap: 7px;
   padding: 7px 16px; border-radius: 20px;
@@ -812,15 +831,17 @@ body.app-ready #auth-screen { display: none; }
 
     <!-- Footer -->
     <div class="sb-foot">
-      <div class="sb-foot-row">
+      <label class="sb-foot-row" title="Idioma">
         <i data-lucide="globe-2"></i>
-        <span class="sb-foot-label">Español</span>
+        <select class="sb-select" id="language-select" onchange="setAppLanguage(this.value)">
+          <option value="es">Español</option>
+          <option value="en">English</option>
+          <option value="pt">Português</option>
+          <option value="it">Italiano</option>
+          <option value="de">Deutsch</option>
+        </select>
         <span class="sb-foot-arrow"><i data-lucide="chevron-down"></i></span>
-      </div>
-      <div class="sb-foot-row">
-        <i data-lucide="volume-x"></i>
-        <span class="sb-foot-label">Voz desactivada</span>
-      </div>
+      </label>
       <div class="sb-foot-row" onclick="logoutDesktop()" title="Cerrar sesión">
         <i data-lucide="rotate-ccw"></i>
         <span class="sb-foot-label">Cerrar sesión</span>
@@ -1000,6 +1021,7 @@ const ari = {
   workspaceId: localStorage.getItem('ari.workspaceId') || '',
   currentThreadId: localStorage.getItem('ari.currentThreadId') || '',
   spokenReplies: localStorage.getItem('ari.spokenReplies') === 'true',
+  language: localStorage.getItem('ari.language') || 'es',
   backendUrl: 'https://ari.flusscreative.com',
   desktopReady: false,
   threads: [],
@@ -1011,6 +1033,7 @@ let voiceRecorder = null;
 let voiceStream = null;
 let voiceChunks = [];
 let voiceBusy = false;
+let voiceRecognition = null;
 
 function apiPath(path) {
   return isDesktop ? `${ari.backendUrl}${path}` : path;
@@ -1037,6 +1060,13 @@ function setVoiceStatus(text, icon = 'volume-x') {
     iconNode.setAttribute('data-lucide', icon);
     lucide.createIcons();
   }
+}
+
+function setAppLanguage(language) {
+  ari.language = language || 'es';
+  localStorage.setItem('ari.language', ari.language);
+  const select = document.getElementById('language-select');
+  if (select) select.value = ari.language;
 }
 
 async function hydrateDesktopSession() {
@@ -1358,12 +1388,13 @@ let currentSnap = 0;
 
 function getSnapHeight(snap) {
   const vh = window.innerHeight;
-  if (snap === 0) return Math.min(Math.max(vh * 0.22, 170), 210);
+  if (snap === 0) return Math.min(Math.max(vh * 0.16, 132), 168);
   if (snap === 1) return Math.min(Math.max(vh * 0.42, 320), 400);
   return  Math.min(Math.max(vh * 0.65, 420), 560);
 }
 
 const bs      = document.getElementById('bottom-sheet');
+const tabs    = document.querySelector('.bs-tabs');
 const chips   = document.getElementById('bs-chips');
 const ext     = document.getElementById('bs-extended');
 const expIcon = document.getElementById('bs-expand-icon');
@@ -1375,6 +1406,8 @@ function applySnap(snap, animate = true) {
   bs.style.height = h + 'px';
   if (!animate) requestAnimationFrame(() => bs.style.transition = '');
 
+  // tabs visible at snap 1+
+  snap >= 1 ? tabs.classList.add('visible') : tabs.classList.remove('visible');
   // chips visible at snap 1+
   snap >= 1 ? chips.classList.add('visible') : chips.classList.remove('visible');
   // extended visible at snap 2
@@ -1415,6 +1448,7 @@ function dragMove(e) {
   const h   = Math.max(100, Math.min(dragStartH + dy, window.innerHeight * 0.9));
   bs.style.height = h + 'px';
   // live chip/ext visibility
+  h >= getSnapHeight(1) * 0.7 ? tabs.classList.add('visible') : tabs.classList.remove('visible');
   h >= getSnapHeight(1) * 0.7 ? chips.classList.add('visible') : chips.classList.remove('visible');
   h >= getSnapHeight(2) * 0.7 ? ext.classList.add('visible')   : ext.classList.remove('visible');
 }
@@ -1487,7 +1521,25 @@ function preferredVoiceMimeType() {
   return options.find(type => MediaRecorder.isTypeSupported(type)) || '';
 }
 
+function speechRecognitionConstructor() {
+  return window.SpeechRecognition || window.webkitSpeechRecognition;
+}
+
+function voiceLanguage() {
+  return ({
+    es: 'es-ES',
+    en: 'en-US',
+    pt: 'pt-PT',
+    it: 'it-IT',
+    de: 'de-DE',
+  })[ari.language] || 'es-ES';
+}
+
 async function toggleVoiceRecording() {
+  if (voiceRecognition) {
+    voiceRecognition.stop();
+    return;
+  }
   if (voiceBusy && voiceRecorder?.state !== 'recording') return;
   if (voiceRecorder?.state === 'recording') {
     voiceRecorder.stop();
@@ -1498,7 +1550,15 @@ async function toggleVoiceRecording() {
     return;
   }
   if (!navigator.mediaDevices?.getUserMedia || !window.MediaRecorder) {
-    appendMessage('El motor de esta ventana no permite grabación de voz. Prueba desde ARI Desktop actualizado o desde un navegador compatible.', 'ai');
+    if (speechRecognitionConstructor()) {
+      startSpeechRecognitionFallback();
+      return;
+    }
+    if (isDesktop) {
+      startNativeVoiceRecording();
+      return;
+    }
+    appendMessage('Este motor no expone micrófono ni dictado. Prueba ARI Web en Safari/Chrome o revisa permisos de micrófono de macOS.', 'ai');
     return;
   }
 
@@ -1531,6 +1591,102 @@ async function toggleVoiceRecording() {
     appendMessage(`No pude acceder al micrófono: ${commandError(error)}`, 'ai');
   } finally {
     voiceBusy = false;
+  }
+}
+
+async function startNativeVoiceRecording() {
+  const voiceBtn = document.getElementById('voice-btn');
+  voiceBusy = true;
+  voiceBtn.classList.add('recording');
+  try {
+    setVoiceStatus('Escuchando 6 segundos...', 'mic');
+    await ensureActiveThread('Nota de voz');
+    const data = await tauriInvoke('native_voice_with_ari', {
+      threadId: ari.currentThreadId,
+      tts: true,
+      useMemory: true,
+      memoryLimit: 8,
+      durationSeconds: 6,
+    });
+    if (data.thread_id && data.thread_id !== ari.currentThreadId) {
+      ari.currentThreadId = data.thread_id;
+      localStorage.setItem('ari.currentThreadId', data.thread_id);
+    }
+    if (data.transcript) appendMessage(data.transcript, 'user');
+    appendMessage(data.reply || 'ARI no devolvió una respuesta de voz.', 'ai');
+    playVoiceReply(data);
+    await loadThreads();
+    applySnap(0);
+  } catch (error) {
+    appendMessage(commandError(error), 'ai');
+  } finally {
+    voiceBtn.classList.remove('recording');
+    voiceBusy = false;
+    setVoiceStatus(hasSession() ? 'Sesión desktop' : 'Sesión local', hasSession() ? 'volume-2' : 'volume-x');
+  }
+}
+
+function startSpeechRecognitionFallback() {
+  const Recognition = speechRecognitionConstructor();
+  const voiceBtn = document.getElementById('voice-btn');
+  let transcript = '';
+  try {
+    voiceRecognition = new Recognition();
+    voiceRecognition.lang = voiceLanguage();
+    voiceRecognition.interimResults = false;
+    voiceRecognition.maxAlternatives = 1;
+    voiceRecognition.onstart = () => {
+      voiceBtn.classList.add('recording');
+      setVoiceStatus('Escuchando dictado... toca para enviar', 'mic');
+    };
+    voiceRecognition.onresult = event => {
+      transcript = Array.from(event.results)
+        .map(result => result[0]?.transcript || '')
+        .join(' ')
+        .trim();
+    };
+    voiceRecognition.onerror = event => {
+      appendMessage(`No pude escuchar el dictado: ${event.error || 'error de voz'}`, 'ai');
+    };
+    voiceRecognition.onend = () => {
+      voiceBtn.classList.remove('recording');
+      voiceRecognition = null;
+      if (transcript) {
+        processVoiceTranscript(transcript);
+      } else {
+        setVoiceStatus(hasSession() ? 'Sesión desktop' : 'Sesión local', hasSession() ? 'volume-2' : 'volume-x');
+      }
+    };
+    voiceRecognition.start();
+  } catch (error) {
+    voiceRecognition = null;
+    voiceBtn.classList.remove('recording');
+    appendMessage(`No pude iniciar el dictado: ${commandError(error)}`, 'ai');
+    setVoiceStatus(hasSession() ? 'Sesión desktop' : 'Sesión local', hasSession() ? 'volume-2' : 'volume-x');
+  }
+}
+
+async function processVoiceTranscript(transcript) {
+  voiceBusy = true;
+  try {
+    setVoiceStatus('Procesando voz...', 'loader-circle');
+    appendMessage(transcript, 'user');
+    await ensureActiveThread(transcript);
+    const data = await apiChat(transcript, ari.currentThreadId);
+    if (data.thread_id && data.thread_id !== ari.currentThreadId) {
+      ari.currentThreadId = data.thread_id;
+      localStorage.setItem('ari.currentThreadId', data.thread_id);
+    }
+    const reply = data.reply || 'ARI no devolvió una respuesta de voz.';
+    appendMessage(reply, 'ai');
+    speakText(reply);
+    await loadThreads();
+    applySnap(0);
+  } catch (error) {
+    appendMessage(commandError(error), 'ai');
+  } finally {
+    voiceBusy = false;
+    setVoiceStatus(hasSession() ? 'Sesión desktop' : 'Sesión local', hasSession() ? 'volume-2' : 'volume-x');
   }
 }
 
@@ -1579,6 +1735,18 @@ function playVoiceReply(data) {
     audio.play().catch(error => console.warn('Could not play ARI voice reply', error));
   } catch (error) {
     console.warn('Could not prepare ARI voice reply', error);
+  }
+}
+
+function speakText(text) {
+  if (!window.speechSynthesis || !text) return;
+  try {
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = voiceLanguage();
+    window.speechSynthesis.cancel();
+    window.speechSynthesis.speak(utterance);
+  } catch (error) {
+    console.warn('Could not speak ARI reply', error);
   }
 }
 
@@ -1706,6 +1874,7 @@ function appendMessage(text, from = 'ai') {
 }
 
 async function initializeAri() {
+  setAppLanguage(ari.language);
   await hydrateDesktopSession();
   showAuthGate(storedDesktopConfig ? 'Sesión guardada disponible.' : 'Inicia sesión para entrar.');
 }

@@ -19,6 +19,7 @@ use std::fs;
 use std::io::{Read, Write};
 use std::net::{TcpListener, TcpStream};
 use std::path::PathBuf;
+use std::process::Command;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 use tauri::{Manager, State};
@@ -407,6 +408,32 @@ async fn voice_with_ari(
         .voice(
             audio,
             content_type,
+            thread_id.as_deref(),
+            tts.unwrap_or(true),
+            use_memory.unwrap_or(true),
+            memory_limit,
+        )
+        .await?)
+}
+
+#[tauri::command]
+async fn native_voice_with_ari(
+    state: State<'_, AppState>,
+    thread_id: Option<String>,
+    tts: Option<bool>,
+    use_memory: Option<bool>,
+    memory_limit: Option<u32>,
+    duration_seconds: Option<u32>,
+) -> Result<VoiceResponse, DesktopError> {
+    let client = memory_client_from_state(&state).await?;
+    let duration = duration_seconds.unwrap_or(6).clamp(2, 15);
+    let audio = tokio::task::spawn_blocking(move || record_microphone_wav(duration))
+        .await
+        .map_err(|error| DesktopError::tool(format!("native microphone task failed: {error}")))??;
+    Ok(client
+        .voice(
+            audio,
+            "audio/wav",
             thread_id.as_deref(),
             tts.unwrap_or(true),
             use_memory.unwrap_or(true),
@@ -891,6 +918,64 @@ fn today_utc() -> String {
     Utc::now().date_naive().format("%Y-%m-%d").to_string()
 }
 
+fn record_microphone_wav(duration_seconds: u32) -> Result<Vec<u8>, DesktopError> {
+    let output_path = std::env::temp_dir().join(format!(
+        "ari-voice-{}-{}.wav",
+        std::process::id(),
+        Utc::now().timestamp_millis()
+    ));
+    let ffmpeg = ["/opt/homebrew/bin/ffmpeg", "/usr/local/bin/ffmpeg", "ffmpeg"]
+        .into_iter()
+        .find(|candidate| {
+            if candidate.contains('/') {
+                PathBuf::from(candidate).exists()
+            } else {
+                true
+            }
+        })
+        .ok_or_else(|| DesktopError::tool("ffmpeg is not available for native microphone capture"))?;
+
+    let duration_arg = duration_seconds.to_string();
+    let output = Command::new(ffmpeg)
+        .args([
+            "-hide_banner",
+            "-loglevel",
+            "error",
+            "-f",
+            "avfoundation",
+            "-i",
+            ":0",
+            "-t",
+            &duration_arg,
+            "-ac",
+            "1",
+            "-ar",
+            "16000",
+            "-y",
+        ])
+        .arg(&output_path)
+        .output()
+        .map_err(|error| DesktopError::tool(format!("failed to start native microphone capture: {error}")))?;
+
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
+        let _ = fs::remove_file(&output_path);
+        return Err(DesktopError::tool(if stderr.is_empty() {
+            "native microphone capture failed".to_string()
+        } else {
+            format!("native microphone capture failed: {stderr}")
+        }));
+    }
+
+    let audio = fs::read(&output_path)
+        .map_err(|error| DesktopError::tool(format!("failed to read native microphone audio: {error}")))?;
+    let _ = fs::remove_file(&output_path);
+    if audio.is_empty() {
+        return Err(DesktopError::tool("native microphone capture produced no audio"));
+    }
+    Ok(audio)
+}
+
 pub fn run() {
     tauri::Builder::default()
         .manage(AppState::default())
@@ -913,6 +998,7 @@ pub fn run() {
             search_memory,
             chat_with_ari,
             voice_with_ari,
+            native_voice_with_ari,
             list_threads,
             create_thread,
             read_thread,

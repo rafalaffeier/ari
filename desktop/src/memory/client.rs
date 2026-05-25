@@ -539,20 +539,30 @@ impl MemoryClient {
             "{}/api/v1/messages/{}/voice",
             self.backend_url, self.workspace_id
         );
-        let part = reqwest::multipart::Part::bytes(audio)
-            .file_name("voice.webm")
-            .mime_str(content_type)
-            .map_err(MemoryClientError::Request)?;
-        let mut form = reqwest::multipart::Form::new()
-            .part("audio", part)
-            .text("tts", tts.to_string())
-            .text("use_memory", use_memory.to_string())
-            .text("memory_limit", memory_limit.unwrap_or(8).to_string());
+        let boundary = format!("ari-voice-{}", chrono::Utc::now().timestamp_nanos_opt().unwrap_or_default());
+        let mut body = Vec::new();
+        append_form_field(&mut body, &boundary, "tts", &tts.to_string());
+        append_form_field(&mut body, &boundary, "use_memory", &use_memory.to_string());
+        append_form_field(
+            &mut body,
+            &boundary,
+            "memory_limit",
+            &memory_limit.unwrap_or(8).to_string(),
+        );
         if let Some(thread_id) = thread_id {
-            form = form.text("thread_id", thread_id.to_string());
+            append_form_field(&mut body, &boundary, "thread_id", thread_id);
         }
-        self.send_json(self.authorized(self.http.post(url))?.multipart(form))
-            .await
+        append_file_field(&mut body, &boundary, "audio", "voice.webm", content_type, &audio);
+        body.extend_from_slice(format!("--{boundary}--\r\n").as_bytes());
+        self.send_json(
+            self.authorized(self.http.post(url))?
+                .header(
+                    reqwest::header::CONTENT_TYPE,
+                    format!("multipart/form-data; boundary={boundary}"),
+                )
+                .body(body),
+        )
+        .await
     }
 
     pub async fn list_threads(
@@ -955,4 +965,32 @@ fn header_value(
         .and_then(|value| value.to_str().ok())
         .map(ToString::to_string)
         .ok_or(MemoryClientError::MissingHeader(name))
+}
+
+fn append_form_field(body: &mut Vec<u8>, boundary: &str, name: &str, value: &str) {
+    body.extend_from_slice(format!("--{boundary}\r\n").as_bytes());
+    body.extend_from_slice(
+        format!("Content-Disposition: form-data; name=\"{name}\"\r\n\r\n").as_bytes(),
+    );
+    body.extend_from_slice(value.as_bytes());
+    body.extend_from_slice(b"\r\n");
+}
+
+fn append_file_field(
+    body: &mut Vec<u8>,
+    boundary: &str,
+    name: &str,
+    filename: &str,
+    content_type: &str,
+    file_bytes: &[u8],
+) {
+    body.extend_from_slice(format!("--{boundary}\r\n").as_bytes());
+    body.extend_from_slice(
+        format!(
+            "Content-Disposition: form-data; name=\"{name}\"; filename=\"{filename}\"\r\nContent-Type: {content_type}\r\n\r\n"
+        )
+        .as_bytes(),
+    );
+    body.extend_from_slice(file_bytes);
+    body.extend_from_slice(b"\r\n");
 }

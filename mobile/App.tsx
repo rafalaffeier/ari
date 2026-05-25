@@ -768,9 +768,13 @@ export default function App() {
             showsVerticalScrollIndicator={false}
           >
             <View style={styles.authCard}>
-              <Text style={styles.sunMark}>☉</Text>
-              <Text style={styles.brand}>Ari</Text>
-              <Text style={styles.brandSub}>Solara · Quantum Intelligent</Text>
+              <View style={styles.authBrandLockup}>
+                <AriMark size={58} />
+                <View style={styles.authBrandText}>
+                  <Text style={styles.brand}>Ari</Text>
+                  <Text style={styles.brandSub}>Solara · Quantum Intelligent</Text>
+                </View>
+              </View>
               <Text style={styles.authTitle}>{t.accessLight}</Text>
               <View style={[styles.segment, styles.authSegment]}>
                 <SegmentButton active={mode === "login"} label={t.login} onPress={() => setMode("login")} />
@@ -874,8 +878,13 @@ export default function App() {
     <SafeAreaView style={styles.screen}>
       <View style={styles.header}>
         <View style={styles.headerIdentity}>
-          <Text style={styles.brandSmall}>Consulta activa</Text>
-          <Text style={styles.meta}>ARI · Voz desactivada</Text>
+          <View style={styles.mobileBrandLockup}>
+            <AriMark size={54} />
+            <View style={styles.headerCopy}>
+              <Text style={styles.brandSmall}>Ari</Text>
+              <Text style={styles.meta}>ARI · Sesión mobile</Text>
+            </View>
+          </View>
         </View>
         <Pressable onPress={signOut} style={styles.headerButton}>
           <Text style={styles.headerButtonText}>⋮</Text>
@@ -985,6 +994,31 @@ function SegmentButton({ active, label, onPress }: { active: boolean; label: str
   );
 }
 
+function AriMark({ size = 56 }: { size?: number }) {
+  const barHeights = [14, 24, 34, 24, 14];
+  const scale = size / 64;
+  return (
+    <View style={[styles.ariMark, { width: size, height: size, borderRadius: size * 0.28 }]}>
+      <View style={styles.ariBars}>
+        {barHeights.map((height, index) => (
+          <View
+            // eslint-disable-next-line react/no-array-index-key
+            key={index}
+            style={[
+              styles.ariBar,
+              {
+                height: height * scale,
+                width: Math.max(2, 4 * scale),
+                borderRadius: Math.max(1, 2 * scale),
+              },
+            ]}
+          />
+        ))}
+      </View>
+    </View>
+  );
+}
+
 function LanguagePicker({ language, onChange }: { language: string; onChange: (language: string) => void }) {
   const options = LANGUAGE_OPTIONS.some(([code]) => code === language)
     ? LANGUAGE_OPTIONS
@@ -1085,11 +1119,39 @@ const styles = StyleSheet.create({
   authCard: {
     backgroundColor: "#120D08",
     borderColor: "rgba(217, 154, 61, 0.28)",
-    borderRadius: 24,
+    borderRadius: 2,
     borderWidth: 1,
     gap: 14,
     paddingHorizontal: 28,
     paddingVertical: 34,
+  },
+  authBrandLockup: {
+    alignItems: "center",
+    gap: 14,
+    justifyContent: "center",
+    marginBottom: 12,
+  },
+  authBrandText: {
+    alignItems: "center",
+  },
+  ariMark: {
+    alignItems: "center",
+    backgroundColor: "#0B0805",
+    borderColor: "rgba(217, 154, 61, 0.58)",
+    borderWidth: 1.5,
+    justifyContent: "center",
+    shadowColor: "#D99A3D",
+    shadowOpacity: 0.24,
+    shadowRadius: 18,
+  },
+  ariBars: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: 4,
+    justifyContent: "center",
+  },
+  ariBar: {
+    backgroundColor: "#D99A3D",
   },
   sunMark: {
     color: "#D99A3D",
@@ -1113,6 +1175,15 @@ const styles = StyleSheet.create({
     flex: 1,
     minWidth: 0,
   },
+  mobileBrandLockup: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: 14,
+  },
+  headerCopy: {
+    flex: 1,
+    minWidth: 0,
+  },
   headerButton: {
     alignItems: "center",
     backgroundColor: "#120D08",
@@ -1131,7 +1202,7 @@ const styles = StyleSheet.create({
   },
   brand: {
     color: "#F4EFE7",
-    fontFamily: Platform.select({ ios: "Inter", android: "sans-serif", default: "system-ui" }),
+    fontFamily: Platform.select({ ios: "Georgia", android: "serif", default: "serif" }),
     fontSize: 44,
     fontStyle: "italic",
     fontWeight: "300",
@@ -1158,10 +1229,11 @@ const styles = StyleSheet.create({
   },
   brandSmall: {
     color: "#F4EFE7",
-    fontFamily: Platform.select({ ios: "Inter", android: "sans-serif", default: "system-ui" }),
-    fontSize: 28,
-    fontWeight: "400",
-    letterSpacing: 0,
+    fontFamily: Platform.select({ ios: "Georgia", android: "serif", default: "serif" }),
+    fontSize: 30,
+    fontStyle: "italic",
+    fontWeight: "300",
+    letterSpacing: 5,
   },
   meta: {
     alignSelf: "flex-start",
