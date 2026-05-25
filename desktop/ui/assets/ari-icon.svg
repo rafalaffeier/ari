@@ -1,0 +1,200 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <defs>
+    <!-- Background gradient: deep warm void -->
+    <radialGradient id="bg" cx="50%" cy="45%" r="70%">
+      <stop offset="0%"  stop-color="#2A1A08"/>
+      <stop offset="55%" stop-color="#150D04"/>
+      <stop offset="100%" stop-color="#08050E"/>
+    </radialGradient>
+
+    <!-- Golden glow for the sun -->
+    <radialGradient id="sunglow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%"  stop-color="#F5D98A" stop-opacity="1"/>
+      <stop offset="40%" stop-color="#C9A96E" stop-opacity=".9"/>
+      <stop offset="100%" stop-color="#8B5E1A" stop-opacity="0"/>
+    </radialGradient>
+
+    <!-- Core sun fill -->
+    <radialGradient id="suncore" cx="38%" cy="35%" r="60%">
+      <stop offset="0%"  stop-color="#FFF3C4"/>
+      <stop offset="50%" stop-color="#E8C26A"/>
+      <stop offset="100%" stop-color="#B8882E"/>
+    </radialGradient>
+
+    <!-- Rose accent gradient -->
+    <radialGradient id="roseglow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%"  stop-color="#C4836A" stop-opacity=".35"/>
+      <stop offset="100%" stop-color="#C4836A" stop-opacity="0"/>
+    </radialGradient>
+
+    <!-- Letter gradient -->
+    <linearGradient id="lettergrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%"  stop-color="#FFF8E8"/>
+      <stop offset="100%" stop-color="#C9A96E"/>
+    </linearGradient>
+
+    <!-- Outer ring shimmer -->
+    <linearGradient id="ringgrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%"   stop-color="#C9A96E" stop-opacity=".7"/>
+      <stop offset="40%"  stop-color="#E8D4A0" stop-opacity=".4"/>
+      <stop offset="100%" stop-color="#8B5E1A" stop-opacity=".2"/>
+    </linearGradient>
+
+    <filter id="softglow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="6" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="coreglow" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="18" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="textglow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="4" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+
+    <!-- Rounded square clip for app icon shape -->
+    <clipPath id="appshape">
+      <rect x="0" y="0" width="1024" height="1024" rx="230" ry="230"/>
+    </clipPath>
+  </defs>
+
+  <g clip-path="url(#appshape)">
+
+    <!-- ── BACKGROUND ── -->
+    <rect width="1024" height="1024" fill="url(#bg)"/>
+
+    <!-- Subtle warm nebula top-right -->
+    <ellipse cx="780" cy="220" rx="360" ry="260" fill="#C4836A" opacity=".04"/>
+    <!-- Subtle cool nebula bottom-left -->
+    <ellipse cx="240" cy="800" rx="300" ry="220" fill="#6A5AC4" opacity=".04"/>
+
+    <!-- ── OUTER DECORATIVE RING ── -->
+    <!-- Large faint orbit circle -->
+    <circle cx="512" cy="480" r="390" fill="none" stroke="url(#ringgrad)" stroke-width="1.2" opacity=".35"/>
+    <!-- Medium ring -->
+    <circle cx="512" cy="480" r="310" fill="none" stroke="#C9A96E" stroke-width=".8" opacity=".2"/>
+
+    <!-- ── SUN GLOW HALO ── -->
+    <circle cx="512" cy="480" r="260" fill="url(#roseglow)"/>
+    <circle cx="512" cy="480" r="180" fill="url(#sunglow)" opacity=".18" filter="url(#coreglow)"/>
+
+    <!-- ── SUN RAYS ── 16 rays, alternating long/short -->
+    <g stroke="#C9A96E" stroke-linecap="round" opacity=".55" filter="url(#softglow)">
+      <!-- N  --> <line x1="512" y1="220" x2="512" y2="280" stroke-width="2.5"/>
+      <!-- NNE --> <line x1="604" y1="233" x2="591" y2="289" stroke-width="1.5"/>
+      <!-- NE  --> <line x1="687" y1="273" x2="659" y2="316" stroke-width="2.5"/>
+      <!-- ENE --> <line x1="749" y1="341" x2="718" y2="372" stroke-width="1.5"/>
+      <!-- E   --> <line x1="775" y1="432" x2="714" y2="446" stroke-width="2.5"/>
+      <!-- ESE --> <line x1="762" y1="528" x2="705" y2="517" stroke-width="1.5"/>
+      <!-- SE  --> <line x1="711" y1="614" x2="675" y2="578" stroke-width="2.5"/>
+      <!-- SSE --> <line x1="634" y1="673" x2="611" y2="626" stroke-width="1.5"/>
+      <!-- S   --> <line x1="512" y1="700" x2="512" y2="640" stroke-width="2.5"/>
+      <!-- SSW --> <line x1="390" y1="673" x2="413" y2="626" stroke-width="1.5"/>
+      <!-- SW  --> <line x1="313" y1="614" x2="349" y2="578" stroke-width="2.5"/>
+      <!-- WSW --> <line x1="262" y1="528" x2="319" y2="517" stroke-width="1.5"/>
+      <!-- W   --> <line x1="249" y1="432" x2="310" y2="446" stroke-width="2.5"/>
+      <!-- WNW --> <line x1="275" y1="341" x2="306" y2="372" stroke-width="1.5"/>
+      <!-- NW  --> <line x1="337" y1="273" x2="365" y2="316" stroke-width="2.5"/>
+      <!-- NNW --> <line x1="420" y1="233" x2="433" y2="289" stroke-width="1.5"/>
+    </g>
+
+    <!-- ── SUN BODY ── -->
+    <!-- Outer ring of the sun disc -->
+    <circle cx="512" cy="480" r="118" fill="none" stroke="#C9A96E" stroke-width="1.5" opacity=".5"/>
+    <!-- Inner ring -->
+    <circle cx="512" cy="480" r="88" fill="none" stroke="#E8C26A" stroke-width="1" opacity=".35"/>
+    <!-- Sun disc -->
+    <circle cx="512" cy="480" r="82" fill="url(#suncore)" filter="url(#softglow)"/>
+    <!-- Specular highlight -->
+    <ellipse cx="494" cy="456" rx="32" ry="22" fill="#FFF8E0" opacity=".22"/>
+
+    <!-- ── LIBRA SCALE SYMBOL ── tiny, elegant, inside sun ── -->
+    <!-- horizontal beam -->
+    <line x1="472" y1="476" x2="552" y2="476" stroke="#FFF3C4" stroke-width="2.5" stroke-linecap="round" opacity=".7"/>
+    <!-- vertical pillar -->
+    <line x1="512" y1="458" x2="512" y2="476" stroke="#FFF3C4" stroke-width="2.5" stroke-linecap="round" opacity=".7"/>
+    <!-- left pan arc -->
+    <path d="M 472 476 Q 466 492 480 496 Q 494 500 488 484" fill="none" stroke="#FFF3C4" stroke-width="2" stroke-linecap="round" opacity=".55"/>
+    <!-- right pan arc -->
+    <path d="M 552 476 Q 558 492 544 496 Q 530 500 536 484" fill="none" stroke="#FFF3C4" stroke-width="2" stroke-linecap="round" opacity=".55"/>
+
+    <!-- ── STAR FIELD ── scattered background stars -->
+    <g fill="#F7F2EC" filter="url(#softglow)">
+      <circle cx="120" cy="90"  r="1.8" opacity=".7"/>
+      <circle cx="205" cy="148" r="1.2" opacity=".5"/>
+      <circle cx="88"  cy="220" r="1.5" opacity=".6"/>
+      <circle cx="310" cy="65"  r="1.0" opacity=".45"/>
+      <circle cx="170" cy="310" r="2.0" opacity=".65"/>
+      <circle cx="50"  cy="380" r="1.2" opacity=".5"/>
+      <circle cx="140" cy="460" r="1.5" opacity=".55"/>
+      <circle cx="78"  cy="560" r="1.8" opacity=".6"/>
+      <circle cx="190" cy="630" r="1.0" opacity=".4"/>
+      <circle cx="110" cy="720" r="1.5" opacity=".55"/>
+      <circle cx="250" cy="820" r="1.2" opacity=".45"/>
+      <circle cx="155" cy="900" r="1.8" opacity=".6"/>
+      <circle cx="320" cy="950" r="1.0" opacity=".4"/>
+      <!-- right side -->
+      <circle cx="900" cy="110" r="1.5" opacity=".6"/>
+      <circle cx="820" cy="75"  r="1.2" opacity=".5"/>
+      <circle cx="960" cy="200" r="2.0" opacity=".7"/>
+      <circle cx="880" cy="290" r="1.0" opacity=".45"/>
+      <circle cx="940" cy="380" r="1.5" opacity=".55"/>
+      <circle cx="870" cy="460" r="1.8" opacity=".6"/>
+      <circle cx="950" cy="560" r="1.2" opacity=".5"/>
+      <circle cx="820" cy="640" r="1.5" opacity=".55"/>
+      <circle cx="900" cy="720" r="1.0" opacity=".4"/>
+      <circle cx="840" cy="820" r="1.8" opacity=".6"/>
+      <circle cx="920" cy="920" r="1.2" opacity=".45"/>
+      <!-- top -->
+      <circle cx="450" cy="55"  r="1.5" opacity=".6"/>
+      <circle cx="600" cy="42"  r="1.0" opacity=".5"/>
+      <circle cx="700" cy="80"  r="1.8" opacity=".65"/>
+      <circle cx="380" cy="110" r="1.2" opacity=".45"/>
+      <!-- bottom -->
+      <circle cx="440" cy="950" r="1.2" opacity=".5"/>
+      <circle cx="580" cy="970" r="1.5" opacity=".55"/>
+      <circle cx="700" cy="940" r="1.0" opacity=".4"/>
+    </g>
+
+    <!-- ── LETTERMARK "ari" ── -->
+    <!-- Cormorant-inspired high-contrast serif letterform -->
+    <!-- Rendered as SVG paths for crisp rendering at all sizes -->
+    <!-- "ari" in elegant italic Cormorant style -->
+    <text
+      x="512" y="850"
+      font-family="'Cormorant Garamond', 'Didot', 'Bodoni MT', Georgia, serif"
+      font-size="148"
+      font-weight="300"
+      font-style="italic"
+      fill="url(#lettergrad)"
+      text-anchor="middle"
+      letter-spacing="18"
+      filter="url(#textglow)"
+      opacity=".92"
+    >ari</text>
+
+    <!-- Thin rule under lettermark -->
+    <line x1="390" y1="872" x2="634" y2="872" stroke="#C9A96E" stroke-width="1" opacity=".35"/>
+
+    <!-- ── OUTER ORNAMENTAL DOTS on ring ── -->
+    <!-- 8 small dots on the outer ring (390r) -->
+    <g fill="#C9A96E" opacity=".5">
+      <circle cx="512"  cy="90"  r="3.5"/>
+      <circle cx="788"  cy="205" r="2.5"/>
+      <circle cx="893"  cy="480" r="3.5"/>
+      <circle cx="788"  cy="755" r="2.5"/>
+      <circle cx="512"  cy="870" r="3.5"/>
+      <circle cx="236"  cy="755" r="2.5"/>
+      <circle cx="131"  cy="480" r="3.5"/>
+      <circle cx="236"  cy="205" r="2.5"/>
+    </g>
+
+    <!-- ── SUBTLE INNER GEOMETRIC ── thin cross hair on sun ── -->
+    <line x1="512" y1="400" x2="512" y2="426" stroke="#FFF3C4" stroke-width=".8" opacity=".3"/>
+    <line x1="512" y1="534" x2="512" y2="560" stroke="#FFF3C4" stroke-width=".8" opacity=".3"/>
+    <line x1="430" y1="480" x2="456" y2="480" stroke="#FFF3C4" stroke-width=".8" opacity=".3"/>
+    <line x1="568" y1="480" x2="594" y2="480" stroke="#FFF3C4" stroke-width=".8" opacity=".3"/>
+
+  </g>
+</svg>

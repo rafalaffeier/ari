@@ -41,6 +41,46 @@ html, body {
   overflow: hidden;
   -webkit-font-smoothing: antialiased;
 }
+body.auth #app { display: none; }
+body.app-ready #auth-screen { display: none; }
+
+/* ── AUTH GATE ───────────────────────────────── */
+#auth-screen {
+  width: 100vw; height: 100vh;
+  display: grid; place-items: center;
+  background:
+    radial-gradient(circle at 16% 20%, rgba(217,154,61,.12), transparent 24%),
+    radial-gradient(circle at 86% 84%, rgba(217,154,61,.08), transparent 30%),
+    var(--bg);
+  padding: 24px;
+}
+.auth-card{width:min(420px,100%);position:relative;background:rgba(20,12,4,0.84);border:1px solid var(--border-c);border-radius:2px;backdrop-filter:blur(30px);box-shadow:0 0 60px rgba(217,154,61,0.07),0 40px 80px rgba(0,0,0,0.55),inset 0 1px 0 rgba(217,154,61,0.12);overflow:hidden}
+.auth-top-bar{height:2px;background:linear-gradient(90deg,transparent 5%,#C4836A 30%,var(--gold) 60%,transparent 95%);opacity:.75}
+.auth-inner{padding:46px 42px 38px}
+.auth-brand{display:block;text-align:center;margin-bottom:34px}
+.auth-sun{width:56px;height:56px;margin:0 auto 16px;display:flex;align-items:center;justify-content:center}
+.auth-sun svg{animation:sunrot 24s linear infinite}
+@keyframes sunrot{to{transform:rotate(360deg)}}
+.auth-title{font-family:var(--font-msg);font-size:42px;font-weight:300;font-style:italic;letter-spacing:6px;line-height:1;color:var(--t1)}
+.auth-title span{color:var(--gold)}
+.auth-sub{margin-top:7px;font-size:8px;font-weight:300;letter-spacing:4px;color:rgba(217,154,61,0.42);text-transform:uppercase}
+.auth-heading{font-family:var(--font-msg);font-size:21px;font-weight:300;font-style:italic;text-align:center;margin-bottom:4px}
+.auth-status{min-height:14px;margin-bottom:28px;color:rgba(217,154,61,0.48);font-size:8px;letter-spacing:3px;text-align:center;text-transform:uppercase}
+.auth-field{margin-bottom:18px;position:relative}
+.auth-field label{display:block;margin-bottom:8px;color:rgba(217,154,61,0.48);font-size:8px;letter-spacing:3px;text-transform:uppercase}
+.auth-field input{width:100%;border:0;border-bottom:1px solid rgba(217,154,61,0.18);background:transparent;color:var(--t1);outline:none;font-family:var(--font-msg);font-size:18px;font-style:italic;font-weight:300;letter-spacing:.5px;padding:10px 0}
+.auth-field input:focus{border-bottom-color:rgba(217,154,61,0.58)}
+.auth-field input::placeholder{color:rgba(217,154,61,0.22)}
+.social{width:100%;min-height:44px;margin-bottom:18px;border:1px solid rgba(217,154,61,0.2);background:rgba(217,154,61,0.035);color:var(--t2);display:flex;align-items:center;justify-content:center;gap:10px;font-size:9px;letter-spacing:3px;text-transform:uppercase}
+.social:hover{border-color:rgba(217,154,61,0.48);color:var(--t1)}
+.s-pulse{width:8px;height:8px;border-radius:50%;background:var(--gold);box-shadow:0 0 14px var(--gold)}
+.orn-div{display:flex;align-items:center;gap:12px;margin-bottom:18px;color:rgba(217,154,61,.28);font-size:9px;letter-spacing:3px;justify-content:center}
+.auth-btn{width:100%;margin-top:8px;padding:15px 22px;border:1px solid rgba(217,154,61,0.32);border-radius:1px;background:transparent;color:var(--t1);font-family:var(--font-msg);font-size:17px;font-style:italic;letter-spacing:3px;transition:all .25s;cursor:pointer}
+.auth-btn:hover{border-color:rgba(217,154,61,0.58);box-shadow:0 0 28px rgba(217,154,61,0.1);background:rgba(217,154,61,0.045)}
+.auth-footer-rule{height:1px;background:linear-gradient(90deg,transparent,var(--border-c),transparent);margin:0 42px}
+.auth-footer{padding:18px 42px 24px;text-align:center;font-size:10px;letter-spacing:1px;color:rgba(217,154,61,0.34)}
+.auth-link{border:0;background:transparent;color:rgba(217,154,61,0.58);text-decoration:underline;text-underline-offset:4px;cursor:pointer}
+.auth-link:hover{color:var(--gold)}
 
 /* ── LAYOUT ROOT ──────────────────────────────── */
 #app {
@@ -86,37 +126,60 @@ html, body {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 24px 12px 20px;
+  padding: 24px 12px 22px;
   flex-shrink: 0;
   overflow: hidden;
   white-space: nowrap;
   min-height: 88px;
 }
+#sidebar.open .sb-logo {
+  gap: 18px;
+  padding: 24px 20px 34px;
+  min-height: 124px;
+}
 .sb-logo-icon {
   width: 48px; height: 48px; flex-shrink: 0;
-  background: linear-gradient(145deg, #231508, #160e06);
+  background: #0B0805;
   border-radius: 14px;
-  border: 1.5px solid var(--gold);
-  box-shadow: var(--glow);
+  border: 1px solid rgba(217,154,61,.32);
+  box-shadow: 0 0 26px rgba(217,154,61,.2);
   display: flex; align-items: center; justify-content: center;
+  overflow: hidden;
 }
-.sb-logo-icon svg { width: 22px; height: 22px; color: var(--gold); }
+.sb-logo-icon img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+}
+#sidebar.open .sb-logo-icon {
+  width: 64px;
+  height: 64px;
+  border-radius: 20px;
+  border-color: rgba(217,154,61,.42);
+}
 .sb-logo-text { overflow: hidden; }
-.sb-logo-text h1 { font-size: 16px; font-weight: 700; color: var(--gold); letter-spacing: 2px; line-height: 1.1; }
-.sb-logo-text p  { font-size: 10px; color: var(--t3); margin-top: 2px; font-weight: 400; }
-
-/* Sidebar toggle button */
-#sb-toggle {
-  width: 48px; height: 48px; flex-shrink: 0;
-  display: flex; align-items: center; justify-content: center;
-  cursor: pointer; border-radius: var(--radius-btn);
-  color: var(--t2); transition: background .2s, color .2s;
-  border: none; background: transparent;
-  margin: 0 12px 8px;
-  align-self: flex-start;
+.sb-logo-text h1 {
+  font-family: var(--font-msg);
+  font-size: 23px;
+  font-weight: 500;
+  font-style: italic;
+  color: var(--t1);
+  letter-spacing: 5px;
+  line-height: .95;
 }
-#sb-toggle:hover { background: var(--elevated); color: var(--gold-lt); }
-#sb-toggle svg { width: 22px; height: 22px; }
+.sb-logo-text h1 span { color: var(--gold); }
+.sb-logo-text p  { font-size: 10px; color: var(--t3); margin-top: 2px; font-weight: 400; }
+#sidebar.open .sb-logo-text h1 {
+  font-size: 34px;
+  letter-spacing: 7px;
+  line-height: 1;
+}
+#sidebar.open .sb-logo-text p {
+  font-size: 13px;
+  color: var(--t2);
+  margin-top: 8px;
+}
 
 /* Sidebar conversations button */
 .sb-conv-btn {
@@ -139,6 +202,22 @@ html, body {
   position: absolute; right: 14px; box-shadow: var(--glow);
   flex-shrink: 0;
 }
+.sb-new-chat {
+  margin: 0 12px 10px;
+  width: calc(100% - 24px);
+  background: rgba(217,154,61,.08);
+  border: 1px solid rgba(217,154,61,.28);
+  border-radius: var(--radius-btn);
+  padding: 10px 14px;
+  display: flex; align-items: center; gap: 10px;
+  cursor: pointer; color: var(--t1);
+  font-size: 12px; font-weight: 600;
+  font-family: var(--font-ui);
+  white-space: nowrap; overflow: hidden;
+  flex-shrink: 0;
+}
+.sb-new-chat:hover { background: rgba(217,154,61,.14); color: var(--gold-lt); }
+.sb-new-chat svg { flex-shrink: 0; width: 17px; height: 17px; }
 
 /* Section label */
 .sb-sec {
@@ -233,6 +312,7 @@ html, body {
 /* Sidebar icon-only mode (collapsed) */
 #sidebar:not(.open) .sb-logo-text,
 #sidebar:not(.open) .sb-conv-btn span,
+#sidebar:not(.open) .sb-new-chat span,
 #sidebar:not(.open) .sb-conv-btn .odot,
 #sidebar:not(.open) .sb-sec,
 #sidebar:not(.open) .sb-search,
@@ -242,6 +322,11 @@ html, body {
 
 #sidebar:not(.open) .sb-conv-btn {
   width: 48px; padding: 0;
+  justify-content: center;
+  border-radius: var(--radius-btn);
+}
+#sidebar:not(.open) .sb-new-chat {
+  width: 48px; height: 48px; padding: 0;
   justify-content: center;
   border-radius: var(--radius-btn);
 }
@@ -486,6 +571,16 @@ html, body {
   background: transparent; color: var(--t2);
 }
 .bs-mic:hover { background: var(--elevated); color: var(--gold-lt); }
+.bs-mic.recording {
+  background: rgba(217,154,61,.16);
+  color: var(--gold-lt);
+  box-shadow: 0 0 18px rgba(217,154,61,.28);
+}
+.bs-mic.recording svg { animation: micpulse 1s ease-in-out infinite; }
+@keyframes micpulse {
+  0%, 100% { transform: scale(1); opacity: .72; }
+  50% { transform: scale(1.12); opacity: 1; }
+}
 .bs-mic svg { width: 18px; height: 18px; }
 .bs-send {
   background: var(--gold);
@@ -552,8 +647,57 @@ html, body {
 }
 </style>
 </head>
-<body>
-
+<body class="auth">
+<section id="auth-screen">
+  <div class="auth-card">
+    <div class="auth-top-bar"></div>
+    <div class="auth-inner">
+    <div class="auth-brand">
+      <div class="auth-sun">
+        <svg width="56" height="56" viewBox="0 0 56 56" fill="none">
+          <circle cx="28" cy="28" r="9" stroke="#D99A3D" stroke-width=".7" opacity=".6"/>
+          <circle cx="28" cy="28" r="15" stroke="#D99A3D" stroke-width=".45" opacity=".3"/>
+          <circle cx="28" cy="28" r="21" stroke="#D99A3D" stroke-width=".35" opacity=".18"/>
+          <line x1="28" y1="2" x2="28" y2="8" stroke="#D99A3D" stroke-width=".8" opacity=".5"/>
+          <line x1="28" y1="48" x2="28" y2="54" stroke="#D99A3D" stroke-width=".8" opacity=".5"/>
+          <line x1="2" y1="28" x2="8" y2="28" stroke="#D99A3D" stroke-width=".8" opacity=".5"/>
+          <line x1="48" y1="28" x2="54" y2="28" stroke="#D99A3D" stroke-width=".8" opacity=".5"/>
+          <line x1="8" y1="8" x2="13" y2="13" stroke="#D99A3D" stroke-width=".65" opacity=".4"/>
+          <line x1="48" y1="8" x2="43" y2="13" stroke="#D99A3D" stroke-width=".65" opacity=".4"/>
+          <line x1="8" y1="48" x2="13" y2="43" stroke="#D99A3D" stroke-width=".65" opacity=".4"/>
+          <line x1="48" y1="48" x2="43" y2="43" stroke="#D99A3D" stroke-width=".65" opacity=".4"/>
+          <circle cx="28" cy="28" r="3" fill="#D99A3D" opacity=".22"/>
+          <circle cx="28" cy="28" r="1.5" fill="#D99A3D" opacity=".7"/>
+        </svg>
+      </div>
+      <div class="auth-title"><span>A</span>ri</div>
+      <div class="auth-sub">Solara · Quantum Intelligent</div>
+    </div>
+    <div class="auth-heading">Access your light</div>
+    <p class="auth-status" id="auth-status">Inicia sesión para entrar</p>
+    <div class="auth-field">
+      <label for="auth-email">Email</label>
+      <input id="auth-email" type="email" autocomplete="email" placeholder="soul@ari.ai">
+    </div>
+    <div class="auth-field">
+      <label for="auth-password">Contraseña</label>
+      <input id="auth-password" type="password" autocomplete="current-password" placeholder="••••••••">
+    </div>
+    <button class="social" type="button" onclick="loginGoogleDesktop()">
+      <span class="s-pulse"></span>
+      Continue with Google
+    </button>
+    <div class="orn-div">✦ or ✦</div>
+    <button class="auth-btn" type="button" onclick="loginDesktop()">Align me -></button>
+    <button class="auth-btn" id="continue-session-btn" type="button" onclick="continueStoredSession()" style="display:none">Continue session -></button>
+    </div>
+    <div class="auth-footer-rule"></div>
+    <div class="auth-footer">
+      <span>First time here?</span>
+      <button class="auth-link" type="button">Begin your expansion</button>
+    </div>
+  </div>
+</section>
 <div id="app">
 
   <!-- ── SIDEBAR OVERLAY ── -->
@@ -567,30 +711,24 @@ html, body {
     <!-- Logo -->
     <div class="sb-logo">
       <div class="sb-logo-icon">
-        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <rect x="3"  y="9"  width="2.2" height="6"  rx="1" fill="#D99A3D"/>
-          <rect x="7"  y="6"  width="2.2" height="12" rx="1" fill="#D99A3D"/>
-          <rect x="11" y="3"  width="2.2" height="18" rx="1" fill="#D99A3D"/>
-          <rect x="15" y="6"  width="2.2" height="12" rx="1" fill="#D99A3D"/>
-          <rect x="19" y="9"  width="2.2" height="6"  rx="1" fill="#D99A3D"/>
-        </svg>
+        <img src="assets/ari-icon.svg" alt="Ari">
       </div>
       <div class="sb-logo-text">
-        <h1>ARI</h1>
+        <h1><span>A</span>ri</h1>
         <p>Asistente</p>
       </div>
     </div>
-
-    <!-- Toggle (hamburger/close) -->
-    <button id="sb-toggle" onclick="toggleSidebar()" title="Menú">
-      <i data-lucide="menu"></i>
-    </button>
 
     <!-- Conversations button -->
     <button class="sb-conv-btn">
       <i data-lucide="message-circle"></i>
       <span>Conversaciones</span>
       <span class="odot"></span>
+    </button>
+
+    <button class="sb-new-chat" onclick="startNewChat()" title="Nuevo chat">
+      <i data-lucide="plus"></i>
+      <span>Nuevo chat</span>
     </button>
 
     <!-- Section label -->
@@ -683,9 +821,9 @@ html, body {
         <i data-lucide="volume-x"></i>
         <span class="sb-foot-label">Voz desactivada</span>
       </div>
-      <div class="sb-foot-row">
+      <div class="sb-foot-row" onclick="logoutDesktop()" title="Cerrar sesión">
         <i data-lucide="rotate-ccw"></i>
-        <span class="sb-foot-label">Restablecer</span>
+        <span class="sb-foot-label">Cerrar sesión</span>
       </div>
     </div>
 
@@ -820,8 +958,8 @@ html, body {
             rows="1"
             oninput="autoResize(this)"
             onkeydown="handleKey(event)"
-          >me dirías qué día es hoy por favor</textarea>
-          <button class="bs-mic" title="Micrófono">
+          ></textarea>
+          <button class="bs-mic" id="voice-btn" onclick="toggleVoiceRecording()" title="Micrófono">
             <i data-lucide="mic"></i>
           </button>
           <button class="bs-send" onclick="sendMessage()" title="Enviar">
@@ -862,14 +1000,264 @@ const ari = {
   workspaceId: localStorage.getItem('ari.workspaceId') || '',
   currentThreadId: localStorage.getItem('ari.currentThreadId') || '',
   spokenReplies: localStorage.getItem('ari.spokenReplies') === 'true',
+  backendUrl: 'https://ari.flusscreative.com',
+  desktopReady: false,
   threads: [],
 };
+const tauriInvoke = window.__TAURI__?.core?.invoke;
+const isDesktop = Boolean(tauriInvoke);
+let storedDesktopConfig = null;
+let voiceRecorder = null;
+let voiceStream = null;
+let voiceChunks = [];
+let voiceBusy = false;
+
+function apiPath(path) {
+  return isDesktop ? `${ari.backendUrl}${path}` : path;
+}
 
 function authHeaders(extra = {}) {
   return {
     ...(ari.token ? { Authorization: `Bearer ${ari.token}` } : {}),
     ...extra,
   };
+}
+
+function commandError(error) {
+  if (!error) return 'Error';
+  return error.message || String(error);
+}
+
+function setVoiceStatus(text, icon = 'volume-x') {
+  const pill = document.querySelector('.voice-pill');
+  const status = pill?.querySelector('span:last-child');
+  const iconNode = pill?.querySelector('i');
+  if (status) status.textContent = text;
+  if (iconNode) {
+    iconNode.setAttribute('data-lucide', icon);
+    lucide.createIcons();
+  }
+}
+
+async function hydrateDesktopSession() {
+  if (!isDesktop) return false;
+  try {
+    const config = await tauriInvoke('load_desktop_config');
+    storedDesktopConfig = config || null;
+    if (!config) {
+      ari.desktopReady = false;
+      document.querySelector('.voice-pill span:last-child').textContent = 'Sesión local';
+      renderConversationList([]);
+      return false;
+    }
+    ari.backendUrl = config.backend_url || ari.backendUrl;
+    ari.workspaceId = config.default_workspace_id || '';
+    ari.desktopReady = Boolean(ari.workspaceId);
+    document.querySelector('.voice-pill span:last-child').textContent = 'Sesión desktop';
+    return ari.desktopReady;
+  } catch (error) {
+    console.warn('Could not load desktop session', error);
+    ari.desktopReady = false;
+    return false;
+  }
+}
+
+function showAuthGate(message = 'Inicia sesión para entrar') {
+  document.body.classList.add('auth');
+  document.body.classList.remove('app-ready');
+  document.getElementById('auth-status').textContent = message;
+  document.getElementById('continue-session-btn').style.display = storedDesktopConfig ? 'block' : 'none';
+}
+
+function showApp() {
+  document.body.classList.remove('auth');
+  document.body.classList.add('app-ready');
+}
+
+async function enterAppWithSession() {
+  if (!hasSession()) {
+    showAuthGate('La sesión no está activa. Entra otra vez.');
+    return;
+  }
+  showApp();
+  await loadThreads();
+  if (ari.currentThreadId && hasSession()) {
+    await openThread(ari.currentThreadId);
+  } else {
+    renderThreadMessages([]);
+  }
+}
+
+async function continueStoredSession() {
+  if (!storedDesktopConfig) return;
+  const active = await hydrateDesktopSession();
+  if (!active) {
+    showAuthGate('No pude activar la sesión guardada. Entra otra vez.');
+    return;
+  }
+  await enterAppWithSession();
+}
+
+function activateDesktopAuth(auth) {
+  ari.workspaceId = auth.default_workspace_id || '';
+  ari.desktopReady = Boolean(ari.workspaceId);
+  storedDesktopConfig = {
+    backend_url: ari.backendUrl,
+    default_workspace_id: ari.workspaceId,
+    local_memory_root: '/tmp/ai-assistant-memory',
+  };
+  document.querySelector('.voice-pill span:last-child').textContent = 'Sesión desktop';
+  if (!ari.desktopReady) {
+    throw new Error('ARI no devolvió un workspace para esta sesión.');
+  }
+}
+
+async function loginDesktop() {
+  if (!isDesktop) {
+    showAuthGate('Abre ARI Desktop para usar este login.');
+    return;
+  }
+  const email = document.getElementById('auth-email').value.trim();
+  const password = document.getElementById('auth-password').value;
+  if (!email || !password) {
+    showAuthGate('Email y contraseña son obligatorios.');
+    return;
+  }
+  document.getElementById('auth-status').textContent = 'Entrando...';
+  try {
+    const auth = await tauriInvoke('login', {
+      email,
+      password,
+      backendUrl: ari.backendUrl,
+      localMemoryRoot: '/tmp/ai-assistant-memory',
+    });
+    activateDesktopAuth(auth);
+    await enterAppWithSession();
+  } catch (error) {
+    showAuthGate(commandError(error));
+  }
+}
+
+async function loginGoogleDesktop() {
+  if (!isDesktop) {
+    showAuthGate('Abre ARI Desktop para usar Google.');
+    return;
+  }
+  document.getElementById('auth-status').textContent = 'Abriendo Google...';
+  try {
+    const auth = await tauriInvoke('login_with_google', {
+      backendUrl: ari.backendUrl,
+      localMemoryRoot: '/tmp/ai-assistant-memory',
+    });
+    activateDesktopAuth(auth);
+    await enterAppWithSession();
+  } catch (error) {
+    showAuthGate(commandError(error));
+  }
+}
+
+async function logoutDesktop() {
+  ari.token = '';
+  ari.workspaceId = '';
+  ari.currentThreadId = '';
+  ari.desktopReady = false;
+  ari.threads = [];
+  localStorage.removeItem('ari.token');
+  localStorage.removeItem('ari.workspaceId');
+  localStorage.removeItem('ari.currentThreadId');
+  if (isDesktop) {
+    try { await tauriInvoke('clear_desktop_config'); } catch (error) { console.warn(error); }
+  }
+  storedDesktopConfig = null;
+  showAuthGate('Sesión cerrada.');
+}
+
+function hasSession() {
+  return isDesktop ? ari.desktopReady && ari.workspaceId : ari.token && ari.workspaceId;
+}
+
+async function apiListThreads(limit = 30) {
+  if (isDesktop) return await tauriInvoke('list_threads', { limit });
+  const response = await fetch(apiPath(`/api/v1/messages/${ari.workspaceId}/threads?limit=${limit}`), {
+    headers: authHeaders(),
+  });
+  if (!response.ok) throw new Error(await readError(response));
+  return await response.json();
+}
+
+async function apiCreateThread(title) {
+  if (isDesktop) return await tauriInvoke('create_thread', { title });
+  const response = await fetch(apiPath(`/api/v1/messages/${ari.workspaceId}/threads`), {
+    method: 'POST',
+    headers: authHeaders({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify({ title }),
+  });
+  if (!response.ok) throw new Error(await readError(response));
+  return await response.json();
+}
+
+async function apiReadThread(threadId) {
+  if (isDesktop) return await tauriInvoke('read_thread', { threadId });
+  const response = await fetch(apiPath(`/api/v1/messages/${ari.workspaceId}/threads/${encodeURIComponent(threadId)}`), {
+    headers: authHeaders(),
+  });
+  if (!response.ok) throw new Error(await readError(response));
+  return await response.json();
+}
+
+async function apiChat(message, threadId) {
+  if (isDesktop) {
+    return await tauriInvoke('chat_with_ari', {
+      message,
+      threadId,
+      useMemory: true,
+      memoryLimit: 8,
+    });
+  }
+  const response = await fetch(apiPath(`/api/v1/messages/${ari.workspaceId}/chat`), {
+    method: 'POST',
+    headers: authHeaders({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify({ message, thread_id: threadId, use_memory: true, memory_limit: 8 }),
+  });
+  if (!response.ok) throw new Error(await readError(response));
+  return await response.json();
+}
+
+async function apiVoice(audioBlob, threadId) {
+  if (isDesktop) {
+    return await tauriInvoke('voice_with_ari', {
+      audioBase64: await blobToBase64(audioBlob),
+      audioContentType: audioBlob.type || 'audio/webm',
+      threadId,
+      tts: true,
+      useMemory: true,
+      memoryLimit: 8,
+    });
+  }
+  const form = new FormData();
+  form.append('audio', audioBlob, 'voice.webm');
+  form.append('tts', 'true');
+  form.append('use_memory', 'true');
+  form.append('memory_limit', '8');
+  if (threadId) form.append('thread_id', threadId);
+  const response = await fetch(apiPath(`/api/v1/messages/${ari.workspaceId}/voice`), {
+    method: 'POST',
+    headers: authHeaders(),
+    body: form,
+  });
+  if (!response.ok) throw new Error(await readError(response));
+  return await response.json();
+}
+
+async function blobToBase64(blob) {
+  const buffer = await blob.arrayBuffer();
+  const bytes = new Uint8Array(buffer);
+  let binary = '';
+  const chunkSize = 0x8000;
+  for (let i = 0; i < bytes.length; i += chunkSize) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize));
+  }
+  return btoa(binary);
 }
 
 async function readError(response) {
@@ -915,7 +1303,6 @@ function iconClassForTask(icon) {
 // ── SIDEBAR ───────────────────────────────────
 const sidebar   = document.getElementById('sidebar');
 const overlay   = document.getElementById('sb-overlay');
-const toggleBtn = document.getElementById('sb-toggle');
 let sbOpen = false;
 
 function openSidebar() {
@@ -934,7 +1321,8 @@ function closeSidebar() {
 }
 function toggleSidebar() { sbOpen ? closeSidebar() : openSidebar(); }
 function updateToggleIcon() {
-  const icon = toggleBtn.querySelector('i');
+  const icon = document.querySelector('.ch-menu-btn i');
+  if (!icon) return;
   icon.setAttribute('data-lucide', sbOpen ? 'x' : 'menu');
   lucide.createIcons();
 }
@@ -1063,59 +1451,175 @@ async function sendMessage() {
   input.style.height = 'auto';
   appendMessage(text, 'user');
 
-  if (!ari.token || !ari.workspaceId) {
-    appendMessage('Esta vista ya está conectada al diseño final. Inicia sesión en ARI para usar memoria y acciones reales.', 'ai');
+  if (!hasSession()) {
+    appendMessage('Inicia sesión en ARI para usar memoria, acciones reales e historial por chat.', 'ai');
     applySnap(0);
     return;
   }
 
   try {
     await ensureActiveThread(text);
-    const response = await fetch(`/api/v1/messages/${ari.workspaceId}/chat`, {
-      method: 'POST',
-      headers: authHeaders({ 'Content-Type': 'application/json' }),
-      body: JSON.stringify({ message: text, thread_id: ari.currentThreadId, use_memory: true, memory_limit: 8 }),
-    });
-    if (!response.ok) throw new Error(await readError(response));
-    const data = await response.json();
+    const data = await apiChat(text, ari.currentThreadId);
+    if (data.thread_id && data.thread_id !== ari.currentThreadId) {
+      ari.currentThreadId = data.thread_id;
+      localStorage.setItem('ari.currentThreadId', data.thread_id);
+    }
     appendMessage(data.reply || 'ARI no devolvió una respuesta.', 'ai');
     await loadThreads();
     applySnap(0);
   } catch (error) {
-    appendMessage(error.message || String(error), 'ai');
+    appendMessage(commandError(error), 'ai');
   }
 }
 
 function handleKey(e) {
   if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
 }
+
+function preferredVoiceMimeType() {
+  const options = [
+    'audio/webm;codecs=opus',
+    'audio/webm',
+    'audio/mp4',
+    'audio/aac',
+  ];
+  if (!window.MediaRecorder?.isTypeSupported) return '';
+  return options.find(type => MediaRecorder.isTypeSupported(type)) || '';
+}
+
+async function toggleVoiceRecording() {
+  if (voiceBusy && voiceRecorder?.state !== 'recording') return;
+  if (voiceRecorder?.state === 'recording') {
+    voiceRecorder.stop();
+    return;
+  }
+  if (!hasSession()) {
+    appendMessage('Inicia sesión en ARI para usar la interacción de voz.', 'ai');
+    return;
+  }
+  if (!navigator.mediaDevices?.getUserMedia || !window.MediaRecorder) {
+    appendMessage('El motor de esta ventana no permite grabación de voz. Prueba desde ARI Desktop actualizado o desde un navegador compatible.', 'ai');
+    return;
+  }
+
+  const voiceBtn = document.getElementById('voice-btn');
+  try {
+    voiceBusy = true;
+    setVoiceStatus('Pidiendo micrófono...', 'mic');
+    voiceStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    voiceChunks = [];
+    const mimeType = preferredVoiceMimeType();
+    voiceRecorder = new MediaRecorder(voiceStream, mimeType ? { mimeType } : undefined);
+    voiceRecorder.ondataavailable = event => {
+      if (event.data?.size) voiceChunks.push(event.data);
+    };
+    voiceRecorder.onerror = event => {
+      appendMessage(`No pude grabar audio: ${event.error?.message || 'error de micrófono'}`, 'ai');
+      stopVoiceTracks();
+      voiceBtn.classList.remove('recording');
+      setVoiceStatus(hasSession() ? 'Sesión desktop' : 'Sesión local', hasSession() ? 'volume-2' : 'volume-x');
+      voiceBusy = false;
+    };
+    voiceRecorder.onstop = () => processVoiceRecording(mimeType || voiceRecorder.mimeType || 'audio/webm');
+    voiceRecorder.start();
+    voiceBtn.classList.add('recording');
+    setVoiceStatus('Escuchando... toca para enviar', 'mic');
+  } catch (error) {
+    stopVoiceTracks();
+    voiceBtn.classList.remove('recording');
+    setVoiceStatus(hasSession() ? 'Sesión desktop' : 'Sesión local', hasSession() ? 'volume-2' : 'volume-x');
+    appendMessage(`No pude acceder al micrófono: ${commandError(error)}`, 'ai');
+  } finally {
+    voiceBusy = false;
+  }
+}
+
+async function processVoiceRecording(contentType) {
+  const voiceBtn = document.getElementById('voice-btn');
+  voiceBtn.classList.remove('recording');
+  stopVoiceTracks();
+  voiceBusy = true;
+  try {
+    const audioBlob = new Blob(voiceChunks, { type: contentType });
+    voiceChunks = [];
+    if (!audioBlob.size) {
+      appendMessage('No recibí audio del micrófono. Prueba otra vez manteniendo un segundo de voz.', 'ai');
+      return;
+    }
+    setVoiceStatus('Procesando voz...', 'loader-circle');
+    await ensureActiveThread('Nota de voz');
+    const data = await apiVoice(audioBlob, ari.currentThreadId);
+    if (data.thread_id && data.thread_id !== ari.currentThreadId) {
+      ari.currentThreadId = data.thread_id;
+      localStorage.setItem('ari.currentThreadId', data.thread_id);
+    }
+    if (data.transcript) appendMessage(data.transcript, 'user');
+    appendMessage(data.reply || 'ARI no devolvió una respuesta de voz.', 'ai');
+    playVoiceReply(data);
+    await loadThreads();
+    applySnap(0);
+  } catch (error) {
+    appendMessage(commandError(error), 'ai');
+  } finally {
+    voiceBusy = false;
+    setVoiceStatus(hasSession() ? 'Sesión desktop' : 'Sesión local', hasSession() ? 'volume-2' : 'volume-x');
+  }
+}
+
+function stopVoiceTracks() {
+  voiceStream?.getTracks?.().forEach(track => track.stop());
+  voiceStream = null;
+  voiceRecorder = null;
+}
+
+function playVoiceReply(data) {
+  if (!data?.audio_base64) return;
+  try {
+    const audio = new Audio(`data:${data.audio_content_type || 'audio/mpeg'};base64,${data.audio_base64}`);
+    audio.play().catch(error => console.warn('Could not play ARI voice reply', error));
+  } catch (error) {
+    console.warn('Could not prepare ARI voice reply', error);
+  }
+}
+
 function escHtml(s) {
-  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
 async function loadThreads() {
-  if (!ari.token || !ari.workspaceId) {
+  if (!hasSession()) {
     document.querySelector('.voice-pill span:last-child').textContent = 'Sesión local';
+    renderConversationList([]);
     return;
   }
   try {
-    const response = await fetch(`/api/v1/messages/${ari.workspaceId}/threads?limit=30`, {
-      headers: authHeaders(),
-    });
-    if (!response.ok) throw new Error(await readError(response));
-    ari.threads = await response.json();
+    ari.threads = await apiListThreads(30);
     renderConversationList(ari.threads);
   } catch (error) {
     console.warn('Could not load ARI threads', error);
+    renderConversationList([]);
   }
 }
 
 function renderConversationList(threads) {
   const list = document.getElementById('conv-list');
-  if (!threads.length) return;
+  if (!threads.length) {
+    list.innerHTML = `
+      <div class="ci active">
+        <div class="ci-icon ic-chat"><i data-lucide="message-circle"></i></div>
+        <div class="ci-body">
+          <div class="ci-top"><span class="ci-name">Nuevo chat</span><span class="ci-time">Ahora</span></div>
+          <span class="ci-sub">Sin historial todavia</span>
+        </div>
+        <span class="ci-dot"></span>
+      </div>`;
+    lucide.createIcons();
+    return;
+  }
   list.innerHTML = threads.map((thread, index) => {
-    const title = thread.title || 'Consulta activa';
-    const sub = thread.summary || thread.last_message || 'ARI';
+    const messageCount = Number.isFinite(thread.message_count) ? thread.message_count : 0;
+    const title = thread.title === 'New thread' && !messageCount ? 'Nuevo chat' : thread.title || 'Consulta activa';
+    const sub = messageCount ? `${messageCount} mensajes · Markdown` : 'Chat nuevo · Markdown';
     const icon = iconNameForTask(`${title} ${sub}`);
     const active = thread.id === ari.currentThreadId || (!ari.currentThreadId && index === 0);
     const time = thread.updated_at
@@ -1135,14 +1639,8 @@ function renderConversationList(threads) {
 }
 
 async function ensureActiveThread(title) {
-  if (ari.currentThreadId || !ari.token || !ari.workspaceId) return ari.currentThreadId;
-  const response = await fetch(`/api/v1/messages/${ari.workspaceId}/threads`, {
-    method: 'POST',
-    headers: authHeaders({ 'Content-Type': 'application/json' }),
-    body: JSON.stringify({ title }),
-  });
-  if (!response.ok) throw new Error(await readError(response));
-  const thread = await response.json();
+  if (ari.currentThreadId || !hasSession()) return ari.currentThreadId;
+  const thread = await apiCreateThread(title);
   ari.currentThreadId = thread.id;
   localStorage.setItem('ari.currentThreadId', thread.id);
   ari.threads = [thread, ...ari.threads.filter(item => item.id !== thread.id)];
@@ -1151,27 +1649,46 @@ async function ensureActiveThread(title) {
 }
 
 async function openThread(threadId) {
-  if (!ari.token || !ari.workspaceId || !threadId) return;
+  if (!hasSession() || !threadId) return;
   try {
-    const response = await fetch(`/api/v1/messages/${ari.workspaceId}/threads/${encodeURIComponent(threadId)}`, {
-      headers: authHeaders(),
-    });
-    if (!response.ok) throw new Error(await readError(response));
-    const thread = await response.json();
+    const thread = await apiReadThread(threadId);
     ari.currentThreadId = thread.id;
     localStorage.setItem('ari.currentThreadId', thread.id);
-    document.getElementById('chat-title').textContent = thread.title || 'Consulta activa';
+    document.getElementById('chat-title').textContent = thread.title === 'New thread' && !(thread.messages || []).length ? 'Nuevo chat' : thread.title || 'Consulta activa';
     renderThreadMessages(thread.messages || []);
   } catch (error) {
-    appendMessage(error.message, 'ai');
+    appendMessage(commandError(error), 'ai');
   }
 }
 
 function renderThreadMessages(messages) {
   const wrap = document.getElementById('messages');
   wrap.innerHTML = '';
+  if (!messages.length) {
+    appendMessage('Nuevo chat listo. Escribe abajo y ARI guardará este hilo en Markdown.', 'ai');
+    return;
+  }
   messages.forEach(message => appendMessage(message.content, message.role === 'user' ? 'user' : 'ai'));
   wrap.scrollTop = wrap.scrollHeight;
+}
+
+async function startNewChat() {
+  ari.currentThreadId = '';
+  localStorage.removeItem('ari.currentThreadId');
+  document.getElementById('chat-title').textContent = 'Nuevo chat';
+  renderThreadMessages([]);
+  if (window.innerWidth < 700) closeSidebar();
+  document.getElementById('bs-input').focus();
+  if (!hasSession()) return;
+  try {
+    const thread = await apiCreateThread(null);
+    ari.currentThreadId = thread.id;
+    localStorage.setItem('ari.currentThreadId', thread.id);
+    ari.threads = [thread, ...ari.threads.filter(item => item.id !== thread.id)];
+    renderConversationList(ari.threads);
+  } catch (error) {
+    appendMessage(commandError(error), 'ai');
+  }
 }
 
 function appendMessage(text, from = 'ai') {
@@ -1188,7 +1705,12 @@ function appendMessage(text, from = 'ai') {
   msgs.scrollTop = msgs.scrollHeight;
 }
 
-loadThreads();
+async function initializeAri() {
+  await hydrateDesktopSession();
+  showAuthGate(storedDesktopConfig ? 'Sesión guardada disponible.' : 'Inicia sesión para entrar.');
+}
+
+initializeAri();
 
 // ── LUCIDE RE-INIT (after dynamic content) ────
 lucide.createIcons();

@@ -3,6 +3,73 @@ use url::Url;
 
 pub fn open_browser_url(raw_url: &str) -> Result<String, String> {
     let url = normalize_browser_url(raw_url)?;
+    open_url_with_system_handler(&url)?;
+    Ok(url.to_string())
+}
+
+pub fn open_auth_url(raw_url: &str) -> Result<String, String> {
+    let url = normalize_browser_url(raw_url)?;
+
+    #[cfg(target_os = "macos")]
+    if open_chrome_app_window(&url).is_ok() {
+        return Ok(url.to_string());
+    }
+
+    open_url_with_system_handler(&url)?;
+    Ok(url.to_string())
+}
+
+pub fn close_auth_callback_window(port: u16) {
+    #[cfg(target_os = "macos")]
+    {
+        let callback_127 = format!("http://127.0.0.1:{port}/ari/google/callback");
+        let callback_localhost = format!("http://localhost:{port}/ari/google/callback");
+        let script = format!(
+            r#"on closeMatchingChromeTab(prefixOne, prefixTwo)
+  tell application "Google Chrome"
+    repeat with browserWindow in windows
+      repeat with browserTab in tabs of browserWindow
+        set tabUrl to URL of browserTab
+        if tabUrl starts with prefixOne or tabUrl starts with prefixTwo then
+          close browserTab
+          return true
+        end if
+      end repeat
+    end repeat
+  end tell
+  return false
+end closeMatchingChromeTab
+
+on closeMatchingSafariTab(prefixOne, prefixTwo)
+  tell application "Safari"
+    repeat with browserWindow in windows
+      repeat with browserTab in tabs of browserWindow
+        set tabUrl to URL of browserTab
+        if tabUrl starts with prefixOne or tabUrl starts with prefixTwo then
+          close browserTab
+          return true
+        end if
+      end repeat
+    end repeat
+  end tell
+  return false
+end closeMatchingSafariTab
+
+try
+  if closeMatchingChromeTab("{}", "{}") then return
+end try
+
+try
+  if closeMatchingSafariTab("{}", "{}") then return
+end try
+"#,
+            callback_127, callback_localhost, callback_127, callback_localhost
+        );
+        let _ = Command::new("osascript").arg("-e").arg(script).output();
+    }
+}
+
+fn open_url_with_system_handler(url: &Url) -> Result<(), String> {
 
     #[cfg(target_os = "macos")]
     let output = Command::new("open").arg(url.as_str()).output();
@@ -22,7 +89,20 @@ pub fn open_browser_url(raw_url: &str) -> Result<String, String> {
     ));
 
     match output {
-        Ok(output) if output.status.success() => Ok(url.to_string()),
+        Ok(output) if output.status.success() => Ok(()),
+        Ok(output) => Err(String::from_utf8_lossy(&output.stderr).trim().to_string()),
+        Err(error) => Err(error.to_string()),
+    }
+}
+
+#[cfg(target_os = "macos")]
+fn open_chrome_app_window(url: &Url) -> Result<(), String> {
+    let app_arg = format!("--app={}", url.as_str());
+    let output = Command::new("open")
+        .args(["-na", "Google Chrome", "--args", &app_arg])
+        .output();
+    match output {
+        Ok(output) if output.status.success() => Ok(()),
         Ok(output) => Err(String::from_utf8_lossy(&output.stderr).trim().to_string()),
         Err(error) => Err(error.to_string()),
     }

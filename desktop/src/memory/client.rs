@@ -117,6 +117,8 @@ pub struct SearchResult {
 #[derive(Debug, Serialize)]
 pub struct ChatRequest<'a> {
     pub message: &'a str,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub thread_id: Option<&'a str>,
     pub use_memory: bool,
     pub memory_limit: u32,
 }
@@ -127,6 +129,53 @@ pub struct ChatResponse {
     pub model: String,
     pub memory_results: Vec<SearchResult>,
     pub stored: bool,
+    pub thread_id: Option<String>,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+pub struct VoiceResponse {
+    pub transcript: String,
+    pub reply: String,
+    pub model: String,
+    pub stt_model: String,
+    pub tts_model: Option<String>,
+    pub audio_base64: Option<String>,
+    pub audio_content_type: Option<String>,
+    pub stored: bool,
+    pub thread_id: Option<String>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct ThreadCreateRequest<'a> {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub title: Option<&'a str>,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+pub struct ThreadSummary {
+    pub id: String,
+    pub title: String,
+    pub date: String,
+    pub path: String,
+    pub updated_at: String,
+    pub message_count: u32,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+pub struct ThreadMessage {
+    pub role: String,
+    pub content: String,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+pub struct Thread {
+    pub id: String,
+    pub title: String,
+    pub date: String,
+    pub path: String,
+    pub created_at: String,
+    pub updated_at: String,
+    pub messages: Vec<ThreadMessage>,
 }
 
 #[derive(Debug, Serialize)]
@@ -455,6 +504,7 @@ impl MemoryClient {
     pub async fn chat(
         &self,
         message: &str,
+        thread_id: Option<&str>,
         use_memory: bool,
         memory_limit: Option<u32>,
     ) -> Result<ChatResponse, MemoryClientError> {
@@ -464,10 +514,83 @@ impl MemoryClient {
         );
         self.send_json(self.authorized(self.http.post(url))?.json(&ChatRequest {
             message,
+            thread_id,
             use_memory,
             memory_limit: memory_limit.unwrap_or(8),
         }))
         .await
+    }
+
+    pub async fn voice(
+        &self,
+        audio: Vec<u8>,
+        content_type: &str,
+        thread_id: Option<&str>,
+        tts: bool,
+        use_memory: bool,
+        memory_limit: Option<u32>,
+    ) -> Result<VoiceResponse, MemoryClientError> {
+        if audio.is_empty() {
+            return Err(MemoryClientError::Configuration(
+                "audio payload cannot be empty".to_string(),
+            ));
+        }
+        let url = format!(
+            "{}/api/v1/messages/{}/voice",
+            self.backend_url, self.workspace_id
+        );
+        let part = reqwest::multipart::Part::bytes(audio)
+            .file_name("voice.webm")
+            .mime_str(content_type)
+            .map_err(MemoryClientError::Request)?;
+        let mut form = reqwest::multipart::Form::new()
+            .part("audio", part)
+            .text("tts", tts.to_string())
+            .text("use_memory", use_memory.to_string())
+            .text("memory_limit", memory_limit.unwrap_or(8).to_string());
+        if let Some(thread_id) = thread_id {
+            form = form.text("thread_id", thread_id.to_string());
+        }
+        self.send_json(self.authorized(self.http.post(url))?.multipart(form))
+            .await
+    }
+
+    pub async fn list_threads(
+        &self,
+        limit: Option<u32>,
+    ) -> Result<Vec<ThreadSummary>, MemoryClientError> {
+        let url = format!(
+            "{}/api/v1/messages/{}/threads",
+            self.backend_url, self.workspace_id
+        );
+        let limit_value = limit.unwrap_or(30).to_string();
+        self.send_json(
+            self.authorized(self.http.get(url))?
+                .query(&[("limit", limit_value.as_str())]),
+        )
+        .await
+    }
+
+    pub async fn create_thread(
+        &self,
+        title: Option<&str>,
+    ) -> Result<Thread, MemoryClientError> {
+        let url = format!(
+            "{}/api/v1/messages/{}/threads",
+            self.backend_url, self.workspace_id
+        );
+        self.send_json(self.authorized(self.http.post(url))?.json(&ThreadCreateRequest {
+            title,
+        }))
+        .await
+    }
+
+    pub async fn read_thread(&self, thread_id: &str) -> Result<Thread, MemoryClientError> {
+        let url = format!(
+            "{}/api/v1/messages/{}/threads/{}",
+            self.backend_url, self.workspace_id, thread_id
+        );
+        self.send_json(self.authorized(self.http.get(url))?).await
     }
 
     pub async fn orchestrate(

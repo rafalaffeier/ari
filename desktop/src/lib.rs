@@ -9,8 +9,11 @@ use memory::client::{
     ActionResponse, AuditEventResponse, AuthResponse, ChatResponse, Conversation,
     JournalDayResponse, JournalEntryResponse, JournalOverviewResponse, MemoryClient,
     MemoryClientError, OrchestrateResponse, PasswordRecoveryResponse, RecentMessage, SearchResult,
+    Thread, ThreadSummary, VoiceResponse,
 };
 use memory::crypto::WorkspaceKey;
+use base64::Engine as _;
+use base64::engine::general_purpose::STANDARD as BASE64_STANDARD;
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::io::{Read, Write};
@@ -229,10 +232,12 @@ async fn login_with_google(
         url_encode(&return_to)
     );
 
-    tools::browser::open_browser_url(&auth_url).map_err(DesktopError::tool)?;
+    tools::browser::open_auth_url(&auth_url).map_err(DesktopError::tool)?;
     let code = tokio::task::spawn_blocking(move || wait_for_google_callback(listener))
         .await
         .map_err(|error| DesktopError::tool(format!("Google callback task failed: {error}")))??;
+    tools::browser::close_auth_callback_window(port);
+    focus_main_window(&app);
 
     let client = MemoryClient::for_backend(normalized_backend_url.clone())?;
     let auth = client.exchange_google_code(&code).await?;
@@ -364,13 +369,77 @@ async fn search_memory(
 async fn chat_with_ari(
     state: State<'_, AppState>,
     message: String,
+    thread_id: Option<String>,
     use_memory: Option<bool>,
     memory_limit: Option<u32>,
 ) -> Result<ChatResponse, DesktopError> {
     let client = memory_client_from_state(&state).await?;
     Ok(client
-        .chat(&message, use_memory.unwrap_or(true), memory_limit)
+        .chat(
+            &message,
+            thread_id.as_deref(),
+            use_memory.unwrap_or(true),
+            memory_limit,
+        )
         .await?)
+}
+
+#[tauri::command]
+async fn voice_with_ari(
+    state: State<'_, AppState>,
+    audio_base64: String,
+    audio_content_type: Option<String>,
+    thread_id: Option<String>,
+    tts: Option<bool>,
+    use_memory: Option<bool>,
+    memory_limit: Option<u32>,
+) -> Result<VoiceResponse, DesktopError> {
+    let audio = BASE64_STANDARD
+        .decode(audio_base64.trim())
+        .map_err(|error| DesktopError::configuration(format!("invalid voice audio payload: {error}")))?;
+    let content_type = audio_content_type
+        .as_deref()
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .unwrap_or("audio/webm");
+    let client = memory_client_from_state(&state).await?;
+    Ok(client
+        .voice(
+            audio,
+            content_type,
+            thread_id.as_deref(),
+            tts.unwrap_or(true),
+            use_memory.unwrap_or(true),
+            memory_limit,
+        )
+        .await?)
+}
+
+#[tauri::command]
+async fn list_threads(
+    state: State<'_, AppState>,
+    limit: Option<u32>,
+) -> Result<Vec<ThreadSummary>, DesktopError> {
+    let client = memory_client_from_state(&state).await?;
+    Ok(client.list_threads(limit).await?)
+}
+
+#[tauri::command]
+async fn create_thread(
+    state: State<'_, AppState>,
+    title: Option<String>,
+) -> Result<Thread, DesktopError> {
+    let client = memory_client_from_state(&state).await?;
+    Ok(client.create_thread(title.as_deref()).await?)
+}
+
+#[tauri::command]
+async fn read_thread(
+    state: State<'_, AppState>,
+    thread_id: String,
+) -> Result<Thread, DesktopError> {
+    let client = memory_client_from_state(&state).await?;
+    Ok(client.read_thread(&thread_id).await?)
 }
 
 #[tauri::command]
@@ -746,7 +815,7 @@ fn wait_for_google_callback(listener: TcpListener) -> Result<String, DesktopErro
 }
 
 fn write_callback_response(stream: &mut TcpStream) -> Result<(), DesktopError> {
-    let body = "<!doctype html><html><head><meta charset=\"utf-8\"><title>ARI Login</title></head><body style=\"background:#1A1208;color:#F7F2EC;font-family:Georgia,serif;display:grid;place-items:center;min-height:100vh;margin:0\"><main><h1>ARI is connected</h1><p>You can return to the desktop app.</p></main><script>setTimeout(()=>window.close(),900)</script></body></html>";
+    let body = "<!doctype html><html><head><meta charset=\"utf-8\"><title>ARI Login</title></head><body style=\"background:#1A1208;color:#F7F2EC;font-family:Georgia,serif;display:grid;place-items:center;min-height:100vh;margin:0\"><main><h1>ARI is connected</h1><p>You can return to the desktop app.</p></main><script>function done(){try{window.open('','_self');}catch(e){}try{window.close();}catch(e){}setTimeout(()=>{document.body.innerHTML='<main><h1>ARI is connected</h1><p>This login window can be closed.</p></main>';},800)}setTimeout(done,250)</script></body></html>";
     let response = format!(
         "HTTP/1.1 200 OK\r\nContent-Type: text/html; charset=utf-8\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
         body.len(),
@@ -755,6 +824,12 @@ fn write_callback_response(stream: &mut TcpStream) -> Result<(), DesktopError> {
     stream
         .write_all(response.as_bytes())
         .map_err(|error| DesktopError::tool(format!("failed to finish Google callback: {error}")))
+}
+
+fn focus_main_window(app: &tauri::AppHandle) {
+    if let Some(window) = app.get_webview_window("main") {
+        let _ = window.set_focus();
+    }
 }
 
 fn url_encode(value: &str) -> String {
@@ -837,6 +912,10 @@ pub fn run() {
             read_journal_overview,
             search_memory,
             chat_with_ari,
+            voice_with_ari,
+            list_threads,
+            create_thread,
+            read_thread,
             orchestrate_with_ari,
             list_recent_messages,
             read_conversation,
