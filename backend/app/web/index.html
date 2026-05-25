@@ -1463,16 +1463,16 @@ function playVoiceReply(data) {
 
 function speakText(text) {
   if (!text) return;
-  if (ari.token && ari.workspaceId) {
-    apiSpeech(text)
-      .then(playSpeechAudio)
-      .catch(error => {
-        console.warn('Could not use OpenAI speech, falling back to browser speech', error);
-        speakTextInBrowser(text);
-      });
+  if (!ari.token || !ari.workspaceId) {
+    appendMessage('Inicia sesión para usar la voz de ARI.', 'ai');
     return;
   }
-  speakTextInBrowser(text);
+  apiSpeech(text)
+    .then(playSpeechAudio)
+    .catch(error => {
+      console.warn('Could not use OpenAI speech', error);
+      appendMessage(`No pude generar la voz de ARI: ${commandError(error)}`, 'ai');
+    });
 }
 
 function playSpeechAudio(data) {
@@ -1483,18 +1483,6 @@ function playSpeechAudio(data) {
     currentSpeechAudio.play().catch(error => console.warn('Could not play OpenAI speech', error));
   } catch (error) {
     console.warn('Could not prepare OpenAI speech', error);
-  }
-}
-
-function speakTextInBrowser(text) {
-  if (!window.speechSynthesis || !text) return;
-  try {
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = voiceLanguage();
-    window.speechSynthesis.cancel();
-    window.speechSynthesis.speak(utterance);
-  } catch (error) {
-    console.warn('Could not speak ARI reply', error);
   }
 }
 
