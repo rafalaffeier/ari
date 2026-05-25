@@ -46,6 +46,34 @@ export type SearchResult = {
 
 export type JournalSection = "tasks" | "decisions" | "pending" | "facts" | "chat" | "technical_events";
 
+export type ConversationMessage = {
+  role: "user" | "assistant" | string;
+  content: string;
+};
+
+export type ThreadSummary = {
+  id: string;
+  title: string;
+  date: string;
+  path: string;
+  updated_at: string;
+  message_count: number;
+};
+
+export type ThreadDetail = ThreadSummary & {
+  created_at: string;
+  messages: ConversationMessage[];
+};
+
+export type ChatResponse = {
+  reply: string;
+  model: string;
+  memory_results: unknown[];
+  stored: boolean;
+  stored_actions: string[];
+  thread_id?: string | null;
+};
+
 type RequestOptions = RequestInit & {
   token?: string | null;
 };
@@ -120,4 +148,25 @@ export const api = {
       `/memory/${workspaceId}/search?q=${encodeURIComponent(query)}&limit=${limit}`,
       { token },
     ),
+  listThreads: (token: string, workspaceId: string, limit = 30) =>
+    request<ThreadSummary[]>(`/messages/${workspaceId}/threads?limit=${limit}`, { token }),
+  createThread: (token: string, workspaceId: string, title?: string | null) =>
+    request<ThreadDetail>(`/messages/${workspaceId}/threads`, {
+      method: "POST",
+      token,
+      body: JSON.stringify({ title: title ?? null }),
+    }),
+  readThread: (token: string, workspaceId: string, threadId: string) =>
+    request<ThreadDetail>(`/messages/${workspaceId}/threads/${encodeURIComponent(threadId)}`, { token }),
+  chat: (token: string, workspaceId: string, message: string, threadId?: string | null) =>
+    request<ChatResponse>(`/messages/${workspaceId}/chat`, {
+      method: "POST",
+      token,
+      body: JSON.stringify({
+        message,
+        thread_id: threadId || null,
+        use_memory: true,
+        memory_limit: 8,
+      }),
+    }),
 };

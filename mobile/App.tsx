@@ -16,7 +16,15 @@ import {
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-import { api, JournalOverview, JournalSection, SearchResult, TimelineDay } from "./src/services/api";
+import {
+  api,
+  ConversationMessage,
+  JournalOverview,
+  JournalSection,
+  SearchResult,
+  ThreadSummary,
+  TimelineDay,
+} from "./src/services/api";
 import { useAuthStore } from "./src/store/auth";
 import { memoryCache, PendingEntry } from "./src/store/memoryCache";
 
@@ -468,6 +476,14 @@ export default function App() {
   const [isOffline, setIsOffline] = useState(false);
   const [isBusy, setIsBusy] = useState(false);
   const [status, setStatus] = useState<string>(STRINGS[translationLanguage(deviceLanguage())].ready);
+  const [chatThreads, setChatThreads] = useState<ThreadSummary[]>([]);
+  const [currentThreadId, setCurrentThreadId] = useState<string | null>(null);
+  const [chatMessages, setChatMessages] = useState<ConversationMessage[]>([
+    { role: "assistant", content: "Nuevo chat listo. Escribe abajo y ARI guardará este hilo en Markdown." },
+  ]);
+  const [chatInput, setChatInput] = useState("");
+  const [chatBusy, setChatBusy] = useState(false);
+  const [sheetOpen, setSheetOpen] = useState(false);
   const uiLanguage = translationLanguage(language);
   const t = STRINGS[uiLanguage];
   const authText = {
