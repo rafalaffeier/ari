@@ -70,7 +70,6 @@ end try
 }
 
 fn open_url_with_system_handler(url: &Url) -> Result<(), String> {
-
     #[cfg(target_os = "macos")]
     let output = Command::new("open").arg(url.as_str()).output();
 

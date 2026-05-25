@@ -2,6 +2,9 @@ from fastapi import APIRouter
 from app.api.v1.endpoints import actions, audit, auth, devices, integrations, memory, messages, sync, tools, travel, workspaces
 
 api_router = APIRouter()
+
+# Central API map. Keep this list grouped by product area so new endpoint modules
+# are easy to find from the public `/api/v1/...` path.
 api_router.include_router(auth.router,       prefix="/auth",       tags=["auth"])
 api_router.include_router(workspaces.router, prefix="/workspaces", tags=["workspaces"])
 api_router.include_router(devices.router,    prefix="/devices",    tags=["devices"])

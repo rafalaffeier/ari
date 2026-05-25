@@ -274,6 +274,40 @@ class MemoryApiTest(unittest.TestCase):
 
         self.assertEqual(response.status_code, 413)
 
+    def test_speech_synthesizes_without_storing_text(self):
+        original_api_key = settings.OPENAI_API_KEY
+        original_synthesize_speech = messages.synthesize_speech
+        original_log_ai_usage = messages._log_ai_usage
+        usage_events = []
+
+        async def fake_synthesize_speech(text: str):
+            self.assertEqual(text, "Hola, Rafa.")
+            return b"fake openai mp3"
+
+        async def fake_log_ai_usage(db, **kwargs):
+            usage_events.append(kwargs)
+
+        settings.OPENAI_API_KEY = "test-key"
+        messages.synthesize_speech = fake_synthesize_speech
+        messages._log_ai_usage = fake_log_ai_usage
+        try:
+            response = self.client.post(
+                f"/api/v1/messages/{WORKSPACE_ID}/speech",
+                json={"text": "Hola, Rafa."},
+            )
+        finally:
+            settings.OPENAI_API_KEY = original_api_key
+            messages.synthesize_speech = original_synthesize_speech
+            messages._log_ai_usage = original_log_ai_usage
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertEqual(payload["audio_base64"], "ZmFrZSBvcGVuYWkgbXAz")
+        self.assertEqual(payload["audio_content_type"], "audio/mpeg")
+        self.assertEqual([event["operation"] for event in usage_events], ["tts"])
+        stored = self.client.get(f"/api/v1/memory/{WORKSPACE_ID}/journal/today")
+        self.assertNotIn("Hola, Rafa.", stored.json()["content"])
+
     def test_chat_recall_by_date_passes_cited_memory_context(self):
         self.client.post(
             f"/api/v1/memory/{WORKSPACE_ID}/journal/2026-05-11/entries",

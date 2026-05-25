@@ -24,6 +24,8 @@ from app.tools.catalog import load_tool_catalog
 
 router = APIRouter()
 
+# Only these catalog entries are allowed to leave the language-model planning
+# layer and become executable desktop/backend actions.
 EXECUTABLE_TOOL_NAMES = {
     "open_browser_url",
     "call_phone_number",
@@ -92,6 +94,17 @@ class VoiceResponse(BaseModel):
     audio_content_type: str | None = None
     stored: bool
     thread_id: str | None = None
+
+
+class SpeechRequest(BaseModel):
+    text: str = Field(..., min_length=1, max_length=4000)
+
+
+class SpeechResponse(BaseModel):
+    model: str
+    voice: str
+    audio_base64: str
+    audio_content_type: str
 
 
 class RecallRequest(BaseModel):
@@ -175,6 +188,8 @@ def get_thread_store() -> ThreadStore:
     return ThreadStore(settings.MEMORY_ROOT)
 
 
+# Recall returns the exact local memory snippets that will be injected into chat
+# prompts, which makes memory behavior debuggable without calling the LLM.
 @router.post("/{workspace_id}/recall", response_model=RecallResponse)
 async def recall_memory(
     body: RecallRequest,
@@ -244,6 +259,8 @@ async def chat(
     return await _run_chat_pipeline(body, workspace_id)
 
 
+# Voice is a full duplex convenience endpoint: audio in, transcript + ARI reply
+# out, with optional synthesized audio for clients that want playback.
 @router.post("/{workspace_id}/voice", response_model=VoiceResponse)
 async def voice(
     workspace_id: uuid.UUID = Depends(require_workspace_access),
@@ -334,11 +351,50 @@ async def voice(
     )
 
 
+@router.post("/{workspace_id}/speech", response_model=SpeechResponse)
+async def speech(
+    body: SpeechRequest,
+    workspace_id: uuid.UUID = Depends(require_workspace_access),
+    db: AsyncSession = Depends(get_db),
+):
+    if not settings.OPENAI_API_KEY.strip():
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="OPENAI_API_KEY is not configured. Add it to backend/.env.local and restart the backend.",
+        )
+
+    text = body.text.strip()
+    try:
+        spoken_audio = await synthesize_speech(text)
+    except Exception as exc:
+        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=f"OpenAI TTS failed: {exc}") from exc
+
+    await _log_ai_usage(
+        db,
+        workspace_id=workspace_id,
+        operation="tts",
+        model=settings.VOICE_TTS_MODEL,
+        input_units=len(text),
+        output_units=len(spoken_audio),
+        usage_metadata={"format": settings.VOICE_TTS_RESPONSE_FORMAT, "audio_stored": False},
+    )
+
+    return SpeechResponse(
+        model=settings.VOICE_TTS_MODEL,
+        voice=settings.VOICE_TTS_VOICE,
+        audio_base64=b64encode(spoken_audio).decode("ascii"),
+        audio_content_type=_audio_content_type(settings.VOICE_TTS_RESPONSE_FORMAT),
+    )
+
+
 async def _run_chat_pipeline(body: ChatRequest, workspace_id: uuid.UUID) -> ChatResponse:
     user_message = body.message.strip()
     store = get_store()
     thread_store = get_thread_store()
     thread_id = _ensure_thread(thread_store, str(workspace_id), body.thread_id, user_message)
+
+    # The final prompt is built from three layers: targeted memory recall,
+    # recent conversation context, and the current executable tool catalog.
     memory_results = []
     memory_context = ""
     if body.use_memory and body.memory_limit > 0:
@@ -398,6 +454,8 @@ async def _run_chat_pipeline(body: ChatRequest, workspace_id: uuid.UUID) -> Chat
     )
 
 
+# Orchestration asks the model for structured intent, then normalizes the result
+# against the local tool catalog before any client is allowed to execute it.
 @router.post("/{workspace_id}/orchestrate", response_model=OrchestrateResponse)
 async def orchestrate(
     body: OrchestrateRequest,
@@ -536,6 +594,8 @@ def _extract_chat_content(line: str, marker: str) -> str | None:
 
 
 def _ensure_thread(thread_store: ThreadStore, workspace_id: str, thread_id: str | None, title_hint: str) -> str | None:
+    # A missing thread id means legacy journal mode. A supplied id must already
+    # exist so clients cannot accidentally create shadow conversations.
     if thread_id:
         try:
             thread_store.read_thread(workspace_id, thread_id)
@@ -606,6 +666,8 @@ async def _log_ai_usage(
     output_units: int = 0,
     usage_metadata: dict | None = None,
 ) -> None:
+    # Usage logging must never break the user-facing AI path, so failures are
+    # rolled back and swallowed here after the primary operation succeeded.
     try:
         db.add(
             AiUsageLog(
@@ -624,6 +686,7 @@ async def _log_ai_usage(
 
 
 def _tool_catalog_context() -> str:
+    # Chat gets a readable catalog; orchestration gets stricter JSON below.
     executable_lines = []
     planned_lines = []
     for tool in load_tool_catalog():
@@ -723,6 +786,8 @@ User message:
 
 
 def _normalize_orchestration(data: dict, memory_results: list[RecallSource]) -> OrchestrateResponse:
+    # Treat model output as untrusted: clamp modes/confidence, validate tool
+    # names, recompute missing fields, and downgrade impossible executions.
     mode = str(data.get("mode") or "reply")
     if mode not in {"reply", "ask", "tool_confirmation", "tool_ready"}:
         mode = "reply"
@@ -794,6 +859,8 @@ def _normalize_orchestration(data: dict, memory_results: list[RecallSource]) -> 
 
 
 def _flight_search_missing_fields(params: dict, missing: list[str]) -> list[str]:
+    # Duffel needs fixed IATA-style endpoints; flexible destinations are useful
+    # conversation, but not executable search parameters.
     normalized_missing = list(missing)
     for field in ("origin", "destination"):
         value = str(params.get(field) or "").strip()
@@ -848,6 +915,8 @@ def _looks_like_fake_execution_reply(reply: str) -> bool:
 
 
 def _store_detected_actions(store: JournalStore, workspace_id: str, user_message: str) -> list[str]:
+    # Lightweight capture of durable facts/tasks/decisions from normal chat.
+    # This is deliberately heuristic and separate from tool orchestration.
     entries = _detect_action_entries(user_message)
     stored = []
     for section, text in entries:

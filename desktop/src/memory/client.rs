@@ -6,6 +6,8 @@ use super::crypto::{EncryptedMarkdown, EncryptionEnvelope};
 
 #[derive(Debug, Clone)]
 pub struct MemoryClient {
+    // Thin HTTP wrapper for backend APIs. It does no UI work and keeps endpoint
+    // paths centralized so Tauri commands can stay focused on desktop behavior.
     backend_url: String,
     access_token: Option<String>,
     workspace_id: String,
@@ -143,6 +145,19 @@ pub struct VoiceResponse {
     pub audio_content_type: Option<String>,
     pub stored: bool,
     pub thread_id: Option<String>,
+}
+
+#[derive(Debug, Serialize)]
+struct SpeechRequest<'a> {
+    text: &'a str,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+pub struct SpeechResponse {
+    pub model: String,
+    pub voice: String,
+    pub audio_base64: String,
+    pub audio_content_type: String,
 }
 
 #[derive(Debug, Serialize)]
@@ -359,6 +374,8 @@ pub struct WorkspaceRecoveryWrapResponse {
 
 impl MemoryClient {
     pub fn for_backend(backend_url: String) -> Result<Self, MemoryClientError> {
+        // Used before login/register, when the backend URL is known but no
+        // workspace-scoped bearer token exists yet.
         Self::build(backend_url, None, String::new())
     }
 
@@ -539,7 +556,12 @@ impl MemoryClient {
             "{}/api/v1/messages/{}/voice",
             self.backend_url, self.workspace_id
         );
-        let boundary = format!("ari-voice-{}", chrono::Utc::now().timestamp_nanos_opt().unwrap_or_default());
+        // Build multipart by hand to avoid pulling a larger form dependency into
+        // the desktop crate for one small upload shape.
+        let boundary = format!(
+            "ari-voice-{}",
+            chrono::Utc::now().timestamp_nanos_opt().unwrap_or_default()
+        );
         let mut body = Vec::new();
         append_form_field(&mut body, &boundary, "tts", &tts.to_string());
         append_form_field(&mut body, &boundary, "use_memory", &use_memory.to_string());
@@ -552,7 +574,14 @@ impl MemoryClient {
         if let Some(thread_id) = thread_id {
             append_form_field(&mut body, &boundary, "thread_id", thread_id);
         }
-        append_file_field(&mut body, &boundary, "audio", "voice.webm", content_type, &audio);
+        append_file_field(
+            &mut body,
+            &boundary,
+            "audio",
+            "voice.webm",
+            content_type,
+            &audio,
+        );
         body.extend_from_slice(format!("--{boundary}--\r\n").as_bytes());
         self.send_json(
             self.authorized(self.http.post(url))?
@@ -561,6 +590,23 @@ impl MemoryClient {
                     format!("multipart/form-data; boundary={boundary}"),
                 )
                 .body(body),
+        )
+        .await
+    }
+
+    pub async fn speech(&self, text: &str) -> Result<SpeechResponse, MemoryClientError> {
+        if text.trim().is_empty() {
+            return Err(MemoryClientError::Configuration(
+                "speech text cannot be empty".to_string(),
+            ));
+        }
+        let url = format!(
+            "{}/api/v1/messages/{}/speech",
+            self.backend_url, self.workspace_id
+        );
+        self.send_json(
+            self.authorized(self.http.post(url))?
+                .json(&SpeechRequest { text }),
         )
         .await
     }
@@ -581,17 +627,15 @@ impl MemoryClient {
         .await
     }
 
-    pub async fn create_thread(
-        &self,
-        title: Option<&str>,
-    ) -> Result<Thread, MemoryClientError> {
+    pub async fn create_thread(&self, title: Option<&str>) -> Result<Thread, MemoryClientError> {
         let url = format!(
             "{}/api/v1/messages/{}/threads",
             self.backend_url, self.workspace_id
         );
-        self.send_json(self.authorized(self.http.post(url))?.json(&ThreadCreateRequest {
-            title,
-        }))
+        self.send_json(
+            self.authorized(self.http.post(url))?
+                .json(&ThreadCreateRequest { title }),
+        )
         .await
     }
 
@@ -773,6 +817,8 @@ impl MemoryClient {
         let mut request = self
             .authorized(self.http.put(url))?
             .query(&[("path", path)])
+            // Encryption metadata travels in headers so the body can remain the
+            // exact ciphertext bytes that checksum/versioning are based on.
             .header("Content-Type", "application/octet-stream")
             .header("X-Encryption-Algorithm", &encrypted.envelope.algorithm)
             .header("X-Encryption-Key-Id", &encrypted.envelope.key_id)
@@ -809,6 +855,9 @@ impl MemoryClient {
             return Err(MemoryClientError::Api { status, body });
         }
         let headers = response.headers().clone();
+        // Sync downloads use headers for version/checksum/envelope metadata and
+        // the response body for ciphertext. Missing headers make the file unsafe
+        // to decrypt or reconcile, so they are hard errors.
         let version = header_value(&headers, "x-file-version")?
             .parse()
             .map_err(|_| MemoryClientError::MissingHeader("x-file-version"))?;
@@ -936,6 +985,8 @@ impl MemoryClient {
         &self,
         request: reqwest::RequestBuilder,
     ) -> Result<reqwest::RequestBuilder, MemoryClientError> {
+        // Workspace-scoped APIs should fail early if the caller forgot to create
+        // an authenticated client with `MemoryClient::new`.
         let token = self.access_token.as_deref().ok_or_else(|| {
             MemoryClientError::Configuration("access token is required".to_string())
         })?;
@@ -946,6 +997,8 @@ impl MemoryClient {
         &self,
         request: reqwest::RequestBuilder,
     ) -> Result<T, MemoryClientError> {
+        // Preserve backend error bodies because DesktopError displays them and
+        // they are usually the fastest way to diagnose auth/config mistakes.
         let response = request.send().await?;
         let status = response.status();
         if !status.is_success() {

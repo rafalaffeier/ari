@@ -4,16 +4,16 @@ pub mod permissions;
 pub mod storage;
 pub mod tools;
 
+use base64::engine::general_purpose::STANDARD as BASE64_STANDARD;
+use base64::Engine as _;
 use chrono::Utc;
 use memory::client::{
     ActionResponse, AuditEventResponse, AuthResponse, ChatResponse, Conversation,
     JournalDayResponse, JournalEntryResponse, JournalOverviewResponse, MemoryClient,
     MemoryClientError, OrchestrateResponse, PasswordRecoveryResponse, RecentMessage, SearchResult,
-    Thread, ThreadSummary, VoiceResponse,
+    SpeechResponse, Thread, ThreadSummary, VoiceResponse,
 };
 use memory::crypto::WorkspaceKey;
-use base64::Engine as _;
-use base64::engine::general_purpose::STANDARD as BASE64_STANDARD;
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::io::{Read, Write};
@@ -28,6 +28,8 @@ use tokio::sync::RwLock;
 const CONFIG_FILE_NAME: &str = "desktop-config.json";
 const PRODUCTION_BACKEND_URL: &str = "https://ari.flusscreative.com";
 
+// Persistent desktop settings live in the app config directory. Secrets stay in
+// secure storage and are referenced here only by logical name.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DesktopConfig {
     pub backend_url: String,
@@ -37,6 +39,8 @@ pub struct DesktopConfig {
 
 #[derive(Debug, Default)]
 pub struct AppState {
+    // Cached after login/config load so commands do not hit disk/keychain on
+    // every call. The keychain remains the source of truth across restarts.
     config: Arc<RwLock<Option<DesktopConfig>>>,
     access_token: Arc<RwLock<Option<String>>>,
 }
@@ -233,6 +237,8 @@ async fn login_with_google(
         url_encode(&return_to)
     );
 
+    // Google OAuth returns to a short-lived localhost callback. The blocking
+    // listener is isolated in a worker thread so the Tauri runtime stays alive.
     tools::browser::open_auth_url(&auth_url).map_err(DesktopError::tool)?;
     let code = tokio::task::spawn_blocking(move || wait_for_google_callback(listener))
         .await
@@ -291,6 +297,8 @@ async fn clear_desktop_config(
             "failed to remove access token from secure storage: {error}"
         ))
     })?;
+    // Removing the config also removes the local workspace encryption key so a
+    // future login cannot accidentally reuse old encrypted-memory material.
     if let Some(config) = state.config.read().await.clone() {
         delete_workspace_key(&config.default_workspace_id)?;
     }
@@ -397,7 +405,9 @@ async fn voice_with_ari(
 ) -> Result<VoiceResponse, DesktopError> {
     let audio = BASE64_STANDARD
         .decode(audio_base64.trim())
-        .map_err(|error| DesktopError::configuration(format!("invalid voice audio payload: {error}")))?;
+        .map_err(|error| {
+            DesktopError::configuration(format!("invalid voice audio payload: {error}"))
+        })?;
     let content_type = audio_content_type
         .as_deref()
         .map(str::trim)
@@ -417,6 +427,15 @@ async fn voice_with_ari(
 }
 
 #[tauri::command]
+async fn speech_with_ari(
+    state: State<'_, AppState>,
+    text: String,
+) -> Result<SpeechResponse, DesktopError> {
+    let client = memory_client_from_state(&state).await?;
+    Ok(client.speech(&text).await?)
+}
+
+#[tauri::command]
 async fn native_voice_with_ari(
     state: State<'_, AppState>,
     thread_id: Option<String>,
@@ -427,6 +446,8 @@ async fn native_voice_with_ari(
 ) -> Result<VoiceResponse, DesktopError> {
     let client = memory_client_from_state(&state).await?;
     let duration = duration_seconds.unwrap_or(6).clamp(2, 15);
+    // Native capture shells out to ffmpeg and can block while recording, so it
+    // runs outside the async executor before being uploaded to the backend.
     let audio = tokio::task::spawn_blocking(move || record_microphone_wav(duration))
         .await
         .map_err(|error| DesktopError::tool(format!("native microphone task failed: {error}")))??;
@@ -440,6 +461,89 @@ async fn native_voice_with_ari(
             memory_limit,
         )
         .await?)
+}
+
+#[tauri::command]
+fn open_microphone_settings() -> Result<(), DesktopError> {
+    #[cfg(target_os = "macos")]
+    {
+        let output = Command::new("open")
+            .arg("x-apple.systempreferences:com.apple.preference.security?Privacy_Microphone")
+            .output()
+            .map_err(|error| {
+                DesktopError::tool(format!("failed to open microphone settings: {error}"))
+            })?;
+        if output.status.success() {
+            Ok(())
+        } else {
+            Err(DesktopError::tool(format!(
+                "failed to open microphone settings: {}",
+                String::from_utf8_lossy(&output.stderr).trim()
+            )))
+        }
+    }
+
+    #[cfg(not(target_os = "macos"))]
+    {
+        Err(DesktopError::tool(
+            "opening microphone settings is currently supported on macOS only",
+        ))
+    }
+}
+
+#[derive(Debug, Serialize)]
+struct MicrophoneDiagnostics {
+    ffmpeg_available: bool,
+    can_record: bool,
+    message: String,
+}
+
+#[tauri::command]
+fn microphone_diagnostics() -> MicrophoneDiagnostics {
+    match record_microphone_wav(1) {
+        Ok(audio) if !audio.is_empty() => MicrophoneDiagnostics {
+            ffmpeg_available: true,
+            can_record: true,
+            message: "Microphone capture is available.".to_string(),
+        },
+        Ok(_) => MicrophoneDiagnostics {
+            ffmpeg_available: true,
+            can_record: false,
+            message: "Microphone capture produced no audio.".to_string(),
+        },
+        Err(error) => {
+            let message = error.message;
+            MicrophoneDiagnostics {
+                ffmpeg_available: !message.contains("ffmpeg is not available"),
+                can_record: false,
+                message,
+            }
+        }
+    }
+}
+
+#[tauri::command]
+fn speak_text_native(text: String) -> Result<(), DesktopError> {
+    let trimmed = text.trim();
+    if trimmed.is_empty() {
+        return Err(DesktopError::configuration("text cannot be empty"));
+    }
+
+    #[cfg(target_os = "macos")]
+    {
+        Command::new("say")
+            .arg(trimmed)
+            .spawn()
+            .map(|_| ())
+            .map_err(|error| DesktopError::tool(format!("failed to start macOS speech: {error}")))
+    }
+
+    #[cfg(not(target_os = "macos"))]
+    {
+        Err(DesktopError::tool(
+            "native text-to-speech is currently supported on macOS only",
+        ))
+    }
 }
 
 #[tauri::command]
@@ -572,6 +676,8 @@ async fn complete_backend_action(
     Ok(client.complete_action(&action_id, &status, result).await?)
 }
 
+// Local tool commands are the last permission gate before touching the host OS.
+// The backend may propose actions, but execution still depends on desktop policy.
 #[tauri::command]
 async fn open_browser_url(url: String) -> Result<serde_json::Value, DesktopError> {
     if !permissions::has_permission("browser.open") {
@@ -679,6 +785,8 @@ async fn persist_auth_state(
     local_memory_root: String,
     auth: &AuthResponse,
 ) -> Result<(), DesktopError> {
+    // Keep the three auth artifacts in sync: config file, keychain token, and
+    // process cache. A partial failure returns before the cache is updated.
     let default_workspace_id = auth.default_workspace_id.clone().ok_or_else(|| {
         DesktopError::configuration("login/register response did not include a default workspace")
     })?;
@@ -730,6 +838,8 @@ fn read_desktop_config(app: &tauri::AppHandle) -> Result<Option<DesktopConfig>, 
 async fn memory_client_from_state(
     state: &State<'_, AppState>,
 ) -> Result<MemoryClient, DesktopError> {
+    // Rehydrate the bearer token lazily after app restart. Commands can stay
+    // small because this helper centralizes config/token validation.
     let config = state
         .config
         .read()
@@ -795,6 +905,8 @@ fn validate_workspace_id(value: String) -> Result<String, DesktopError> {
 }
 
 fn wait_for_google_callback(listener: TcpListener) -> Result<String, DesktopError> {
+    // Keep the callback listener local and short-lived. Only the OAuth code is
+    // extracted; the browser response is just enough to close the login window.
     listener
         .set_nonblocking(true)
         .map_err(|error| DesktopError::tool(format!("failed to configure callback: {error}")))?;
@@ -882,6 +994,8 @@ fn workspace_key_id(workspace_id: &str) -> String {
 fn ensure_workspace_key_for_workspace(
     workspace_id: &str,
 ) -> Result<WorkspaceKeyStatus, DesktopError> {
+    // Workspace keys are generated once per workspace and kept out of the JSON
+    // config file. The backend only sees wrapped/encrypted forms of this key.
     let storage_name = workspace_key_storage_name(workspace_id);
     match storage::get_token(&storage_name) {
         Ok(_) => Ok(WorkspaceKeyStatus {
@@ -919,21 +1033,27 @@ fn today_utc() -> String {
 }
 
 fn record_microphone_wav(duration_seconds: u32) -> Result<Vec<u8>, DesktopError> {
+    // ffmpeg records a temporary mono 16 kHz WAV because the backend voice
+    // endpoint accepts simple audio bytes and does not need desktop state.
     let output_path = std::env::temp_dir().join(format!(
         "ari-voice-{}-{}.wav",
         std::process::id(),
         Utc::now().timestamp_millis()
     ));
-    let ffmpeg = ["/opt/homebrew/bin/ffmpeg", "/usr/local/bin/ffmpeg", "ffmpeg"]
-        .into_iter()
-        .find(|candidate| {
-            if candidate.contains('/') {
-                PathBuf::from(candidate).exists()
-            } else {
-                true
-            }
-        })
-        .ok_or_else(|| DesktopError::tool("ffmpeg is not available for native microphone capture"))?;
+    let ffmpeg = [
+        "/opt/homebrew/bin/ffmpeg",
+        "/usr/local/bin/ffmpeg",
+        "ffmpeg",
+    ]
+    .into_iter()
+    .find(|candidate| {
+        if candidate.contains('/') {
+            PathBuf::from(candidate).exists()
+        } else {
+            true
+        }
+    })
+    .ok_or_else(|| DesktopError::tool("ffmpeg is not available for native microphone capture"))?;
 
     let duration_arg = duration_seconds.to_string();
     let output = Command::new(ffmpeg)
@@ -955,7 +1075,11 @@ fn record_microphone_wav(duration_seconds: u32) -> Result<Vec<u8>, DesktopError>
         ])
         .arg(&output_path)
         .output()
-        .map_err(|error| DesktopError::tool(format!("failed to start native microphone capture: {error}")))?;
+        .map_err(|error| {
+            DesktopError::tool(format!(
+                "failed to start native microphone capture: {error}"
+            ))
+        })?;
 
     if !output.status.success() {
         let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
@@ -967,16 +1091,21 @@ fn record_microphone_wav(duration_seconds: u32) -> Result<Vec<u8>, DesktopError>
         }));
     }
 
-    let audio = fs::read(&output_path)
-        .map_err(|error| DesktopError::tool(format!("failed to read native microphone audio: {error}")))?;
+    let audio = fs::read(&output_path).map_err(|error| {
+        DesktopError::tool(format!("failed to read native microphone audio: {error}"))
+    })?;
     let _ = fs::remove_file(&output_path);
     if audio.is_empty() {
-        return Err(DesktopError::tool("native microphone capture produced no audio"));
+        return Err(DesktopError::tool(
+            "native microphone capture produced no audio",
+        ));
     }
     Ok(audio)
 }
 
 pub fn run() {
+    // Every function in this handler is callable from `desktop/ui/index.html`.
+    // Add new desktop commands here only after checking their permission model.
     tauri::Builder::default()
         .manage(AppState::default())
         .invoke_handler(tauri::generate_handler![
@@ -998,7 +1127,11 @@ pub fn run() {
             search_memory,
             chat_with_ari,
             voice_with_ari,
+            speech_with_ari,
             native_voice_with_ari,
+            open_microphone_settings,
+            microphone_diagnostics,
+            speak_text_native,
             list_threads,
             create_thread,
             read_thread,

@@ -29,14 +29,17 @@ app.include_router(api_router, prefix=settings.API_V1_PREFIX)
 
 WEB_ROOT = Path(__file__).resolve().parent / "web"
 
+# The backend also serves the lightweight desktop/web shell from this process.
 @app.get("/", include_in_schema=False)
 async def web_app():
     return FileResponse(WEB_ROOT / "index.html")
 
+# Liveness is intentionally cheap: it only proves the FastAPI process is up.
 @app.get("/health")
 async def health():
     return {"status": "ok"}
 
+# Readiness checks dependencies that need to be healthy before real traffic arrives.
 @app.get("/ready")
 async def ready():
     checks = {"database": "ok", "redis": "ok"}
@@ -57,6 +60,7 @@ async def ready():
 from fastapi import WebSocket, status
 from app.agents.websocket import agent_connect, authenticate_agent
 
+# Desktop agents connect here after authenticating with their device token.
 @app.websocket("/ws/agent")
 async def websocket_agent(websocket: WebSocket, device_id: str = "", token: str = ""):
     device = await authenticate_agent(device_id, token)
@@ -67,6 +71,8 @@ async def websocket_agent(websocket: WebSocket, device_id: str = "", token: str 
 
 from app.tools.registry.loader import load_all_tools
 
+# Tool definitions are loaded once so action/orchestration code can validate
+# tool names and schemas before asking a device to execute anything.
 @app.on_event("startup")
 async def startup():
     load_all_tools()
