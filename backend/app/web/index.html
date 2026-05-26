@@ -41,6 +41,46 @@ html, body {
   overflow: hidden;
   -webkit-font-smoothing: antialiased;
 }
+body.auth #app { display: none; }
+body.app-ready #auth-screen { display: none; }
+
+/* ── AUTH GATE ───────────────────────────────── */
+#auth-screen {
+  width: 100vw; height: 100vh;
+  display: grid; place-items: center;
+  background:
+    radial-gradient(circle at 16% 20%, rgba(217,154,61,.12), transparent 24%),
+    radial-gradient(circle at 86% 84%, rgba(217,154,61,.08), transparent 30%),
+    var(--bg);
+  padding: 24px;
+}
+.auth-card{width:min(420px,100%);position:relative;background:rgba(20,12,4,0.84);border:1px solid var(--border-c);border-radius:2px;backdrop-filter:blur(30px);box-shadow:0 0 60px rgba(217,154,61,0.07),0 40px 80px rgba(0,0,0,0.55),inset 0 1px 0 rgba(217,154,61,0.12);overflow:hidden}
+.auth-top-bar{height:2px;background:linear-gradient(90deg,transparent 5%,#C4836A 30%,var(--gold) 60%,transparent 95%);opacity:.75}
+.auth-inner{padding:46px 42px 38px}
+.auth-brand{display:block;text-align:center;margin-bottom:34px}
+.auth-sun{width:56px;height:56px;margin:0 auto 16px;display:flex;align-items:center;justify-content:center}
+.auth-sun svg{animation:sunrot 24s linear infinite}
+@keyframes sunrot{to{transform:rotate(360deg)}}
+.auth-title{font-family:var(--font-msg);font-size:42px;font-weight:300;font-style:italic;letter-spacing:6px;line-height:1;color:var(--t1)}
+.auth-title span{color:var(--gold)}
+.auth-sub{margin-top:7px;font-size:8px;font-weight:300;letter-spacing:4px;color:rgba(217,154,61,0.42);text-transform:uppercase}
+.auth-heading{font-family:var(--font-msg);font-size:21px;font-weight:300;font-style:italic;text-align:center;margin-bottom:4px}
+.auth-status{min-height:14px;margin-bottom:28px;color:rgba(217,154,61,0.48);font-size:8px;letter-spacing:3px;text-align:center;text-transform:uppercase}
+.auth-field{margin-bottom:18px;position:relative}
+.auth-field label{display:block;margin-bottom:8px;color:rgba(217,154,61,0.48);font-size:8px;letter-spacing:3px;text-transform:uppercase}
+.auth-field input{width:100%;border:0;border-bottom:1px solid rgba(217,154,61,0.18);background:transparent;color:var(--t1);outline:none;font-family:var(--font-msg);font-size:18px;font-style:italic;font-weight:300;letter-spacing:.5px;padding:10px 0}
+.auth-field input:focus{border-bottom-color:rgba(217,154,61,0.58)}
+.auth-field input::placeholder{color:rgba(217,154,61,0.22)}
+.social{width:100%;min-height:44px;margin-bottom:18px;border:1px solid rgba(217,154,61,0.2);background:rgba(217,154,61,0.035);color:var(--t2);display:flex;align-items:center;justify-content:center;gap:10px;font-size:9px;letter-spacing:3px;text-transform:uppercase}
+.social:hover{border-color:rgba(217,154,61,0.48);color:var(--t1)}
+.s-pulse{width:8px;height:8px;border-radius:50%;background:var(--gold);box-shadow:0 0 14px var(--gold)}
+.orn-div{display:flex;align-items:center;gap:12px;margin-bottom:18px;color:rgba(217,154,61,.28);font-size:9px;letter-spacing:3px;justify-content:center}
+.auth-btn{width:100%;margin-top:8px;padding:15px 22px;border:1px solid rgba(217,154,61,0.32);border-radius:1px;background:transparent;color:var(--t1);font-family:var(--font-msg);font-size:17px;font-style:italic;letter-spacing:3px;transition:all .25s;cursor:pointer}
+.auth-btn:hover{border-color:rgba(217,154,61,0.58);box-shadow:0 0 28px rgba(217,154,61,0.1);background:rgba(217,154,61,0.045)}
+.auth-footer-rule{height:1px;background:linear-gradient(90deg,transparent,var(--border-c),transparent);margin:0 42px}
+.auth-footer{padding:18px 42px 24px;text-align:center;font-size:10px;letter-spacing:1px;color:rgba(217,154,61,0.34)}
+.auth-link{border:0;background:transparent;color:rgba(217,154,61,0.58);text-decoration:underline;text-underline-offset:4px;cursor:pointer}
+.auth-link:hover{color:var(--gold)}
 
 /* ── LAYOUT ROOT ──────────────────────────────── */
 #app {
@@ -643,7 +683,57 @@ html, body {
 }
 </style>
 </head>
-<body>
+<body class="auth">
+
+<section id="auth-screen">
+  <div class="auth-card">
+    <div class="auth-top-bar"></div>
+    <div class="auth-inner">
+      <div class="auth-brand">
+        <div class="auth-sun">
+          <svg width="56" height="56" viewBox="0 0 56 56" fill="none">
+            <circle cx="28" cy="28" r="9" stroke="#D99A3D" stroke-width=".7" opacity=".6"/>
+            <circle cx="28" cy="28" r="15" stroke="#D99A3D" stroke-width=".45" opacity=".3"/>
+            <circle cx="28" cy="28" r="21" stroke="#D99A3D" stroke-width=".35" opacity=".18"/>
+            <line x1="28" y1="2" x2="28" y2="8" stroke="#D99A3D" stroke-width=".8" opacity=".5"/>
+            <line x1="28" y1="48" x2="28" y2="54" stroke="#D99A3D" stroke-width=".8" opacity=".5"/>
+            <line x1="2" y1="28" x2="8" y2="28" stroke="#D99A3D" stroke-width=".8" opacity=".5"/>
+            <line x1="48" y1="28" x2="54" y2="28" stroke="#D99A3D" stroke-width=".8" opacity=".5"/>
+            <line x1="8" y1="8" x2="13" y2="13" stroke="#D99A3D" stroke-width=".65" opacity=".4"/>
+            <line x1="48" y1="8" x2="43" y2="13" stroke="#D99A3D" stroke-width=".65" opacity=".4"/>
+            <line x1="8" y1="48" x2="13" y2="43" stroke="#D99A3D" stroke-width=".65" opacity=".4"/>
+            <line x1="48" y1="48" x2="43" y2="43" stroke="#D99A3D" stroke-width=".65" opacity=".4"/>
+            <circle cx="28" cy="28" r="3" fill="#D99A3D" opacity=".22"/>
+            <circle cx="28" cy="28" r="1.5" fill="#D99A3D" opacity=".7"/>
+          </svg>
+        </div>
+        <div class="auth-title"><span>A</span>ri</div>
+        <div class="auth-sub">Solara · Quantum Intelligent</div>
+      </div>
+      <div class="auth-heading">Access your light</div>
+      <p class="auth-status" id="auth-status">Inicia sesión para entrar</p>
+      <div class="auth-field">
+        <label for="auth-email">Email</label>
+        <input id="auth-email" type="email" autocomplete="email" placeholder="soul@ari.ai">
+      </div>
+      <div class="auth-field">
+        <label for="auth-password">Contraseña</label>
+        <input id="auth-password" type="password" autocomplete="current-password" placeholder="••••••••">
+      </div>
+      <button class="social" type="button" onclick="loginGoogleWeb()">
+        <span class="s-pulse"></span>
+        Continue with Google
+      </button>
+      <div class="orn-div">✦ or ✦</div>
+      <button class="auth-btn" type="button" onclick="loginWeb()">Align me -></button>
+    </div>
+    <div class="auth-footer-rule"></div>
+    <div class="auth-footer">
+      <span>First time here?</span>
+      <button class="auth-link" type="button" onclick="registerWeb()">Begin your expansion</button>
+    </div>
+  </div>
+</section>
 
 <div id="app">
 
@@ -770,9 +860,9 @@ html, body {
         </select>
         <span class="sb-foot-arrow"><i data-lucide="chevron-down"></i></span>
       </label>
-      <div class="sb-foot-row" onclick="localStorage.removeItem('ari.currentThreadId'); location.reload()" title="Restablecer">
+      <div class="sb-foot-row" onclick="logoutWeb()" title="Cerrar sesión">
         <i data-lucide="rotate-ccw"></i>
-        <span class="sb-foot-label">Restablecer</span>
+        <span class="sb-foot-label">Cerrar sesión</span>
       </div>
     </div>
 
@@ -1013,6 +1103,148 @@ function setVoiceButtonRecording(recording) {
   voiceBtn.classList.toggle('recording', recording);
   voiceBtn.title = recording ? 'Detener grabación' : 'Micrófono';
   voiceBtn.setAttribute('aria-label', recording ? 'Detener grabación' : 'Micrófono');
+}
+
+function showAuthGate(message = 'Inicia sesión para entrar') {
+  document.body.classList.add('auth');
+  document.body.classList.remove('app-ready');
+  const status = document.getElementById('auth-status');
+  if (status) status.textContent = message;
+}
+
+function showApp() {
+  document.body.classList.remove('auth');
+  document.body.classList.add('app-ready');
+}
+
+function saveWebSession(auth) {
+  ari.token = auth.access_token || '';
+  ari.workspaceId = auth.default_workspace_id || '';
+  ari.currentThreadId = localStorage.getItem('ari.currentThreadId') || '';
+  if (!ari.token || !ari.workspaceId) {
+    throw new Error('ARI no devolvió una sesión completa.');
+  }
+  localStorage.setItem('ari.token', ari.token);
+  localStorage.setItem('ari.workspaceId', ari.workspaceId);
+  if (auth.email) localStorage.setItem('ari.email', auth.email);
+  setVoiceStatus('Sesión web', 'volume-2');
+}
+
+function clearWebSession() {
+  ari.token = '';
+  ari.workspaceId = '';
+  ari.currentThreadId = '';
+  ari.threads = [];
+  localStorage.removeItem('ari.token');
+  localStorage.removeItem('ari.workspaceId');
+  localStorage.removeItem('ari.currentThreadId');
+  localStorage.removeItem('ari.email');
+  setVoiceStatus('Sesión local', 'volume-x');
+}
+
+async function loginWeb() {
+  const email = document.getElementById('auth-email')?.value.trim();
+  const password = document.getElementById('auth-password')?.value || '';
+  if (!email || !password) {
+    showAuthGate('Email y contraseña son obligatorios.');
+    return;
+  }
+  document.getElementById('auth-status').textContent = 'Entrando...';
+  try {
+    const response = await fetch('/api/v1/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({ username: email, password }).toString(),
+    });
+    if (!response.ok) throw new Error(await readError(response));
+    saveWebSession(await response.json());
+    await enterAppWithSession();
+  } catch (error) {
+    showAuthGate(commandError(error));
+  }
+}
+
+async function registerWeb() {
+  const email = document.getElementById('auth-email')?.value.trim();
+  const password = document.getElementById('auth-password')?.value || '';
+  if (!email || !password) {
+    showAuthGate('Email y contraseña son obligatorios para crear cuenta.');
+    return;
+  }
+  document.getElementById('auth-status').textContent = 'Creando cuenta...';
+  try {
+    const response = await fetch('/api/v1/auth/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password }),
+    });
+    if (!response.ok) throw new Error(await readError(response));
+    saveWebSession(await response.json());
+    await enterAppWithSession();
+  } catch (error) {
+    showAuthGate(commandError(error));
+  }
+}
+
+function loginGoogleWeb() {
+  document.getElementById('auth-status').textContent = 'Abriendo Google...';
+  const returnTo = `${window.location.origin}${window.location.pathname}`;
+  window.location.href = `/api/v1/auth/google/start?client=web&return_to=${encodeURIComponent(returnTo)}`;
+}
+
+async function hydrateGoogleCallback() {
+  const rawHash = window.location.hash.startsWith('#') ? window.location.hash.slice(1) : window.location.hash;
+  if (!rawHash) return false;
+  const params = new URLSearchParams(rawHash);
+  const googleAuth = params.get('google_auth');
+  const googleError = params.get('google_error');
+  if (googleError) {
+    showAuthGate(decodeURIComponent(googleError));
+    return true;
+  }
+  if (!googleAuth) return false;
+  document.getElementById('auth-status').textContent = 'Verificando Google...';
+  try {
+    const response = await fetch('/api/v1/auth/google/exchange', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code: googleAuth }),
+    });
+    if (!response.ok) throw new Error(await readError(response));
+    saveWebSession(await response.json());
+    history.replaceState(null, '', window.location.pathname + window.location.search);
+    await enterAppWithSession();
+  } catch (error) {
+    showAuthGate(commandError(error));
+  }
+  return true;
+}
+
+async function enterAppWithSession() {
+  if (!ari.token || !ari.workspaceId) {
+    clearWebSession();
+    showAuthGate('La sesión no está activa. Entra otra vez.');
+    return;
+  }
+  try {
+    showApp();
+    await loadThreads();
+    if (ari.currentThreadId) {
+      await openThread(ari.currentThreadId);
+    } else {
+      renderThreadMessages([]);
+    }
+  } catch (error) {
+    clearWebSession();
+    showAuthGate(commandError(error));
+  }
+}
+
+function logoutWeb() {
+  clearWebSession();
+  renderConversationList([]);
+  renderThreadMessages([]);
+  showAuthGate('Sesión cerrada.');
 }
 
 function normalizeTaskText(value) {
@@ -1505,6 +1737,7 @@ async function loadThreads() {
     renderConversationList(ari.threads);
   } catch (error) {
     console.warn('Could not load ARI threads', error);
+    throw error;
   }
 }
 
@@ -1623,7 +1856,15 @@ function appendMessage(text, from = 'ai') {
 }
 
 setAppLanguage(ari.language);
-loadThreads();
+hydrateGoogleCallback().then((handled) => {
+  if (handled) return;
+  if (ari.token && ari.workspaceId) {
+    enterAppWithSession();
+  } else {
+    clearWebSession();
+    showAuthGate('Inicia sesión para entrar');
+  }
+});
 
 // ── LUCIDE RE-INIT (after dynamic content) ────
 lucide.createIcons();
