@@ -62,6 +62,7 @@ services:
       DUFFEL_TEST_MODE: ${DUFFEL_TEST_MODE:-true}
       AI_MODEL: ${AI_MODEL:-gpt-4o}
       AI_CONFIDENCE_THRESHOLD: ${AI_CONFIDENCE_THRESHOLD:-0.75}
+      MEMORY_ROOT: /data/sync/memory
       SYNC_STORAGE_BACKEND: local
       SYNC_STORAGE_ROOT: /data/sync
       RATE_LIMIT_ENABLED: "true"
@@ -106,6 +107,9 @@ services:
       DUFFEL_TEST_MODE: ${DUFFEL_TEST_MODE:-true}
       AI_MODEL: ${AI_MODEL:-gpt-4o}
       AI_CONFIDENCE_THRESHOLD: ${AI_CONFIDENCE_THRESHOLD:-0.75}
+      MEMORY_ROOT: /data/sync/memory
+    volumes:
+      - syncdata:/data/sync
     depends_on:
       db:
         condition: service_healthy

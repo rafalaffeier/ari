@@ -41,6 +41,7 @@ services:
     environment:
       DATABASE_URL: postgresql+asyncpg://postgres:postgres@db:5432/ai_assistant
       REDIS_URL: redis://redis:6379/0
+      MEMORY_ROOT: /app/data/sync/memory
       SYNC_STORAGE_BACKEND: local
     depends_on:
       db:
@@ -63,6 +64,9 @@ services:
     environment:
       DATABASE_URL: postgresql+asyncpg://postgres:postgres@db:5432/ai_assistant
       REDIS_URL: redis://redis:6379/0
+      MEMORY_ROOT: /app/data/sync/memory
+    volumes:
+      - syncdata:/app/data/sync
     depends_on:
       db:
         condition: service_healthy
