@@ -778,6 +778,88 @@ export default function App() {
     }
   }
 
+  function mobileThreadTitle(thread?: ThreadSummary | null) {
+    if (!thread) return "Nuevo chat";
+    if (thread.title === "New thread" && !thread.message_count) return "Nuevo chat";
+    return thread.title || "Consulta activa";
+  }
+
+  async function loadMobileThreads() {
+    if (!token || !workspaceId) return;
+    try {
+      const threads = await api.listThreads(token, workspaceId);
+      setChatThreads(threads);
+      if (!currentThreadId && threads[0]) {
+        await openMobileThread(threads[0].id, threads);
+      }
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : "No se pudieron cargar los chats");
+    }
+  }
+
+  async function openMobileThread(threadId: string, knownThreads = chatThreads) {
+    if (!token || !workspaceId) return;
+    try {
+      const thread = await api.readThread(token, workspaceId, threadId);
+      setCurrentThreadId(thread.id);
+      setChatMessages(
+        thread.messages.length
+          ? thread.messages
+          : [{ role: "assistant", content: "Nuevo chat listo. Escribe abajo y ARI guardará este hilo en Markdown." }],
+      );
+      setChatThreads([thread, ...knownThreads.filter((item) => item.id !== thread.id)]);
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : "No se pudo abrir el chat");
+    }
+  }
+
+  async function startMobileChat() {
+    if (!token || !workspaceId) return;
+    setChatBusy(true);
+    try {
+      const thread = await api.createThread(token, workspaceId, null);
+      setCurrentThreadId(thread.id);
+      setChatMessages([{ role: "assistant", content: "Nuevo chat listo. Escribe abajo y ARI guardará este hilo en Markdown." }]);
+      setChatThreads([thread, ...chatThreads.filter((item) => item.id !== thread.id)]);
+      setStatus("Nuevo chat");
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : "No se pudo crear el chat");
+    } finally {
+      setChatBusy(false);
+    }
+  }
+
+  async function ensureMobileThread(title: string) {
+    if (currentThreadId) return currentThreadId;
+    if (!token || !workspaceId) return null;
+    const thread = await api.createThread(token, workspaceId, title);
+    setCurrentThreadId(thread.id);
+    setChatThreads([thread, ...chatThreads.filter((item) => item.id !== thread.id)]);
+    return thread.id;
+  }
+
+  async function sendMobileMessage() {
+    const text = chatInput.trim();
+    if (!text || !token || !workspaceId || chatBusy) return;
+    setChatInput("");
+    setChatBusy(true);
+    const optimistic: ConversationMessage[] = [...chatMessages, { role: "user", content: text }];
+    setChatMessages(optimistic);
+    try {
+      const threadId = await ensureMobileThread(text);
+      const response = await api.chat(token, workspaceId, text, threadId);
+      if (response.thread_id) setCurrentThreadId(response.thread_id);
+      setChatMessages([...optimistic, { role: "assistant", content: response.reply || "ARI no devolvió una respuesta." }]);
+      setStatus(`ARI · ${response.model || "modelo"} · memoria activa`);
+      await loadMobileThreads();
+    } catch (error) {
+      setChatMessages([...optimistic, { role: "assistant", content: error instanceof Error ? error.message : "No se pudo responder." }]);
+      setStatus("ARI · attention required");
+    } finally {
+      setChatBusy(false);
+    }
+  }
+
   if (!signedIn) {
     return (
       <SafeAreaView style={styles.screen}>
@@ -894,114 +976,103 @@ export default function App() {
     );
   }
 
+  const activeThread = chatThreads.find((thread) => thread.id === currentThreadId);
+  const activeTitle = mobileThreadTitle(activeThread);
+
   return (
-    <SafeAreaView style={styles.screen}>
-      <View style={styles.header}>
-        <View style={styles.headerIdentity}>
-          <View style={styles.mobileBrandLockup}>
-            <AriMark size={54} />
-            <View style={styles.headerCopy}>
-              <Text style={styles.brandSmall}>Ari</Text>
-              <Text style={styles.meta}>ARI · Sesión mobile</Text>
-            </View>
+    <SafeAreaView style={styles.mobileShell}>
+      <View style={styles.mobileRail}>
+        <AriMark size={44} />
+        <Pressable style={[styles.railButton, styles.railButtonActive]}><Text style={styles.railIcon}>○</Text></Pressable>
+        <Pressable disabled={chatBusy} onPress={startMobileChat} style={styles.railButton}><Text style={styles.railIcon}>+</Text></Pressable>
+        <Pressable style={styles.railButton}><Text style={styles.railIcon}>□</Text></Pressable>
+        <View style={styles.railSpacer} />
+        <Pressable onPress={signOut} style={styles.railSmallButton}><Text style={styles.railSmallIcon}>↻</Text></Pressable>
+      </View>
+
+      <View style={styles.mobileMain}>
+        <View style={styles.chatHeaderMobile}>
+          <Text style={styles.mobileMenuIcon}>☰</Text>
+          <Text numberOfLines={1} style={styles.mobileChatTitle}>{activeTitle}</Text>
+          <View style={styles.mobileVoicePill}>
+            <Text style={styles.mobileVoicePillText}>ARI</Text>
+            <Text style={styles.mobileVoicePillDot}>•</Text>
+            <Text style={styles.mobileVoicePillText}>Sesión mobile</Text>
           </View>
+          <Text style={styles.mobileMore}>⋮</Text>
         </View>
-        <Pressable onPress={signOut} style={styles.headerButton}>
-          <Text style={styles.headerButtonText}>⋮</Text>
-        </Pressable>
-      </View>
 
-      <View style={[styles.segment, styles.mainSegment]}>
-        <SegmentButton active={tab === "timeline"} label={t.timeline} onPress={() => setTab("timeline")} />
-        <SegmentButton active={tab === "day"} label={t.day} onPress={() => setTab("day")} />
-        <SegmentButton active={tab === "add"} label={t.add} onPress={() => setTab("add")} />
-        <SegmentButton active={tab === "search"} label={t.search} onPress={() => setTab("search")} />
-      </View>
-
-      <StatusLine isBusy={isBusy} isOffline={isOffline || visiblePending.length > 0} offlineLabel={t.offlineCache} status={status} />
-
-      <ScrollView contentContainerStyle={styles.content}>
-        {tab === "timeline" && (
-          <View style={styles.panel}>
-            <View style={styles.rowBetween}>
-              <Text style={styles.title}>{t.timeline}</Text>
-              <Pressable onPress={refreshTimeline} style={styles.ghostButton}>
-                <Text style={styles.ghostButtonText}>{t.sync}</Text>
-              </Pressable>
+        <ScrollView contentContainerStyle={styles.mobileMessages} showsVerticalScrollIndicator={false}>
+          {chatMessages.map((message, index) => {
+            const isUser = message.role === "user";
+            return (
+              <View
+                // eslint-disable-next-line react/no-array-index-key
+                key={`${index}-${message.role}`}
+                style={[styles.mobileMessageRow, isUser && styles.mobileMessageRowUser]}
+              >
+                {!isUser && (
+                  <>
+                    <View style={styles.mobileAvatar}><View style={styles.mobileAvatarDot} /></View>
+                    <Text style={styles.mobileMessageArrow}>›</Text>
+                  </>
+                )}
+                <View style={[styles.mobileBubbleWrap, isUser && styles.mobileBubbleWrapUser]}>
+                  <View style={[styles.mobileBubble, isUser && styles.mobileUserBubble]}>
+                    <Text style={[styles.mobileBubbleText, isUser && styles.mobileUserBubbleText]}>{message.content}</Text>
+                  </View>
+                  {!isUser && (
+                    <View style={styles.mobileMeta}>
+                      <Text style={styles.mobileMetaText}>ARI · {new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</Text>
+                      <Text style={styles.mobileMetaIcon}>⌕</Text>
+                    </View>
+                  )}
+                </View>
+              </View>
+            );
+          })}
+          {chatBusy && (
+            <View style={styles.mobileMessageRow}>
+              <View style={styles.mobileAvatar}><View style={styles.mobileAvatarDot} /></View>
+              <Text style={styles.mobileMessageArrow}>›</Text>
+              <View style={styles.mobileBubbleWrap}>
+                <View style={styles.mobileBubble}><Text style={styles.mobileBubbleText}>ARI está pensando...</Text></View>
+              </View>
             </View>
-            {timeline.map((item) => (
-              <Pressable key={item.date} onPress={() => loadDay(item.date)} style={styles.listItem}>
-                <Text style={styles.listDate}>{item.date}</Text>
-                <Text style={styles.listMeta}>{item.entry_count} {t.entries}</Text>
-                <Text style={styles.chips}>{sectionSummary(item.sections)}</Text>
-              </Pressable>
-            ))}
-            {!timeline.length && <Text style={styles.empty}>{t.noDays}</Text>}
-          </View>
-        )}
+          )}
+        </ScrollView>
 
-        {tab === "day" && (
-          <View style={styles.panel}>
-            <View style={styles.rowBetween}>
-              <TextInput onChangeText={setSelectedDay} style={[styles.input, styles.dateInput]} value={selectedDay} />
-              <Pressable onPress={() => loadDay(selectedDay)} style={styles.ghostButton}>
-                <Text style={styles.ghostButtonText}>{t.load}</Text>
-              </Pressable>
-            </View>
-            <Overview overview={overview} sections={sections} />
-            <Text style={styles.markdown}>{dayContent}</Text>
-          </View>
-        )}
-
-        {tab === "add" && (
-          <View style={styles.panel}>
-            <Text style={styles.title}>{t.addEntry}</Text>
-            <TextInput onChangeText={setSelectedDay} style={styles.input} value={selectedDay} />
-            <View style={styles.sectionGrid}>
-              {sections.map((item) => (
-                <SegmentButton
-                  key={item.key}
-                  active={section === item.key}
-                  label={item.label}
-                  onPress={() => setSection(item.key)}
-                />
-              ))}
-            </View>
-            <TextInput
-              multiline
-              onChangeText={setEntryText}
-              placeholder={t.writeMemory}
-              style={[styles.input, styles.textarea]}
-              value={entryText}
-            />
-            <Pressable disabled={isBusy || !entryText.trim()} onPress={addEntry} style={styles.primaryButton}>
-              <Text style={styles.primaryButtonText}>{t.saveEntry}</Text>
+        <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined}>
+          <View style={[styles.mobileBottomSheet, sheetOpen && styles.mobileBottomSheetOpen]}>
+            <Pressable onPress={() => setSheetOpen((open) => !open)} style={styles.mobileSheetHandle}>
+              <View style={styles.mobileHandleBar} />
+              <Text style={styles.mobileChevron}>{sheetOpen ? "⌄" : "⌃"}</Text>
             </Pressable>
-            {visiblePending.map((entry) => (
-              <Text key={entry.id} style={styles.pending}>{t.queued}: {entry.day} / {entry.section}</Text>
-            ))}
-          </View>
-        )}
-
-        {tab === "search" && (
-          <View style={styles.panel}>
-            <Text style={styles.title}>{t.search}</Text>
-            <View style={styles.rowBetween}>
-              <TextInput onChangeText={setQuery} placeholder={t.query} style={[styles.input, styles.searchInput]} value={query} />
-              <Pressable onPress={search} style={styles.ghostButton}>
-                <Text style={styles.ghostButtonText}>Go</Text>
+            {sheetOpen && (
+              <View style={styles.mobileSheetTabs}>
+                <Text style={[styles.mobileTab, styles.mobileTabActive]}>○ Texto</Text>
+                <Text style={styles.mobileTab}>Memoria</Text>
+                <Text style={styles.mobileTab}>Actividad</Text>
+              </View>
+            )}
+            <View style={styles.mobileInputBox}>
+              <TextInput
+                multiline
+                onChangeText={setChatInput}
+                onSubmitEditing={sendMobileMessage}
+                placeholder="Escribe un mensaje..."
+                placeholderTextColor="rgba(168,154,136,0.55)"
+                style={styles.mobileTextInput}
+                value={chatInput}
+              />
+              <Pressable style={styles.mobileMicButton}><Text style={styles.mobileMicIcon}>♬</Text></Pressable>
+              <Pressable disabled={chatBusy || !chatInput.trim()} onPress={sendMobileMessage} style={styles.mobileSendButton}>
+                <Text style={styles.mobileSendIcon}>➤</Text>
               </Pressable>
             </View>
-            {results.map((item) => (
-              <Pressable key={`${item.path}-${item.line_number}`} onPress={() => loadDay(item.date)} style={styles.listItem}>
-                <Text style={styles.listDate}>{item.date}</Text>
-                <Text style={styles.resultLine}>{item.line}</Text>
-              </Pressable>
-            ))}
-            {!results.length && <Text style={styles.empty}>{t.noResults}</Text>}
           </View>
-        )}
-      </ScrollView>
+        </KeyboardAvoidingView>
+      </View>
     </SafeAreaView>
   );
 }
@@ -1627,5 +1698,284 @@ const styles = StyleSheet.create({
     color: "rgba(247, 242, 236, 0.72)",
     fontSize: 14,
     lineHeight: 20,
+  },
+  mobileShell: {
+    backgroundColor: "#050403",
+    flex: 1,
+    flexDirection: "row",
+  },
+  mobileRail: {
+    alignItems: "center",
+    backgroundColor: "#0B0805",
+    borderRightColor: "rgba(217, 154, 61, 0.28)",
+    borderRightWidth: 1,
+    gap: 12,
+    paddingHorizontal: 8,
+    paddingTop: 18,
+    width: 70,
+  },
+  railButton: {
+    alignItems: "center",
+    backgroundColor: "#120D08",
+    borderColor: "rgba(217, 154, 61, 0.28)",
+    borderRadius: 14,
+    borderWidth: 1,
+    height: 50,
+    justifyContent: "center",
+    width: 50,
+  },
+  railButtonActive: {
+    backgroundColor: "rgba(217, 154, 61, 0.15)",
+    borderColor: "rgba(217, 154, 61, 0.5)",
+  },
+  railIcon: {
+    color: "#F0B85A",
+    fontSize: 27,
+    lineHeight: 29,
+  },
+  railSpacer: {
+    flex: 1,
+  },
+  railSmallButton: {
+    alignItems: "center",
+    height: 38,
+    justifyContent: "center",
+    width: 38,
+  },
+  railSmallIcon: {
+    color: "#A89A88",
+    fontSize: 24,
+  },
+  mobileMain: {
+    flex: 1,
+    overflow: "hidden",
+  },
+  chatHeaderMobile: {
+    alignItems: "center",
+    borderBottomColor: "rgba(217, 154, 61, 0.28)",
+    borderBottomWidth: 1,
+    flexDirection: "row",
+    gap: 14,
+    minHeight: 76,
+    paddingHorizontal: 16,
+  },
+  mobileMenuIcon: {
+    color: "#A89A88",
+    fontSize: 28,
+    lineHeight: 30,
+  },
+  mobileChatTitle: {
+    color: "#F4EFE7",
+    flexShrink: 1,
+    fontFamily: Platform.select({ ios: "Inter", android: "sans-serif", default: "system-ui" }),
+    fontSize: 21,
+    fontWeight: "600",
+    minWidth: 0,
+  },
+  mobileVoicePill: {
+    alignItems: "center",
+    backgroundColor: "#120D08",
+    borderColor: "rgba(217, 154, 61, 0.28)",
+    borderRadius: 999,
+    borderWidth: 1,
+    flexDirection: "row",
+    gap: 6,
+    minHeight: 30,
+    paddingHorizontal: 11,
+  },
+  mobileVoicePillText: {
+    color: "#A89A88",
+    fontSize: 11,
+  },
+  mobileVoicePillDot: {
+    color: "#6F604D",
+    fontSize: 12,
+  },
+  mobileMore: {
+    color: "#A89A88",
+    fontSize: 25,
+    marginLeft: "auto",
+  },
+  mobileMessages: {
+    flexGrow: 1,
+    gap: 22,
+    paddingBottom: 148,
+    paddingHorizontal: 18,
+    paddingTop: 32,
+  },
+  mobileMessageRow: {
+    alignItems: "flex-start",
+    flexDirection: "row",
+    gap: 10,
+  },
+  mobileMessageRowUser: {
+    justifyContent: "flex-end",
+  },
+  mobileAvatar: {
+    alignItems: "center",
+    borderColor: "#D99A3D",
+    borderRadius: 20,
+    borderWidth: 1.5,
+    height: 40,
+    justifyContent: "center",
+    shadowColor: "#D99A3D",
+    shadowOpacity: 0.45,
+    shadowRadius: 18,
+    width: 40,
+  },
+  mobileAvatarDot: {
+    backgroundColor: "#F0B85A",
+    borderRadius: 7,
+    height: 14,
+    width: 14,
+  },
+  mobileMessageArrow: {
+    color: "#5C3F1D",
+    fontSize: 30,
+    lineHeight: 36,
+  },
+  mobileBubbleWrap: {
+    flex: 1,
+    maxWidth: "84%",
+  },
+  mobileBubbleWrapUser: {
+    flex: 0,
+    maxWidth: "78%",
+  },
+  mobileBubble: {
+    backgroundColor: "#120D08",
+    borderColor: "rgba(217, 154, 61, 0.32)",
+    borderRadius: 18,
+    borderWidth: 1,
+    paddingHorizontal: 17,
+    paddingVertical: 15,
+  },
+  mobileUserBubble: {
+    backgroundColor: "rgba(217, 154, 61, 0.12)",
+    borderBottomRightRadius: 4,
+  },
+  mobileBubbleText: {
+    color: "#F4EFE7",
+    fontFamily: Platform.select({ ios: "Georgia", android: "serif", default: "serif" }),
+    fontSize: 17,
+    fontStyle: "italic",
+    lineHeight: 25,
+  },
+  mobileUserBubbleText: {
+    fontFamily: Platform.select({ ios: "Inter", android: "sans-serif", default: "system-ui" }),
+    fontSize: 15,
+    fontStyle: "normal",
+    lineHeight: 22,
+  },
+  mobileMeta: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: 10,
+    marginTop: 9,
+  },
+  mobileMetaText: {
+    color: "#6F604D",
+    fontSize: 10,
+    letterSpacing: 1,
+  },
+  mobileMetaIcon: {
+    color: "#A89A88",
+    fontSize: 15,
+  },
+  mobileBottomSheet: {
+    backgroundColor: "#0B0805",
+    borderColor: "rgba(217, 154, 61, 0.28)",
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    borderWidth: 1,
+    bottom: 0,
+    left: 0,
+    paddingBottom: 12,
+    paddingHorizontal: 14,
+    paddingTop: 8,
+    position: "absolute",
+    right: 0,
+  },
+  mobileBottomSheetOpen: {
+    paddingTop: 10,
+  },
+  mobileSheetHandle: {
+    alignItems: "center",
+    gap: 2,
+    minHeight: 28,
+  },
+  mobileHandleBar: {
+    backgroundColor: "#5C3F1D",
+    borderRadius: 999,
+    height: 5,
+    width: 54,
+  },
+  mobileChevron: {
+    color: "#F0B85A",
+    fontSize: 16,
+    lineHeight: 18,
+  },
+  mobileSheetTabs: {
+    flexDirection: "row",
+    gap: 18,
+    marginBottom: 10,
+    marginTop: 8,
+  },
+  mobileTab: {
+    color: "#A89A88",
+    fontSize: 13,
+  },
+  mobileTabActive: {
+    backgroundColor: "rgba(217, 154, 61, 0.15)",
+    borderColor: "rgba(217, 154, 61, 0.36)",
+    borderRadius: 999,
+    borderWidth: 1,
+    color: "#F4EFE7",
+    overflow: "hidden",
+    paddingHorizontal: 13,
+    paddingVertical: 7,
+  },
+  mobileInputBox: {
+    alignItems: "center",
+    backgroundColor: "#120D08",
+    borderColor: "rgba(217, 154, 61, 0.32)",
+    borderRadius: 18,
+    borderWidth: 1,
+    flexDirection: "row",
+    gap: 10,
+    minHeight: 64,
+    paddingHorizontal: 14,
+  },
+  mobileTextInput: {
+    color: "#F4EFE7",
+    flex: 1,
+    fontFamily: Platform.select({ ios: "Inter", android: "sans-serif", default: "system-ui" }),
+    fontSize: 15,
+    maxHeight: 110,
+    minHeight: 44,
+    paddingVertical: 12,
+  },
+  mobileMicButton: {
+    alignItems: "center",
+    height: 40,
+    justifyContent: "center",
+    width: 34,
+  },
+  mobileMicIcon: {
+    color: "#A89A88",
+    fontSize: 22,
+  },
+  mobileSendButton: {
+    alignItems: "center",
+    backgroundColor: "#D99A3D",
+    borderRadius: 24,
+    height: 48,
+    justifyContent: "center",
+    width: 48,
+  },
+  mobileSendIcon: {
+    color: "#0B0805",
+    fontSize: 23,
+    lineHeight: 25,
   },
 });

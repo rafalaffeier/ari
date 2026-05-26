@@ -2,6 +2,7 @@ from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 from app.core.config import settings
@@ -28,6 +29,8 @@ app.add_middleware(FixedWindowRateLimitMiddleware)
 app.include_router(api_router, prefix=settings.API_V1_PREFIX)
 
 WEB_ROOT = Path(__file__).resolve().parent / "web"
+
+app.mount("/assets", StaticFiles(directory=WEB_ROOT / "assets"), name="web-assets")
 
 # The backend also serves the lightweight desktop/web shell from this process.
 @app.get("/", include_in_schema=False)
