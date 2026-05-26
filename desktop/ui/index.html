@@ -431,6 +431,12 @@ body.app-ready #auth-screen { display: none; }
   flex-shrink: 0;
 }
 .voice-pill svg { width: 12px; height: 12px; color: var(--t3); }
+.voice-pill.thinking {
+  border-color: rgba(240,184,90,.58);
+  color: var(--gold-lt);
+  box-shadow: 0 0 18px rgba(217,154,61,.2);
+}
+.voice-pill.thinking svg { animation: ariSpin 1s linear infinite; color: var(--gold); }
 .vp-sep { color: var(--t3); }
 
 /* Messages scroll area */
@@ -504,6 +510,34 @@ body.app-ready #auth-screen { display: none; }
   background: rgba(217,154,61,.12);
 }
 .msg-read svg { width: 12px; height: 12px; }
+.msg-row.thinking .avatar {
+  animation: ariGlow 1.15s ease-in-out infinite;
+}
+.thinking-copy {
+  display: inline-flex; align-items: center; gap: 8px;
+  max-width: 100%;
+  flex-wrap: wrap;
+}
+.thinking-dots {
+  display: inline-flex; gap: 4px; transform: translateY(1px);
+}
+.thinking-dots span {
+  width: 4px; height: 4px; border-radius: 50%;
+  background: var(--gold);
+  opacity: .35;
+  animation: ariDot 1.1s ease-in-out infinite;
+}
+.thinking-dots span:nth-child(2) { animation-delay: .16s; }
+.thinking-dots span:nth-child(3) { animation-delay: .32s; }
+@keyframes ariSpin { to { transform: rotate(360deg); } }
+@keyframes ariGlow {
+  0%, 100% { box-shadow: 0 0 12px rgba(217,154,61,.32); }
+  50% { box-shadow: 0 0 26px rgba(240,184,90,.58); }
+}
+@keyframes ariDot {
+  0%, 100% { opacity: .28; transform: translateY(0); }
+  50% { opacity: 1; transform: translateY(-2px); }
+}
 .msg-connector {
   display: flex; flex-direction: column; align-items: center;
 }
@@ -634,6 +668,11 @@ body.app-ready #auth-screen { display: none; }
 }
 .bs-send:hover { background: var(--gold-lt); }
 .bs-send svg { width: 16px; height: 16px; }
+.bs-mic:disabled,
+.bs-send:disabled {
+  cursor: wait;
+  opacity: .56;
+}
 
 /* Action chips (mid/open snap) */
 .bs-chips {
@@ -689,6 +728,22 @@ body.app-ready #auth-screen { display: none; }
   #sidebar { position: fixed; top: 0; left: 0; height: 100vh; z-index: 50; }
   #sidebar:not(.open) { width: 0; border: none; }
   #main { width: 100%; }
+  #chat-header { padding: 0 12px; }
+  .ch-top { gap: 8px; min-width: 0; }
+  .ch-title { display: none; }
+  .ch-more { width: 32px; height: 32px; flex-shrink: 0; }
+  .voice-pill {
+    flex: 1 1 auto;
+    min-width: 0;
+    max-width: none;
+    padding: 5px 10px;
+  }
+  .voice-pill span:last-child {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
 }
 </style>
 </head>
@@ -1062,6 +1117,8 @@ let voiceBusy = false;
 let voiceRecognition = null;
 let microphoneHelpShown = false;
 let currentSpeechAudio = null;
+let ariBusy = false;
+let thinkingRow = null;
 
 function apiPath(path) {
   return isDesktop ? `${ari.backendUrl}${path}` : path;
@@ -1112,6 +1169,52 @@ function setVoiceButtonRecording(recording) {
   voiceBtn.classList.toggle('recording', recording);
   voiceBtn.title = recording ? 'Detener grabación' : 'Micrófono';
   voiceBtn.setAttribute('aria-label', recording ? 'Detener grabación' : 'Micrófono');
+}
+
+function sessionVoiceText() {
+  return hasSession() ? 'Sesión desktop' : 'Sesión local';
+}
+
+function sessionVoiceIcon() {
+  return hasSession() ? 'volume-2' : 'volume-x';
+}
+
+function showThinkingMessage(label = 'ARI está pensando') {
+  clearThinkingMessage();
+  const msgs = document.getElementById('messages');
+  thinkingRow = document.createElement('div');
+  thinkingRow.className = 'msg-row thinking';
+  thinkingRow.innerHTML = `
+    <div class="msg-connector"><div class="avatar"><div class="av-dot"></div></div></div>
+    <div class="msg-arrow"><i data-lucide="chevron-right"></i></div>
+    <div class="msg-body">
+      <div class="bubble">
+        <p class="thinking-copy">${escHtml(label)}<span class="thinking-dots"><span></span><span></span><span></span></span></p>
+      </div>
+      <div class="msg-meta"><span>ARI</span><span>•</span><span>trabajando</span></div>
+    </div>`;
+  msgs.appendChild(thinkingRow);
+  lucide.createIcons();
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+function clearThinkingMessage() {
+  thinkingRow?.remove?.();
+  thinkingRow = null;
+}
+
+function setAriWorking(active, label = 'ARI está pensando') {
+  ariBusy = active;
+  document.querySelector('.voice-pill')?.classList.toggle('thinking', active);
+  document.querySelector('.bs-send')?.toggleAttribute('disabled', active);
+  document.getElementById('voice-btn')?.toggleAttribute('disabled', active);
+  if (active) {
+    setVoiceStatus(label, 'loader-circle');
+    showThinkingMessage(label);
+  } else {
+    clearThinkingMessage();
+    setVoiceStatus(sessionVoiceText(), sessionVoiceIcon());
+  }
 }
 
 function showMicrophonePermissionHelp(detail = '') {
@@ -1581,7 +1684,7 @@ autoResize(document.getElementById('bs-input'));
 async function sendMessage() {
   const input = document.getElementById('bs-input');
   const text  = input.value.trim();
-  if (!text) return;
+  if (!text || ariBusy) return;
 
   input.value = '';
   input.style.height = 'auto';
@@ -1595,6 +1698,7 @@ async function sendMessage() {
 
   try {
     await ensureActiveThread(text);
+    setAriWorking(true, 'ARI está pensando');
     const data = await apiChat(text, ari.currentThreadId);
     if (data.thread_id && data.thread_id !== ari.currentThreadId) {
       ari.currentThreadId = data.thread_id;
@@ -1605,6 +1709,8 @@ async function sendMessage() {
     applySnap(0);
   } catch (error) {
     appendMessage(commandError(error), 'ai');
+  } finally {
+    setAriWorking(false);
   }
 }
 
@@ -1641,6 +1747,7 @@ function voiceLanguage() {
 }
 
 async function toggleVoiceRecording() {
+  if (ariBusy) return;
   if (voiceRecognition) {
     voiceRecognition.stop();
     return;
@@ -1691,7 +1798,7 @@ async function toggleVoiceRecording() {
   } catch (error) {
     stopVoiceTracks();
     setVoiceButtonRecording(false);
-    setVoiceStatus(hasSession() ? 'Sesión desktop' : 'Sesión local', hasSession() ? 'volume-2' : 'volume-x');
+    setVoiceStatus(sessionVoiceText(), sessionVoiceIcon());
     showMicrophonePermissionHelp(commandError(error));
     console.warn('Could not access microphone', error);
   } finally {
@@ -1705,6 +1812,7 @@ async function startNativeVoiceRecording() {
   try {
     setVoiceStatus('Escuchando 6 segundos...', 'mic');
     await ensureActiveThread('Nota de voz');
+    setAriWorking(true, 'ARI está pensando');
     const data = await tauriInvoke('native_voice_with_ari', {
       threadId: ari.currentThreadId,
       tts: false,
@@ -1726,8 +1834,9 @@ async function startNativeVoiceRecording() {
   } finally {
     setVoiceButtonRecording(false);
     voiceBusy = false;
+    setAriWorking(false);
     if (!microphoneHelpShown) {
-      setVoiceStatus(hasSession() ? 'Sesión desktop' : 'Sesión local', hasSession() ? 'volume-2' : 'volume-x');
+      setVoiceStatus(sessionVoiceText(), sessionVoiceIcon());
     }
   }
 }
@@ -1764,7 +1873,7 @@ function startSpeechRecognitionFallback() {
       } else if (recognitionError && isDesktop) {
         startNativeVoiceRecording();
       } else {
-        setVoiceStatus(hasSession() ? 'Sesión desktop' : 'Sesión local', hasSession() ? 'volume-2' : 'volume-x');
+        setVoiceStatus(sessionVoiceText(), sessionVoiceIcon());
       }
     };
     voiceRecognition.start();
@@ -1786,6 +1895,7 @@ async function processVoiceTranscript(transcript) {
     setVoiceStatus('Procesando voz...', 'loader-circle');
     appendMessage(transcript, 'user');
     await ensureActiveThread(transcript);
+    setAriWorking(true, 'ARI está pensando');
     const data = await apiChat(transcript, ari.currentThreadId);
     if (data.thread_id && data.thread_id !== ari.currentThreadId) {
       ari.currentThreadId = data.thread_id;
@@ -1799,7 +1909,7 @@ async function processVoiceTranscript(transcript) {
     appendMessage(commandError(error), 'ai');
   } finally {
     voiceBusy = false;
-    setVoiceStatus(hasSession() ? 'Sesión desktop' : 'Sesión local', hasSession() ? 'volume-2' : 'volume-x');
+    setAriWorking(false);
   }
 }
 
@@ -1816,6 +1926,7 @@ async function processVoiceRecording(contentType) {
     }
     setVoiceStatus('Procesando voz...', 'loader-circle');
     await ensureActiveThread('Nota de voz');
+    setAriWorking(true, 'ARI está pensando');
     const data = await apiVoice(audioBlob, ari.currentThreadId);
     if (data.thread_id && data.thread_id !== ari.currentThreadId) {
       ari.currentThreadId = data.thread_id;
@@ -1829,7 +1940,7 @@ async function processVoiceRecording(contentType) {
     appendMessage(commandError(error), 'ai');
   } finally {
     voiceBusy = false;
-    setVoiceStatus(hasSession() ? 'Sesión desktop' : 'Sesión local', hasSession() ? 'volume-2' : 'volume-x');
+    setAriWorking(false);
   }
 }
 
