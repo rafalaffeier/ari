@@ -8,6 +8,7 @@ from app.api.v1.endpoints.messages import (
     _format_flight_search_error,
     _format_flight_search_results,
     _maybe_run_chat_tool,
+    _normalize_orchestration,
     _should_try_tool_orchestration,
 )
 from app.services.duffel import FlightOffer, FlightSearchRequest, FlightSearchResponse, FlightSegment
@@ -70,6 +71,30 @@ class FlightChatToolsTest(unittest.TestCase):
 
         self.assertIn("proveedor de vuelos no está configurado", formatted)
         self.assertIn("VLC -> BER", formatted)
+
+    def test_normalize_orchestration_maps_city_names_to_iata(self):
+        response = _normalize_orchestration(
+            {
+                "mode": "tool_ready",
+                "reply": "Busco vuelos.",
+                "tool_name": "search_flights",
+                "params": {
+                    "origin": "Valencia",
+                    "destination": "Berlín",
+                    "departure_date": "2026-05-27",
+                },
+                "missing": [],
+                "requires_confirmation": False,
+                "confidence": 0.92,
+                "language": "es",
+            },
+            [],
+        )
+
+        self.assertEqual(response.mode, "tool_ready")
+        self.assertEqual(response.params["origin"], "VLC")
+        self.assertEqual(response.params["destination"], "BER")
+        self.assertEqual(response.missing, [])
 
 
 class FlightChatToolExecutionTest(unittest.IsolatedAsyncioTestCase):

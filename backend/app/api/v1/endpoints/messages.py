@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import uuid
 import re
+import unicodedata
 from base64 import b64encode
 from datetime import date
 
@@ -54,6 +55,23 @@ _FLEXIBLE_TRAVEL_MARKERS = (
     "open destination",
 )
 _IATA_RE = re.compile(r"^[A-Z]{3}$")
+_CITY_IATA_ALIASES = {
+    "alicante": "ALC",
+    "barcelona": "BCN",
+    "berlin": "BER",
+    "bilbao": "BIO",
+    "lisbon": "LIS",
+    "lisboa": "LIS",
+    "madrid": "MAD",
+    "malaga": "AGP",
+    "palma": "PMI",
+    "paris": "PAR",
+    "sevilla": "SVQ",
+    "seville": "SVQ",
+    "tokyo": "TYO",
+    "tokio": "TYO",
+    "valencia": "VLC",
+}
 
 @router.get("/")
 async def list_messages():
@@ -501,7 +519,10 @@ async def _maybe_run_chat_tool(
         raw = await complete(prompt, system_prompt=_ARI_ORCHESTRATOR_SYSTEM_PROMPT)
         response = _normalize_orchestration(json.loads(raw), memory_results)
     except Exception:
-        return None
+        return (
+            "Estoy intentando preparar una búsqueda real, pero no pude interpretar los datos de viaje ahora mismo. "
+            "Prueba con origen, destino y fecha en una frase, por ejemplo: vuelos de Valencia a Madrid mañana."
+        )
 
     if response.tool_name != "search_flights":
         return None
@@ -962,6 +983,8 @@ def _normalize_orchestration(data: dict, memory_results: list[RecallSource]) -> 
     missing: list[str] = []
     requires_confirmation = False
     if tool:
+        if tool_name == "search_flights":
+            _normalize_flight_params(params)
         required = tool.get("schema", {}).get("required", [])
         missing = [key for key in required if params.get(key) in (None, "")]
         model_missing = data.get("missing") if isinstance(data.get("missing"), list) else []
@@ -1001,6 +1024,24 @@ def _normalize_orchestration(data: dict, memory_results: list[RecallSource]) -> 
         model=settings.AI_MODEL,
         memory_results=_memory_result_responses(memory_results),
     )
+
+
+def _normalize_flight_params(params: dict) -> None:
+    for field in ("origin", "destination"):
+        value = str(params.get(field) or "").strip()
+        if not value:
+            continue
+        if _IATA_RE.match(value.upper()):
+            params[field] = value.upper()
+            continue
+        normalized = _normalize_place_name(value)
+        if normalized in _CITY_IATA_ALIASES:
+            params[field] = _CITY_IATA_ALIASES[normalized]
+
+
+def _normalize_place_name(value: str) -> str:
+    normalized = unicodedata.normalize("NFD", value.strip().lower())
+    return "".join(char for char in normalized if unicodedata.category(char) != "Mn")
 
 
 def _flight_search_missing_fields(params: dict, missing: list[str]) -> list[str]:
