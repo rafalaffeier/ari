@@ -19,6 +19,7 @@ from app.memory import JournalEntry, JournalStore
 from app.memory.recall import RecallSource, build_memory_context
 from app.memory.threads import ThreadStore
 from app.models.usage import AiUsageLog
+from app.services.duffel import FlightSearchRequest, FlightSearchResponse, search_flights
 from app.services.tool_registry import get_tool
 from app.tools.catalog import load_tool_catalog
 
@@ -412,6 +413,33 @@ async def _run_chat_pipeline(body: ChatRequest, workspace_id: uuid.UUID) -> Chat
         if thread_id
         else _recent_chat_context(store, str(workspace_id), limit=8)
     )
+
+    tool_reply = await _maybe_run_chat_tool(user_message, recent_context, memory_context, memory_results)
+    if tool_reply is not None:
+        if thread_id:
+            thread_store.append_message(str(workspace_id), thread_id, "user", user_message, title_hint=user_message)
+            thread_store.append_message(str(workspace_id), thread_id, "assistant", tool_reply)
+        else:
+            store.append_entry(
+                str(workspace_id),
+                date.today(),
+                JournalEntry(section="chat", text=f"User: {user_message}"),
+            )
+            store.append_entry(
+                str(workspace_id),
+                date.today(),
+                JournalEntry(section="chat", text=f"ARI: {tool_reply}"),
+            )
+        stored_actions = _store_detected_actions(store, str(workspace_id), user_message)
+        return ChatResponse(
+            reply=tool_reply,
+            model=settings.AI_MODEL,
+            memory_results=_memory_result_responses(memory_results),
+            stored=True,
+            stored_actions=stored_actions,
+            thread_id=thread_id,
+        )
+
     prompt = build_ari_chat_prompt(
         user_message,
         memory_context,
@@ -452,6 +480,123 @@ async def _run_chat_pipeline(body: ChatRequest, workspace_id: uuid.UUID) -> Chat
         stored_actions=stored_actions,
         thread_id=thread_id,
     )
+
+
+async def _maybe_run_chat_tool(
+    user_message: str,
+    recent_context: str,
+    memory_context: str,
+    memory_results: list[RecallSource],
+) -> str | None:
+    if not _should_try_tool_orchestration(user_message, recent_context):
+        return None
+
+    prompt = _build_orchestrator_prompt(
+        user_message,
+        pending_action=None,
+        memory_context=memory_context,
+        recent_context=recent_context,
+    )
+    try:
+        raw = await complete(prompt, system_prompt=_ARI_ORCHESTRATOR_SYSTEM_PROMPT)
+        response = _normalize_orchestration(json.loads(raw), memory_results)
+    except Exception:
+        return None
+
+    if response.tool_name != "search_flights":
+        return None
+    if response.mode == "ask":
+        return response.reply
+    if response.mode != "tool_ready":
+        return None
+
+    try:
+        search_request = FlightSearchRequest(**response.params)
+    except Exception as exc:
+        return f"No pude iniciar la búsqueda de vuelos porque faltan datos válidos: {exc}"
+
+    try:
+        results = await search_flights(search_request)
+    except HTTPException as exc:
+        return _format_flight_search_error(search_request, exc)
+    except Exception as exc:
+        return (
+            "Intenté buscar vuelos, pero la conexión con el proveedor falló. "
+            f"Detalle técnico: {exc}"
+        )
+    return _format_flight_search_results(search_request, results)
+
+
+def _should_try_tool_orchestration(user_message: str, recent_context: str) -> bool:
+    text = f"{user_message}\n{recent_context}".lower()
+    return any(
+        marker in text
+        for marker in (
+            "vuelo",
+            "vuelos",
+            "flight",
+            "flights",
+            "aeropuerto",
+            "airport",
+            "origen",
+            "destino",
+            "ida",
+            "vuelta",
+            "resultados",
+        )
+    )
+
+
+def _format_flight_search_error(body: FlightSearchRequest, exc: HTTPException) -> str:
+    detail = str(exc.detail or "error desconocido")
+    if exc.status_code == status.HTTP_503_SERVICE_UNAVAILABLE:
+        return (
+            f"No puedo buscar vuelos {body.origin} -> {body.destination} para "
+            f"{body.departure_date.isoformat()} porque el proveedor de vuelos no está configurado. "
+            f"Detalle: {detail}"
+        )
+    return (
+        f"Intenté buscar vuelos {body.origin} -> {body.destination} para "
+        f"{body.departure_date.isoformat()}, pero el proveedor devolvió un error. "
+        f"Detalle: {detail}"
+    )
+
+
+def _format_flight_search_results(body: FlightSearchRequest, results: FlightSearchResponse) -> str:
+    route = f"{body.origin} -> {body.destination}"
+    if not results.results:
+        return (
+            f"He buscado vuelos {route} para {body.departure_date.isoformat()}, "
+            "pero el proveedor no devolvió ofertas disponibles para esos criterios."
+        )
+
+    lines = [
+        f"Encontré {len(results.results)} opción(es) de vuelo {route} para {body.departure_date.isoformat()}:"
+    ]
+    for index, offer in enumerate(results.results, start=1):
+        first_slice = offer.slices[0] if offer.slices else []
+        first_segment = first_slice[0] if first_slice else None
+        last_segment = first_slice[-1] if first_slice else None
+        carrier = first_segment.marketing_carrier if first_segment else None
+        flight = first_segment.flight_number if first_segment else None
+        departs = _format_flight_time(first_segment.departing_at if first_segment else None)
+        arrives = _format_flight_time(last_segment.arriving_at if last_segment else None)
+        stops = max(0, len(first_slice) - 1)
+        stops_text = "directo" if stops == 0 else f"{stops} escala(s)"
+        carrier_text = f"{carrier} {flight or ''}".strip() if carrier else "aerolínea no indicada"
+        lines.append(
+            f"{index}. {offer.total_amount} {offer.total_currency} - "
+            f"{carrier_text} - salida {departs}, llegada {arrives} - {stops_text}."
+        )
+    if results.raw_result_count > len(results.results):
+        lines.append(f"Hay {results.raw_result_count} ofertas en total; te muestro las más baratas.")
+    return "\n".join(lines)
+
+
+def _format_flight_time(value: str | None) -> str:
+    if not value:
+        return "hora no indicada"
+    return value.replace("T", " ")[:16]
 
 
 # Orchestration asks the model for structured intent, then normalizes the result

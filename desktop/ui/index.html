@@ -1133,7 +1133,11 @@ function authHeaders(extra = {}) {
 
 function commandError(error) {
   if (!error) return 'Error';
-  return error.message || String(error);
+  const message = error.message || String(error);
+  if (/failed to fetch|networkerror|load failed/i.test(message)) {
+    return 'No pude conectar con ARI. Revisa la conexión o inténtalo de nuevo en unos segundos.';
+  }
+  return message;
 }
 
 function deviceLanguage() {
@@ -1215,6 +1219,17 @@ function setAriWorking(active, label = 'ARI está pensando') {
     clearThinkingMessage();
     setVoiceStatus(sessionVoiceText(), sessionVoiceIcon());
   }
+}
+
+function workingLabelForMessage(text) {
+  const value = normalizeTaskText(text);
+  if (/\b(vuelo|vuelos|flight|flights|aeropuerto|airport|origen|destino)\b/.test(value)) {
+    return 'ARI está buscando vuelos';
+  }
+  if (/\b(viaje|travel|hotel|madrid|berlin|valencia|resultado|resultados)\b/.test(value)) {
+    return 'ARI está revisando el viaje';
+  }
+  return 'ARI está pensando';
 }
 
 function showMicrophonePermissionHelp(detail = '') {
@@ -1698,7 +1713,7 @@ async function sendMessage() {
 
   try {
     await ensureActiveThread(text);
-    setAriWorking(true, 'ARI está pensando');
+    setAriWorking(true, workingLabelForMessage(text));
     const data = await apiChat(text, ari.currentThreadId);
     if (data.thread_id && data.thread_id !== ari.currentThreadId) {
       ari.currentThreadId = data.thread_id;
@@ -1812,7 +1827,7 @@ async function startNativeVoiceRecording() {
   try {
     setVoiceStatus('Escuchando 6 segundos...', 'mic');
     await ensureActiveThread('Nota de voz');
-    setAriWorking(true, 'ARI está pensando');
+    setAriWorking(true, 'ARI está procesando la voz');
     const data = await tauriInvoke('native_voice_with_ari', {
       threadId: ari.currentThreadId,
       tts: false,
@@ -1895,7 +1910,7 @@ async function processVoiceTranscript(transcript) {
     setVoiceStatus('Procesando voz...', 'loader-circle');
     appendMessage(transcript, 'user');
     await ensureActiveThread(transcript);
-    setAriWorking(true, 'ARI está pensando');
+    setAriWorking(true, workingLabelForMessage(transcript));
     const data = await apiChat(transcript, ari.currentThreadId);
     if (data.thread_id && data.thread_id !== ari.currentThreadId) {
       ari.currentThreadId = data.thread_id;
@@ -1926,7 +1941,7 @@ async function processVoiceRecording(contentType) {
     }
     setVoiceStatus('Procesando voz...', 'loader-circle');
     await ensureActiveThread('Nota de voz');
-    setAriWorking(true, 'ARI está pensando');
+    setAriWorking(true, 'ARI está procesando la voz');
     const data = await apiVoice(audioBlob, ari.currentThreadId);
     if (data.thread_id && data.thread_id !== ari.currentThreadId) {
       ari.currentThreadId = data.thread_id;
