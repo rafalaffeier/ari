@@ -4,6 +4,7 @@ import {
   Alert,
   KeyboardAvoidingView,
   Linking,
+  Modal,
   NativeModules,
   Platform,
   Pressable,
@@ -19,6 +20,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   api,
   ConversationMessage,
+  GoogleIntegrationStatus,
   JournalOverview,
   JournalSection,
   SearchResult,
@@ -50,6 +52,13 @@ const LANGUAGE_OPTIONS = [
   ["de", "Deutsch"],
   ["it", "Italiano"],
   ["pt", "Português"],
+] as const;
+
+const GOOGLE_SCOPE_CATALOG = [
+  { label: "Agenda", scope: "https://www.googleapis.com/auth/calendar.events", planned: false },
+  { label: "Contactos", scope: "https://www.googleapis.com/auth/contacts.readonly", planned: false },
+  { label: "Drive", scope: "https://www.googleapis.com/auth/drive.metadata.readonly", planned: true },
+  { label: "Gmail", scope: "https://www.googleapis.com/auth/gmail.modify", planned: true },
 ] as const;
 
 const STRINGS = {
@@ -484,8 +493,41 @@ export default function App() {
   const [chatInput, setChatInput] = useState("");
   const [chatBusy, setChatBusy] = useState(false);
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [connectedAppsOpen, setConnectedAppsOpen] = useState(false);
+  const [googleIntegration, setGoogleIntegration] = useState<GoogleIntegrationStatus | null>(null);
+  const [googleIntegrationBusy, setGoogleIntegrationBusy] = useState(false);
+  const [googleIntegrationMessage, setGoogleIntegrationMessage] = useState("");
   const uiLanguage = translationLanguage(language);
   const t = STRINGS[uiLanguage];
+  const connectedText = {
+    title: uiLanguage === "es" ? "Apps conectadas" : "Connected apps",
+    subtitle:
+      uiLanguage === "es"
+        ? "Conecta Google para que ARI pueda ayudarte con agenda, contactos y proximamente Drive y Gmail."
+        : "Connect Google so ARI can help with calendar, contacts, and soon Drive and Gmail.",
+    google: "Google Workspace",
+    connected:
+      uiLanguage === "es"
+        ? "Google esta conectado. ARI puede usar agenda y contactos cuando lo autorices en la conversacion."
+        : "Google is connected. ARI can use calendar and contacts when you authorize it in the conversation.",
+    missing: uiLanguage === "es" ? "Google todavia no esta conectado." : "Google is not connected yet.",
+    opening: uiLanguage === "es" ? "Abriendo Google para pedir autorizacion..." : "Opening Google for authorization...",
+    browserReturn:
+      uiLanguage === "es"
+        ? "Autoriza Google en el navegador, vuelve a ARI y pulsa Actualizar."
+        : "Authorize Google in the browser, return to ARI, and tap Refresh.",
+    connect: uiLanguage === "es" ? "Conectar Google" : "Connect Google",
+    reconnect: uiLanguage === "es" ? "Reconectar Google" : "Reconnect Google",
+    refresh: uiLanguage === "es" ? "Actualizar" : "Refresh",
+    close: uiLanguage === "es" ? "Cerrar" : "Close",
+    active: uiLanguage === "es" ? "Activo" : "Active",
+    pending: uiLanguage === "es" ? "Pendiente" : "Pending",
+    next: uiLanguage === "es" ? "Proximo" : "Next",
+    privacy:
+      uiLanguage === "es"
+        ? "ARI solo activara permisos con tu autorizacion. Las conversaciones siguen viviendo en Markdown/text files."
+        : "ARI only activates permissions with your authorization. Conversations remain in Markdown/text files.",
+  };
   const authText = {
     forgotPassword: uiLanguage === "es" ? "Olvidaste tu contrasena?" : "Forgot password?",
     sendRecovery: uiLanguage === "es" ? "Enviar recuperacion ->" : "Send recovery ->",
@@ -533,6 +575,10 @@ export default function App() {
   useEffect(() => {
     if (signedIn) loadMobileThreads();
   }, [signedIn, token, workspaceId]);
+
+  useEffect(() => {
+    if (signedIn) refreshGoogleIntegrationStatus(true);
+  }, [signedIn, token]);
 
   const visiblePending = useMemo(
     () => pendingEntries.filter((entry) => entry.workspaceId === workspaceId),
@@ -650,12 +696,58 @@ export default function App() {
     }
   }
 
+  function googleConnected() {
+    return Boolean(googleIntegration?.connected);
+  }
+
+  async function openConnectedApps() {
+    setConnectedAppsOpen(true);
+    await refreshGoogleIntegrationStatus(true);
+  }
+
+  async function refreshGoogleIntegrationStatus(silent = false) {
+    if (!token) return;
+    setGoogleIntegrationBusy(true);
+    try {
+      const integration = await api.getGoogleIntegrationStatus(token);
+      setGoogleIntegration(integration);
+      setGoogleIntegrationMessage("");
+      setIsOffline(false);
+    } catch (error) {
+      setIsOffline(true);
+      if (!silent) {
+        setGoogleIntegrationMessage(error instanceof Error ? error.message : "No se pudo revisar Google");
+      }
+    } finally {
+      setGoogleIntegrationBusy(false);
+    }
+  }
+
+  async function connectGoogleWorkspace() {
+    if (!token) return;
+    setGoogleIntegrationBusy(true);
+    setGoogleIntegrationMessage(connectedText.opening);
+    try {
+      const start = await api.startGoogleIntegration(token, "mobile", "/");
+      await Linking.openURL(start.authorization_url);
+      setGoogleIntegrationMessage(connectedText.browserReturn);
+    } catch (error) {
+      setIsOffline(true);
+      setGoogleIntegrationMessage(error instanceof Error ? error.message : "No se pudo abrir Google");
+    } finally {
+      setGoogleIntegrationBusy(false);
+    }
+  }
+
   async function signOut() {
     logout();
     await memoryCache.clearSession();
     setTimeline([]);
     setOverview(null);
     setDayContent("");
+    setGoogleIntegration(null);
+    setConnectedAppsOpen(false);
+    setGoogleIntegrationMessage("");
     setStatus(t.signedOut);
   }
 
@@ -978,6 +1070,9 @@ export default function App() {
 
   const activeThread = chatThreads.find((thread) => thread.id === currentThreadId);
   const activeTitle = mobileThreadTitle(activeThread);
+  const googleIsConnected = googleConnected();
+  const googleStatusCopy =
+    googleIntegrationMessage || (googleIsConnected ? connectedText.connected : connectedText.missing);
 
   return (
     <SafeAreaView style={styles.mobileShell}>
@@ -985,7 +1080,9 @@ export default function App() {
         <AriMark size={44} />
         <Pressable style={[styles.railButton, styles.railButtonActive]}><Text style={styles.railIcon}>○</Text></Pressable>
         <Pressable disabled={chatBusy} onPress={startMobileChat} style={styles.railButton}><Text style={styles.railIcon}>+</Text></Pressable>
-        <Pressable style={styles.railButton}><Text style={styles.railIcon}>□</Text></Pressable>
+        <Pressable onPress={openConnectedApps} style={[styles.railButton, connectedAppsOpen && styles.railButtonActive]}>
+          <Text style={styles.railIcon}>⌁</Text>
+        </Pressable>
         <View style={styles.railSpacer} />
         <Pressable onPress={signOut} style={styles.railSmallButton}><Text style={styles.railSmallIcon}>↻</Text></Pressable>
       </View>
@@ -1073,6 +1170,72 @@ export default function App() {
           </View>
         </KeyboardAvoidingView>
       </View>
+
+      <Modal animationType="fade" transparent visible={connectedAppsOpen} onRequestClose={() => setConnectedAppsOpen(false)}>
+        <View style={styles.connectedOverlay}>
+          <Pressable style={styles.connectedBackdrop} onPress={() => setConnectedAppsOpen(false)} />
+          <View style={styles.connectedSheet}>
+            <View style={styles.connectedHeader}>
+              <View style={styles.connectedTitleWrap}>
+                <Text style={styles.connectedTitle}>{connectedText.title}</Text>
+                <Text style={styles.connectedSubtitle}>{connectedText.subtitle}</Text>
+              </View>
+              <Pressable onPress={() => setConnectedAppsOpen(false)} style={styles.connectedCloseButton}>
+                <Text style={styles.connectedCloseText}>×</Text>
+              </Pressable>
+            </View>
+
+            <View style={styles.connectedProvider}>
+              <View style={[styles.connectedDot, googleIsConnected && styles.connectedDotOn]} />
+              <View style={styles.connectedProviderCopy}>
+                <Text style={styles.connectedProviderTitle}>{connectedText.google}</Text>
+                <Text style={styles.connectedProviderText}>{googleStatusCopy}</Text>
+              </View>
+            </View>
+
+            <View style={styles.connectedActions}>
+              <Pressable
+                disabled={googleIntegrationBusy}
+                onPress={connectGoogleWorkspace}
+                style={[styles.connectedActionPrimary, googleIntegrationBusy && styles.connectedActionDisabled]}
+              >
+                <Text style={styles.connectedActionPrimaryText}>
+                  {googleIsConnected ? connectedText.reconnect : connectedText.connect}
+                </Text>
+              </Pressable>
+              <Pressable
+                disabled={googleIntegrationBusy}
+                onPress={() => refreshGoogleIntegrationStatus(false)}
+                style={[styles.connectedActionSecondary, googleIntegrationBusy && styles.connectedActionDisabled]}
+              >
+                <Text style={styles.connectedActionSecondaryText}>{connectedText.refresh}</Text>
+              </Pressable>
+            </View>
+
+            {googleIntegrationBusy && (
+              <View style={styles.connectedLoading}>
+                <ActivityIndicator color="#D99A3D" />
+                <Text style={styles.connectedLoadingText}>{t.working}</Text>
+              </View>
+            )}
+
+            <View style={styles.connectedScopeGrid}>
+              {GOOGLE_SCOPE_CATALOG.map((item) => {
+                const ready = Boolean(googleIntegration?.scopes?.includes(item.scope));
+                const label = ready ? connectedText.active : item.planned ? connectedText.next : connectedText.pending;
+                return (
+                  <View key={item.scope} style={styles.connectedScope}>
+                    <Text style={styles.connectedScopeName}>{item.label}</Text>
+                    <Text style={[styles.connectedScopeState, ready && styles.connectedScopeStateReady]}>{label}</Text>
+                  </View>
+                );
+              })}
+            </View>
+
+            <Text style={styles.connectedNote}>{connectedText.privacy}</Text>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -1977,5 +2140,184 @@ const styles = StyleSheet.create({
     color: "#0B0805",
     fontSize: 23,
     lineHeight: 25,
+  },
+  connectedOverlay: {
+    flex: 1,
+    justifyContent: "flex-end",
+  },
+  connectedBackdrop: {
+    backgroundColor: "rgba(0, 0, 0, 0.66)",
+    bottom: 0,
+    left: 0,
+    position: "absolute",
+    right: 0,
+    top: 0,
+  },
+  connectedSheet: {
+    backgroundColor: "#0B0805",
+    borderColor: "rgba(217, 154, 61, 0.28)",
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    borderWidth: 1,
+    gap: 14,
+    maxHeight: "88%",
+    paddingBottom: 28,
+    paddingHorizontal: 20,
+    paddingTop: 20,
+  },
+  connectedHeader: {
+    alignItems: "flex-start",
+    flexDirection: "row",
+    gap: 14,
+    justifyContent: "space-between",
+  },
+  connectedTitleWrap: {
+    flex: 1,
+    minWidth: 0,
+  },
+  connectedTitle: {
+    color: "#F4EFE7",
+    fontFamily: Platform.select({ ios: "Inter", android: "sans-serif", default: "system-ui" }),
+    fontSize: 22,
+    fontWeight: "700",
+  },
+  connectedSubtitle: {
+    color: "#A89A88",
+    fontSize: 13,
+    lineHeight: 19,
+    marginTop: 6,
+  },
+  connectedCloseButton: {
+    alignItems: "center",
+    borderColor: "rgba(217, 154, 61, 0.28)",
+    borderRadius: 18,
+    borderWidth: 1,
+    height: 36,
+    justifyContent: "center",
+    width: 36,
+  },
+  connectedCloseText: {
+    color: "#A89A88",
+    fontSize: 24,
+    lineHeight: 26,
+  },
+  connectedProvider: {
+    alignItems: "flex-start",
+    flexDirection: "row",
+    gap: 12,
+    paddingTop: 4,
+  },
+  connectedDot: {
+    backgroundColor: "#6F604D",
+    borderRadius: 6,
+    height: 12,
+    marginTop: 5,
+    width: 12,
+  },
+  connectedDotOn: {
+    backgroundColor: "#65D38B",
+  },
+  connectedProviderCopy: {
+    flex: 1,
+    minWidth: 0,
+  },
+  connectedProviderTitle: {
+    color: "#F4EFE7",
+    fontSize: 15,
+    fontWeight: "700",
+  },
+  connectedProviderText: {
+    color: "#A89A88",
+    fontSize: 13,
+    lineHeight: 19,
+    marginTop: 4,
+  },
+  connectedActions: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 10,
+  },
+  connectedActionPrimary: {
+    alignItems: "center",
+    backgroundColor: "#D99A3D",
+    borderRadius: 999,
+    minHeight: 44,
+    justifyContent: "center",
+    paddingHorizontal: 16,
+  },
+  connectedActionPrimaryText: {
+    color: "#0B0805",
+    fontSize: 12,
+    fontWeight: "700",
+    letterSpacing: 1,
+    textTransform: "uppercase",
+  },
+  connectedActionSecondary: {
+    alignItems: "center",
+    backgroundColor: "#120D08",
+    borderColor: "rgba(217, 154, 61, 0.28)",
+    borderRadius: 999,
+    borderWidth: 1,
+    minHeight: 44,
+    justifyContent: "center",
+    paddingHorizontal: 16,
+  },
+  connectedActionSecondaryText: {
+    color: "#F0B85A",
+    fontSize: 12,
+    fontWeight: "700",
+    letterSpacing: 1,
+    textTransform: "uppercase",
+  },
+  connectedActionDisabled: {
+    opacity: 0.55,
+  },
+  connectedLoading: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: 10,
+  },
+  connectedLoadingText: {
+    color: "#A89A88",
+    fontSize: 12,
+  },
+  connectedScopeGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+  },
+  connectedScope: {
+    alignItems: "center",
+    backgroundColor: "rgba(255, 255, 255, 0.025)",
+    borderColor: "rgba(217, 154, 61, 0.16)",
+    borderRadius: 12,
+    borderWidth: 1,
+    flexBasis: "48%",
+    flexDirection: "row",
+    gap: 8,
+    justifyContent: "space-between",
+    minHeight: 48,
+    paddingHorizontal: 12,
+  },
+  connectedScopeName: {
+    color: "#F4EFE7",
+    flexShrink: 1,
+    fontSize: 13,
+    fontWeight: "700",
+  },
+  connectedScopeState: {
+    color: "#D99A3D",
+    fontSize: 10,
+    fontWeight: "700",
+    letterSpacing: 1,
+    textTransform: "uppercase",
+  },
+  connectedScopeStateReady: {
+    color: "#65D38B",
+  },
+  connectedNote: {
+    color: "#6F604D",
+    fontSize: 12,
+    lineHeight: 18,
   },
 });

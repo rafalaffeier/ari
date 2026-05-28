@@ -371,13 +371,13 @@ Current status:
 - [x] Desktop: native status/start integration commands added.
 - [x] Desktop: opens browser for Google authorization.
 - [x] Mobile web/responsive: panel has responsive layout rules.
-- [ ] Mobile app: "Apps conectadas" entry added in `mobile/App.tsx`.
-- [ ] Mobile app: Google Workspace panel/bottom sheet added.
-- [ ] Mobile app: integration status API added.
-- [ ] Mobile app: start OAuth API added.
-- [ ] Mobile app: `Linking.openURL(...)` connection flow added.
-- [ ] Mobile app: refresh status after browser authorization.
-- [ ] Mobile app: typecheck run.
+- [x] Mobile app: "Apps conectadas" entry added in `mobile/App.tsx`.
+- [x] Mobile app: Google Workspace panel/bottom sheet added.
+- [x] Mobile app: integration status API added.
+- [x] Mobile app: start OAuth API added.
+- [x] Mobile app: `Linking.openURL(...)` connection flow added.
+- [x] Mobile app: refresh status after browser authorization.
+- [x] Mobile app: typecheck run.
 - [x] Web deployed to production.
 - [x] Production `/ready` checked after deploy.
 - [ ] End-to-end OAuth smoke checked with a real account.
@@ -602,6 +602,8 @@ Implementation status:
   `/api/v1/integrations/google/start` endpoints directly.
 - Desktop uses native commands that call the same backend endpoints with the
   securely stored desktop session token.
+- Mobile app uses the same backend endpoints from `mobile/src/services/api.ts`
+  and opens Google authorization with React Native `Linking`.
 
 ### Phase 2: Drive Search
 

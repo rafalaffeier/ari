@@ -74,6 +74,19 @@ export type ChatResponse = {
   thread_id?: string | null;
 };
 
+export type GoogleIntegrationStatus = {
+  connected: boolean;
+  provider: string;
+  scopes: string[];
+  status: string;
+  expires_at?: string | null;
+};
+
+export type GoogleIntegrationStartResponse = {
+  authorization_url: string;
+  scopes: string[];
+};
+
 type RequestOptions = RequestInit & {
   token?: string | null;
 };
@@ -107,6 +120,14 @@ export const api = {
     request<AuthResponse>("/auth/google/exchange", {
       method: "POST",
       body: JSON.stringify({ code }),
+    }),
+  getGoogleIntegrationStatus: (token: string) =>
+    request<GoogleIntegrationStatus>("/integrations/google/status", { token }),
+  startGoogleIntegration: (token: string, client: "web" | "desktop" | "mobile" = "mobile", returnTo = "/") =>
+    request<GoogleIntegrationStartResponse>("/integrations/google/start", {
+      method: "POST",
+      token,
+      body: JSON.stringify({ client, return_to: returnTo }),
     }),
   login: (email: string, password: string) =>
     request<AuthResponse>("/auth/login", {
