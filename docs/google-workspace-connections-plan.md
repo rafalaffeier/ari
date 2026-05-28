@@ -332,6 +332,95 @@ Product implication:
 - Keep a clear privacy policy and permission explanation page.
 - Request only scopes that are active in the product.
 
+## Delivery Checklist
+
+Use this checklist as the working control board. A task is not closed until web,
+desktop, mobile app, and mobile responsive behavior are accounted for.
+
+### Rule for Every UI Feature
+
+- [ ] Web updated.
+- [ ] Desktop updated.
+- [ ] Mobile app updated.
+- [ ] Mobile web/responsive checked.
+- [ ] Production deploy checked when the feature affects web.
+- [ ] Tests or type checks run for touched surfaces.
+- [ ] Commit created with the completed scope.
+
+### Connected Apps Entry and Google Connection
+
+Definition of done:
+
+- User can open "Apps conectadas" from web, desktop, and mobile app.
+- Google Workspace status is visible.
+- User can start Google OAuth from each surface.
+- After authorization, ARI can refresh and show connected/error status.
+- Calendar and Contacts show as active when their scopes are present.
+- Drive and Gmail show as planned/not active until their phases are implemented.
+
+Current status:
+
+- [x] Plan document created and linked from `docs/README.md`.
+- [x] Web: "Apps conectadas" entry added.
+- [x] Web: Google Workspace panel added.
+- [x] Web: status endpoint connected.
+- [x] Web: start OAuth flow connected.
+- [x] Web: callback query state handled.
+- [x] Desktop: "Apps conectadas" entry added.
+- [x] Desktop: Google Workspace panel added.
+- [x] Desktop: native status/start integration commands added.
+- [x] Desktop: opens browser for Google authorization.
+- [x] Mobile web/responsive: panel has responsive layout rules.
+- [ ] Mobile app: "Apps conectadas" entry added in `mobile/App.tsx`.
+- [ ] Mobile app: Google Workspace panel/bottom sheet added.
+- [ ] Mobile app: integration status API added.
+- [ ] Mobile app: start OAuth API added.
+- [ ] Mobile app: `Linking.openURL(...)` connection flow added.
+- [ ] Mobile app: refresh status after browser authorization.
+- [ ] Mobile app: typecheck run.
+- [x] Web deployed to production.
+- [x] Production `/ready` checked after deploy.
+- [ ] End-to-end OAuth smoke checked with a real account.
+
+### Drive Search Phase
+
+Definition of done:
+
+- ARI can search Google Drive file metadata after the user connects/updates the
+  required scope.
+- ARI returns file name, type, modified date, and link/reference.
+- ARI does not read file content in this phase.
+
+Checklist:
+
+- [ ] Add/request `drive.metadata.readonly` scope.
+- [ ] Add backend Drive service.
+- [ ] Add Drive search/list endpoint.
+- [ ] Add `search_google_drive_files` tool.
+- [ ] Add "needs permission" response when Drive scope is missing.
+- [ ] Add chat status: `ARI esta buscando en Drive`.
+- [ ] Add tests for connected/missing-scope/error cases.
+- [ ] Update web, desktop, mobile app, and mobile responsive UI states.
+
+### Gmail Phase
+
+Definition of done:
+
+- ARI can search/read emails only after explicit Gmail permission.
+- Draft/send are separated.
+- Sending email always requires explicit confirmation.
+
+Checklist:
+
+- [ ] Add/request Gmail readonly scope only when Gmail read is implemented.
+- [ ] Add Gmail search/read endpoints.
+- [ ] Add `search_gmail_messages` and `read_gmail_thread` tools.
+- [ ] Add Gmail draft endpoint/tool.
+- [ ] Add Gmail send endpoint/tool.
+- [ ] Add high-risk confirmation flow for send.
+- [ ] Add audit event for send/draft actions.
+- [ ] Update web, desktop, mobile app, and mobile responsive UI states.
+
 ## Implementation Phases
 
 ### Phase 1: Connected Apps UI
