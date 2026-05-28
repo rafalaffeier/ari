@@ -12,6 +12,8 @@
 
 `production-staging-runbook.md` defines the Phase 7 staging deployment, backup/restore, object storage, rate limiting, logs, and security checklist.
 
+`google-workspace-connections-plan.md` defines the product and technical plan for Google Drive, Gmail, Calendar, and Contacts as connected apps.
+
 The Word document in `/Users/rafalaffeier/projects/asistente/documentos/` remains the formatted copy for human reading. When the Word file changes, regenerate this Markdown reference with:
 
 ```bash

@@ -676,6 +676,26 @@ async fn complete_backend_action(
     Ok(client.complete_action(&action_id, &status, result).await?)
 }
 
+#[tauri::command]
+async fn google_integration_status(
+    state: State<'_, AppState>,
+) -> Result<serde_json::Value, DesktopError> {
+    let client = memory_client_from_state(&state).await?;
+    Ok(client.google_integration_status().await?)
+}
+
+#[tauri::command]
+async fn start_google_integration(
+    state: State<'_, AppState>,
+    client: String,
+    return_to: String,
+) -> Result<serde_json::Value, DesktopError> {
+    let memory_client = memory_client_from_state(&state).await?;
+    Ok(memory_client
+        .start_google_integration(&client, &return_to)
+        .await?)
+}
+
 // Local tool commands are the last permission gate before touching the host OS.
 // The backend may propose actions, but execution still depends on desktop policy.
 #[tauri::command]
@@ -1144,6 +1164,8 @@ pub fn run() {
             confirm_backend_action,
             reject_backend_action,
             complete_backend_action,
+            google_integration_status,
+            start_google_integration,
             open_browser_url,
             call_phone_number,
             list_calendars,

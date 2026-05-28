@@ -959,6 +959,24 @@ impl MemoryClient {
         self.send_json(self.authorized(self.http.get(url))?).await
     }
 
+    pub async fn google_integration_status(&self) -> Result<serde_json::Value, MemoryClientError> {
+        let url = format!("{}/api/v1/integrations/google/status", self.backend_url);
+        self.send_json(self.authorized(self.http.get(url))?).await
+    }
+
+    pub async fn start_google_integration(
+        &self,
+        client: &str,
+        return_to: &str,
+    ) -> Result<serde_json::Value, MemoryClientError> {
+        let url = format!("{}/api/v1/integrations/google/start", self.backend_url);
+        self.send_json(
+            self.authorized(self.http.post(url))?
+                .json(&serde_json::json!({ "client": client, "return_to": return_to })),
+        )
+        .await
+    }
+
     fn build(
         backend_url: String,
         access_token: Option<String>,

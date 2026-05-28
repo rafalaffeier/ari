@@ -350,6 +350,8 @@ body.app-ready #auth-screen { display: none; }
   display: flex; align-items: center;
   padding: 6px 8px; border-radius: 10px;
   font-size: 11px; color: var(--t2);
+  background: transparent; border: 0; width: 100%;
+  font-family: var(--font-ui); text-align: left;
   cursor: pointer; gap: 8px; white-space: nowrap; overflow: hidden;
   transition: background .15s;
 }
@@ -369,6 +371,80 @@ body.app-ready #auth-screen { display: none; }
 .sb-select option {
   background: var(--panel);
   color: var(--t1);
+}
+
+/* Connected apps */
+.connected-modal {
+  position: fixed; inset: 0; z-index: 80;
+  display: none; align-items: center; justify-content: center;
+  padding: 22px; background: rgba(0,0,0,.62);
+  backdrop-filter: blur(10px);
+}
+.connected-modal.open { display: flex; }
+.connected-panel {
+  width: min(500px, calc(100vw - 28px));
+  max-height: calc(100vh - 44px);
+  overflow: auto;
+  background: rgba(11,9,6,.98);
+  border: 1px solid var(--border-c);
+  border-radius: 16px;
+  box-shadow: 0 24px 80px rgba(0,0,0,.5);
+}
+.connected-head {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  gap: 16px; padding: 20px 20px 12px;
+  border-bottom: 1px solid rgba(217,154,61,.16);
+}
+.connected-title { margin: 0; color: var(--t1); font-size: 17px; font-weight: 650; }
+.connected-sub { margin: 6px 0 0; color: var(--t2); font-size: 12px; line-height: 1.45; }
+.connected-close {
+  width: 34px; height: 34px; border-radius: 50%;
+  border: 1px solid var(--border-c); background: transparent;
+  color: var(--t2); display: grid; place-items: center; cursor: pointer;
+}
+.connected-close:hover { background: var(--elevated); color: var(--t1); }
+.connected-body { padding: 16px 20px 20px; }
+.connected-provider {
+  display: flex; align-items: flex-start; gap: 12px;
+  padding: 14px 0 16px;
+}
+.connected-dot {
+  width: 10px; height: 10px; border-radius: 50%;
+  margin-top: 5px; background: var(--t3);
+  box-shadow: 0 0 0 4px rgba(255,255,255,.04);
+  flex-shrink: 0;
+}
+.connected-dot.on { background: #65d38b; box-shadow: 0 0 0 4px rgba(101,211,139,.12); }
+.connected-dot.warn { background: var(--gold); box-shadow: 0 0 0 4px rgba(217,154,61,.14); }
+.connected-provider h3 { margin: 0; color: var(--t1); font-size: 14px; font-weight: 650; }
+.connected-provider p { margin: 4px 0 0; color: var(--t2); font-size: 12px; line-height: 1.45; }
+.connected-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+.connected-action {
+  height: 36px; padding: 0 13px; border-radius: 999px;
+  border: 1px solid var(--border-c); background: transparent;
+  color: var(--t2); font: 600 12px var(--font-ui);
+  display: inline-flex; align-items: center; gap: 7px; cursor: pointer;
+}
+.connected-action.primary { background: var(--gold); border-color: var(--gold); color: #171006; }
+.connected-action:disabled { opacity: .55; cursor: default; }
+.connected-action:not(:disabled):hover { transform: translateY(-1px); }
+.connected-action svg { width: 15px; height: 15px; }
+.connected-scope-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.connected-scope {
+  min-height: 44px; padding: 9px 10px; border-radius: 10px;
+  border: 1px solid rgba(217,154,61,.15);
+  background: rgba(255,255,255,.025);
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+}
+.connected-scope span:first-child { color: var(--t1); font-size: 12px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; }
+.connected-scope span:last-child { color: var(--t3); font-size: 10px; flex-shrink: 0; }
+.connected-scope.ready span:last-child { color: #65d38b; }
+.connected-scope.next span:last-child { color: var(--gold); }
+.connected-note { margin: 14px 0 0; color: var(--t3); font-size: 11px; line-height: 1.45; }
+@media (max-width: 560px) {
+  .connected-modal { align-items: flex-end; padding: 10px; }
+  .connected-panel { width: 100%; border-radius: 16px 16px 10px 10px; }
+  .connected-scope-grid { grid-template-columns: 1fr; }
 }
 
 /* ── MAIN CHAT AREA ───────────────────────────── */
@@ -923,6 +999,10 @@ body.app-ready #auth-screen { display: none; }
         </select>
         <span class="sb-foot-arrow"><i data-lucide="chevron-down"></i></span>
       </label>
+      <button class="sb-foot-row" type="button" onclick="openConnectedApps()" title="Apps conectadas">
+        <i data-lucide="plug-zap"></i>
+        <span class="sb-foot-label">Apps conectadas</span>
+      </button>
       <div class="sb-foot-row" onclick="logoutDesktop()" title="Cerrar sesión">
         <i data-lucide="rotate-ccw"></i>
         <span class="sb-foot-label">Cerrar sesión</span>
@@ -1092,6 +1172,41 @@ body.app-ready #auth-screen { display: none; }
   </main>
 </div>
 
+<div class="connected-modal" id="connected-apps-modal" aria-hidden="true" onclick="closeConnectedAppsFromBackdrop(event)">
+  <section class="connected-panel" role="dialog" aria-modal="true" aria-labelledby="connected-apps-title">
+    <div class="connected-head">
+      <div>
+        <h2 class="connected-title" id="connected-apps-title">Apps conectadas</h2>
+        <p class="connected-sub">Conecta Google para que ARI pueda ayudarte con agenda, contactos y, en las siguientes fases, Drive y Gmail.</p>
+      </div>
+      <button class="connected-close" type="button" onclick="closeConnectedApps()" title="Cerrar">
+        <i data-lucide="x"></i>
+      </button>
+    </div>
+    <div class="connected-body">
+      <div class="connected-provider">
+        <span class="connected-dot" id="google-status-dot"></span>
+        <div>
+          <h3>Google Workspace</h3>
+          <p id="google-status-copy">Revisando conexión...</p>
+        </div>
+      </div>
+      <div class="connected-actions">
+        <button class="connected-action primary" id="google-connect-btn" type="button" onclick="connectGoogleIntegration()">
+          <i data-lucide="plug-zap"></i>
+          <span>Conectar Google</span>
+        </button>
+        <button class="connected-action" id="google-refresh-btn" type="button" onclick="loadGoogleIntegrationStatus()">
+          <i data-lucide="refresh-cw"></i>
+          <span>Actualizar</span>
+        </button>
+      </div>
+      <div class="connected-scope-grid" id="google-scope-list"></div>
+      <p class="connected-note" id="connected-apps-note">ARI solo activará permisos con tu autorización. Las conversaciones siguen viviendo en Markdown/text files, no en PostgreSQL.</p>
+    </div>
+  </section>
+</div>
+
 <script>
 // ── LUCIDE INIT ───────────────────────────────
 lucide.createIcons();
@@ -1119,6 +1234,14 @@ let microphoneHelpShown = false;
 let currentSpeechAudio = null;
 let ariBusy = false;
 let thinkingRow = null;
+let googleIntegration = { connected: false, scopes: [], status: 'unknown' };
+
+const googleScopeCatalog = [
+  { label: 'Agenda', scope: 'https://www.googleapis.com/auth/calendar.events', planned: false },
+  { label: 'Contactos', scope: 'https://www.googleapis.com/auth/contacts.readonly', planned: false },
+  { label: 'Drive', scope: 'https://www.googleapis.com/auth/drive.metadata.readonly', planned: true },
+  { label: 'Gmail', scope: 'https://www.googleapis.com/auth/gmail.modify', planned: true },
+];
 
 function apiPath(path) {
   return isDesktop ? `${ari.backendUrl}${path}` : path;
@@ -1166,6 +1289,130 @@ function setAppLanguage(language) {
   const select = document.getElementById('language-select');
   if (select) select.value = ari.language;
 }
+
+function renderGoogleIntegrationStatus(state = googleIntegration, message = '') {
+  const connected = Boolean(state?.connected);
+  const scopes = Array.isArray(state?.scopes) ? state.scopes : [];
+  const status = state?.status || (connected ? 'connected' : 'missing');
+  const dot = document.getElementById('google-status-dot');
+  const copy = document.getElementById('google-status-copy');
+  const button = document.getElementById('google-connect-btn');
+  const list = document.getElementById('google-scope-list');
+  if (dot) {
+    dot.className = `connected-dot ${connected ? 'on' : status === 'error' ? 'warn' : ''}`.trim();
+  }
+  if (copy) {
+    copy.textContent = message || (connected
+      ? 'Google está conectado. ARI ya puede usar agenda y contactos cuando lo autorices en la conversación.'
+      : 'Google todavía no está conectado para esta cuenta.');
+  }
+  if (button) {
+    button.querySelector('span').textContent = connected ? 'Reconectar Google' : 'Conectar Google';
+  }
+  if (list) {
+    list.innerHTML = googleScopeCatalog.map((item) => {
+      const ready = scopes.includes(item.scope);
+      const stateClass = ready ? 'ready' : item.planned ? 'next' : '';
+      const label = ready ? 'Activo' : item.planned ? 'Próximo' : 'Pendiente';
+      return `<div class="connected-scope ${stateClass}"><span>${item.label}</span><span>${label}</span></div>`;
+    }).join('');
+  }
+  lucide.createIcons();
+}
+
+function openConnectedApps(message = '') {
+  const modal = document.getElementById('connected-apps-modal');
+  modal?.classList.add('open');
+  modal?.setAttribute('aria-hidden', 'false');
+  renderGoogleIntegrationStatus(googleIntegration, message);
+  loadGoogleIntegrationStatus({ silent: true });
+}
+
+function closeConnectedApps() {
+  const modal = document.getElementById('connected-apps-modal');
+  modal?.classList.remove('open');
+  modal?.setAttribute('aria-hidden', 'true');
+}
+
+function closeConnectedAppsFromBackdrop(event) {
+  if (event.target?.id === 'connected-apps-modal') closeConnectedApps();
+}
+
+async function apiGoogleIntegrationStatus() {
+  if (isDesktop) return await tauriInvoke('google_integration_status');
+  const response = await fetch(apiPath('/api/v1/integrations/google/status'), {
+    headers: authHeaders(),
+  });
+  if (!response.ok) throw new Error(await readError(response));
+  return await response.json();
+}
+
+async function apiStartGoogleIntegration() {
+  if (isDesktop) {
+    return await tauriInvoke('start_google_integration', { client: 'desktop', returnTo: '/' });
+  }
+  const returnTo = `${window.location.origin}${window.location.pathname}`;
+  const response = await fetch(apiPath('/api/v1/integrations/google/start'), {
+    method: 'POST',
+    headers: authHeaders({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify({ client: 'web', return_to: returnTo }),
+  });
+  if (!response.ok) throw new Error(await readError(response));
+  return await response.json();
+}
+
+async function openGoogleAuthorizationUrl(url) {
+  if (isDesktop) {
+    await tauriInvoke('open_browser_url', { url });
+    return;
+  }
+  window.location.href = url;
+}
+
+async function loadGoogleIntegrationStatus(options = {}) {
+  if (!hasSession()) {
+    renderGoogleIntegrationStatus({ connected: false, scopes: [], status: 'missing' }, 'Inicia sesión para conectar Google.');
+    return null;
+  }
+  const refresh = document.getElementById('google-refresh-btn');
+  refresh?.toggleAttribute('disabled', true);
+  try {
+    const status = await apiGoogleIntegrationStatus();
+    googleIntegration = status;
+    renderGoogleIntegrationStatus(status);
+    return status;
+  } catch (error) {
+    if (!options.silent) renderGoogleIntegrationStatus({ connected: false, scopes: [], status: 'error' }, commandError(error));
+    return null;
+  } finally {
+    refresh?.toggleAttribute('disabled', false);
+  }
+}
+
+async function connectGoogleIntegration() {
+  const button = document.getElementById('google-connect-btn');
+  if (!hasSession()) {
+    renderGoogleIntegrationStatus(googleIntegration, 'Inicia sesión para conectar Google.');
+    return;
+  }
+  button?.toggleAttribute('disabled', true);
+  renderGoogleIntegrationStatus(googleIntegration, 'Abriendo Google para pedir autorización...');
+  try {
+    const start = await apiStartGoogleIntegration();
+    await openGoogleAuthorizationUrl(start.authorization_url);
+    if (isDesktop) {
+      renderGoogleIntegrationStatus(googleIntegration, 'Autoriza Google en el navegador, vuelve a ARI y pulsa Actualizar.');
+      button?.toggleAttribute('disabled', false);
+    }
+  } catch (error) {
+    renderGoogleIntegrationStatus({ connected: false, scopes: [], status: 'error' }, commandError(error));
+    button?.toggleAttribute('disabled', false);
+  }
+}
+
+document.addEventListener('keydown', (event) => {
+  if (event.key === 'Escape') closeConnectedApps();
+});
 
 function setVoiceButtonRecording(recording) {
   const voiceBtn = document.getElementById('voice-btn');
@@ -1311,6 +1558,7 @@ async function enterAppWithSession() {
   } else {
     renderThreadMessages([]);
   }
+  loadGoogleIntegrationStatus({ silent: true });
 }
 
 async function continueStoredSession() {
