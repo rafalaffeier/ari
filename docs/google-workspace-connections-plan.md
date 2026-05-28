@@ -421,6 +421,160 @@ Checklist:
 - [ ] Add audit event for send/draft actions.
 - [ ] Update web, desktop, mobile app, and mobile responsive UI states.
 
+## ARI Product Backlog
+
+This backlog captures product/UX ideas that should guide implementation. Keep it
+separate from low-level tasks so ARI grows as a coherent assistant, not just as a
+set of endpoints.
+
+### Foundation: Cross-Platform Quality
+
+These rules apply to every meaningful product change:
+
+- [ ] Design starts from the desktop UI reference.
+- [ ] Web matches desktop visually and behaviorally.
+- [ ] Mobile app receives the same capability, adapted to native mobile layout.
+- [ ] Mobile web/responsive behavior is checked.
+- [ ] Login/session behavior is not bypassed.
+- [ ] User history continues loading by authenticated user.
+- [ ] Chats, summaries, and memory stay in Markdown/text files.
+- [ ] PostgreSQL remains limited to user/auth/integration/metadata.
+- [ ] No secrets or raw tokens appear in logs, chat, screenshots, or commits.
+
+### Trust and Permission UX
+
+Goal:
+
+- The user should understand exactly what ARI can access, why it needs access,
+  and how to change that access.
+
+Checklist:
+
+- [ ] Add an ideal "Trust and permissions" interface concept.
+- [ ] Explain what each connected app permission enables.
+- [ ] Show connected, disconnected, expired, and error states.
+- [ ] Add a reconnect action.
+- [ ] Add a future disconnect action.
+- [ ] Explain that ARI's chat/memory history remains in Markdown/text files.
+- [ ] Request Drive/Gmail permissions only when the user asks for a relevant task.
+- [ ] Show "needs permission" prompts in chat when ARI cannot continue without access.
+
+### ARI Working Overlay
+
+Goal:
+
+- When ARI is thinking or running a tool, the user should immediately feel that
+  the system is alive and busy. The interface should block conflicting actions
+  until ARI finishes.
+
+Design direction:
+
+- Full-screen overlay above the interface.
+- Soft futuristic fade-in/fade-out pulse.
+- Subtle color wash/shadow that breathes in and out.
+- ARI status label changes by task, for example:
+  - `ARI esta pensando`
+  - `ARI esta buscando vuelos`
+  - `ARI esta revisando tu calendario`
+  - `ARI esta buscando en Drive`
+  - `ARI esta leyendo el documento`
+  - `ARI esta preparando un borrador`
+- Overlay disappears when ARI returns a result or an error.
+- Input, microphone, and external action buttons are disabled while active.
+
+Checklist:
+
+- [ ] Define desktop visual design for the overlay.
+- [ ] Implement in web.
+- [ ] Implement in desktop.
+- [ ] Implement in mobile app.
+- [ ] Check mobile web/responsive behavior.
+- [ ] Connect to chat send, voice, flight search, Google actions, Drive actions,
+  Gmail actions, and future long-running tools.
+- [ ] Add timeout/error state: `La accion tardo demasiado. Puedes intentar otra vez.`
+- [ ] Verify that the overlay always clears after success, error, or cancellation.
+
+### Sensitive Actions
+
+Goal:
+
+- ARI must never perform external real-world actions silently.
+
+Checklist:
+
+- [ ] Require confirmation before sending any email.
+- [ ] Require confirmation before creating important calendar events.
+- [ ] Show email preview before sending: recipient, subject, body, and attachments.
+- [ ] Decide later whether email preview should be iframe, native panel, or
+  structured preview card.
+- [ ] Add audit log for email send, draft creation, and important calendar events.
+- [ ] Add a "never execute silently" rule to tool execution.
+- [ ] Add tests for denied confirmation and approved confirmation paths.
+
+### Google Improvements by Phase
+
+Calendar:
+
+- [ ] Read upcoming events.
+- [ ] Check availability.
+- [ ] Create event after confirmation when important.
+- [ ] Modify/cancel event only after explicit confirmation.
+
+Contacts:
+
+- [ ] Search people by name/email/phone.
+- [ ] Help select recipients for email/calendar tasks.
+
+Drive:
+
+- [ ] Search metadata first.
+- [ ] Let the user select a file.
+- [ ] Read selected files only after the relevant scope and clear user intent.
+- [ ] State which file ARI is reading before summarizing.
+
+Gmail:
+
+- [ ] Search messages.
+- [ ] Summarize selected threads.
+- [ ] Prepare draft replies.
+- [ ] Send only after explicit confirmation.
+
+### Visible Memory
+
+Goal:
+
+- The user should be able to inspect and manage what ARI remembers.
+
+Checklist:
+
+- [ ] Add "What ARI remembers" panel.
+- [ ] Show memory files/text entries by user/workspace.
+- [ ] Let the user search memory.
+- [ ] Let the user delete or edit selected memory entries.
+- [ ] Let the user export memory.
+- [ ] Show source hints in answers: memory, Drive, email, calendar, or tool result.
+
+### Debug and Operations Backlog
+
+Use this when it helps diagnose real issues without cluttering the product too
+early.
+
+- [ ] Add tool health/status indicators.
+- [ ] Add visible retry action for failed tools.
+- [ ] Add non-secret error logs for Google integration.
+- [ ] Add timeout messages for long-running tools.
+- [ ] Add OAuth smoke test checklist with a controlled account.
+- [ ] Add production runbook notes when a new external integration ships.
+
+### Suggested Work Order
+
+1. Finish mobile app parity for Connected Apps.
+2. Build the ARI Working Overlay across web, desktop, and mobile.
+3. Add sensitive-action confirmation foundation.
+4. Add Drive metadata search.
+5. Add visible memory panel.
+6. Add Gmail read/draft/send in separate phases.
+
 ## Implementation Phases
 
 ### Phase 1: Connected Apps UI
