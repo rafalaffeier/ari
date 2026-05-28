@@ -996,6 +996,20 @@ impl MemoryClient {
         .await
     }
 
+    pub async fn search_google_drive_files(
+        &self,
+        query: &str,
+        page_size: u8,
+    ) -> Result<serde_json::Value, MemoryClientError> {
+        let url = format!("{}/api/v1/integrations/google/drive/files", self.backend_url);
+        let page_size_value = page_size.clamp(1, 25).to_string();
+        self.send_json(
+            self.authorized(self.http.get(url))?
+                .query(&[("q", query), ("page_size", page_size_value.as_str())]),
+        )
+        .await
+    }
+
     fn build(
         backend_url: String,
         access_token: Option<String>,

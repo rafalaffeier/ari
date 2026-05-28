@@ -13,12 +13,19 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.ai.clients.openai_client import complete, complete_text, synthesize_speech, transcribe_audio
 from app.ai.prompts.ari_system_prompt import ARI_SYSTEM_PROMPT, build_ari_chat_prompt
-from app.api.deps import require_workspace_access
+from app.api.deps import get_current_user, require_workspace_access
+from app.api.v1.endpoints.integrations import _valid_google_access_token
 from app.core.config import settings
 from app.core.database import get_db
 from app.memory import JournalEntry, JournalStore
 from app.memory.recall import RecallSource, build_memory_context
 from app.memory.threads import ThreadStore
+from app.models.user import User
+from app.services.google_drive import (
+    GOOGLE_DRIVE_METADATA_SCOPE,
+    GoogleDriveSearchResponse,
+    search_google_drive_files_with_token,
+)
 from app.models.usage import AiUsageLog
 from app.services.duffel import FlightSearchRequest, FlightSearchResponse, search_flights
 from app.services.tool_registry import get_tool
@@ -42,6 +49,7 @@ EXECUTABLE_TOOL_NAMES = {
     "read_journal_overview",
     "search_memory",
     "search_flights",
+    "search_google_drive_files",
 }
 
 _FLEXIBLE_TRAVEL_MARKERS = (
@@ -268,6 +276,8 @@ async def read_thread(
 async def chat(
     body: ChatRequest,
     workspace_id: uuid.UUID = Depends(require_workspace_access),
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
 ):
     if not settings.OPENAI_API_KEY.strip():
         raise HTTPException(
@@ -275,7 +285,7 @@ async def chat(
             detail="OPENAI_API_KEY is not configured. Add it to backend/.env.local and restart the backend.",
         )
 
-    return await _run_chat_pipeline(body, workspace_id)
+    return await _run_chat_pipeline(body, workspace_id, current_user=current_user, db=db)
 
 
 # Voice is a full duplex convenience endpoint: audio in, transcript + ARI reply
@@ -283,6 +293,7 @@ async def chat(
 @router.post("/{workspace_id}/voice", response_model=VoiceResponse)
 async def voice(
     workspace_id: uuid.UUID = Depends(require_workspace_access),
+    current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
     audio: UploadFile = File(...),
     language: str | None = Form(None),
@@ -336,6 +347,8 @@ async def voice(
             memory_limit=max(0, min(memory_limit, 20)),
         ),
         workspace_id,
+        current_user=current_user,
+        db=db,
     )
 
     audio_base64 = None
@@ -406,7 +419,12 @@ async def speech(
     )
 
 
-async def _run_chat_pipeline(body: ChatRequest, workspace_id: uuid.UUID) -> ChatResponse:
+async def _run_chat_pipeline(
+    body: ChatRequest,
+    workspace_id: uuid.UUID,
+    current_user: User | None = None,
+    db: AsyncSession | None = None,
+) -> ChatResponse:
     user_message = body.message.strip()
     store = get_store()
     thread_store = get_thread_store()
@@ -432,7 +450,14 @@ async def _run_chat_pipeline(body: ChatRequest, workspace_id: uuid.UUID) -> Chat
         else _recent_chat_context(store, str(workspace_id), limit=8)
     )
 
-    tool_reply = await _maybe_run_chat_tool(user_message, recent_context, memory_context, memory_results)
+    tool_reply = await _maybe_run_chat_tool(
+        user_message,
+        recent_context,
+        memory_context,
+        memory_results,
+        db=db,
+        current_user_id=current_user.id if current_user else None,
+    )
     if tool_reply is not None:
         if thread_id:
             thread_store.append_message(str(workspace_id), thread_id, "user", user_message, title_hint=user_message)
@@ -505,6 +530,8 @@ async def _maybe_run_chat_tool(
     recent_context: str,
     memory_context: str,
     memory_results: list[RecallSource],
+    db: AsyncSession | None = None,
+    current_user_id: uuid.UUID | None = None,
 ) -> str | None:
     if not _should_try_tool_orchestration(user_message, recent_context):
         return None
@@ -520,9 +547,12 @@ async def _maybe_run_chat_tool(
         response = _normalize_orchestration(json.loads(raw), memory_results)
     except Exception:
         return (
-            "Estoy intentando preparar una búsqueda real, pero no pude interpretar los datos de viaje ahora mismo. "
-            "Prueba con origen, destino y fecha en una frase, por ejemplo: vuelos de Valencia a Madrid mañana."
+            "Estoy intentando preparar una acción real, pero no pude interpretar los datos ahora mismo. "
+            "Prueba con una frase directa, por ejemplo: busca contratos en Drive, o vuelos de Valencia a Madrid mañana."
         )
+
+    if response.tool_name == "search_google_drive_files":
+        return await _run_google_drive_search_from_orchestration(response, db, current_user_id)
 
     if response.tool_name != "search_flights":
         return None
@@ -564,8 +594,105 @@ def _should_try_tool_orchestration(user_message: str, recent_context: str) -> bo
             "ida",
             "vuelta",
             "resultados",
+            "drive",
+            "archivo",
+            "archivos",
+            "documento",
+            "documentos",
+            "file",
+            "files",
+            "folder",
+            "carpeta",
         )
     )
+
+
+async def _run_google_drive_search_from_orchestration(
+    response: OrchestrateResponse,
+    db: AsyncSession | None,
+    current_user_id: uuid.UUID | None,
+) -> str | None:
+    if response.mode == "ask":
+        return response.reply
+    if response.mode != "tool_ready":
+        return None
+    if not db or not current_user_id:
+        return "Necesito que inicies sesión para buscar en tu Google Drive dentro de ARI."
+
+    query = str(response.params.get("query") or response.params.get("q") or "").strip()
+    try:
+        page_size = int(response.params.get("page_size") or 10)
+    except (TypeError, ValueError):
+        page_size = 10
+    page_size = max(1, min(page_size, 10))
+
+    try:
+        access_token = await _valid_google_access_token(
+            db,
+            current_user_id,
+            required_scope=GOOGLE_DRIVE_METADATA_SCOPE,
+        )
+        results = await search_google_drive_files_with_token(
+            access_token=access_token,
+            query=query,
+            page_size=page_size,
+        )
+    except HTTPException as exc:
+        return _format_google_drive_search_error(exc)
+    except Exception as exc:
+        return (
+            "Intenté buscar en Google Drive, pero la conexión falló. "
+            f"Detalle técnico: {exc}"
+        )
+    return _format_google_drive_search_results(query, results)
+
+
+def _format_google_drive_search_error(exc: HTTPException) -> str:
+    detail = exc.detail
+    if exc.status_code == status.HTTP_403_FORBIDDEN and isinstance(detail, dict):
+        if detail.get("code") == "needs_scope":
+            return (
+                "Necesito permiso de Google Drive para buscar archivos. "
+                "Abre Apps conectadas y pulsa Reconectar Google para autorizar Drive; "
+                "solo buscaré metadatos, no el contenido de tus archivos."
+            )
+    if exc.status_code == status.HTTP_403_FORBIDDEN:
+        return (
+            "Google todavía no está conectado para Drive. "
+            "Conecta Google desde Apps conectadas y vuelve a pedirme la búsqueda."
+        )
+    return f"Intenté buscar en Google Drive, pero Google devolvió un error: {detail}"
+
+
+def _format_google_drive_search_results(query: str, results: GoogleDriveSearchResponse) -> str:
+    subject = f'para "{query}"' if query else "recientes"
+    if not results.files:
+        return f"He buscado archivos de Drive {subject}, pero no encontré resultados visibles con el permiso actual."
+
+    lines = [f"Encontré {len(results.files)} archivo(s) de Drive {subject}:"]
+    for index, item in enumerate(results.files, start=1):
+        file_type = _format_drive_file_type(item.mimeType)
+        modified = (item.modifiedTime or "fecha no indicada").replace("T", " ")[:16]
+        owner = f" - {', '.join(item.owners[:2])}" if item.owners else ""
+        link = f" - {item.webViewLink}" if item.webViewLink else ""
+        lines.append(f"{index}. {item.name} - {file_type} - modificado {modified}{owner}{link}")
+    if results.nextPageToken:
+        lines.append("Hay más resultados disponibles; puedo seguir buscando si quieres.")
+    lines.append("Solo revisé metadatos de Drive, no el contenido interno de los archivos.")
+    return "\n".join(lines)
+
+
+def _format_drive_file_type(mime_type: str | None) -> str:
+    labels = {
+        "application/vnd.google-apps.document": "Google Docs",
+        "application/vnd.google-apps.spreadsheet": "Google Sheets",
+        "application/vnd.google-apps.presentation": "Google Slides",
+        "application/vnd.google-apps.folder": "Carpeta",
+        "application/pdf": "PDF",
+        "image/jpeg": "Imagen",
+        "image/png": "Imagen",
+    }
+    return labels.get(mime_type or "", mime_type or "tipo no indicado")
 
 
 def _format_flight_search_error(body: FlightSearchRequest, exc: HTTPException) -> str:
@@ -899,6 +1026,7 @@ If all required fields are present and the tool does not require confirmation, m
 For search_flights, Duffel requires fixed IATA airport or city codes for both origin and destination.
 Convert clear city/airport names to IATA codes when unambiguous, such as Barcelona -> BCN, Lisbon/Lisboa -> LIS, Berlin -> BER, Tokyo -> NRT or TYO when the user is flexible.
 If the user says "anywhere", "cualquier parte", "anywhere in the world", or leaves origin/destination flexible, ask for one fixed origin and one fixed destination before searching.
+For search_google_drive_files, search only file metadata. Use query for file names or topics the user mentions. If no specific query is given, leave query empty to list recent files. Do not claim to read file content.
 For map or directions requests, prepare open_browser_url when the place or route is clear:
 - Place/search URL: https://www.google.com/maps/search/?api=1&query={url_encoded_query}
 - Route URL: https://www.google.com/maps/dir/?api=1&origin={url_encoded_origin}&destination={url_encoded_destination}

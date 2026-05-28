@@ -10,18 +10,27 @@ except ModuleNotFoundError:
 if TestClient is not None:
     from fastapi import Path
 
-    from app.api.deps import require_workspace_access
+    from app.api.deps import get_current_user, require_workspace_access
     from app.core.config import settings
+    from app.core.database import get_db
     from app.main import app
     from app.api.v1.endpoints import messages
+    from app.models.user import User
 
 
 WORKSPACE_ID = uuid.UUID("11111111-1111-1111-1111-111111111111")
+USER_ID = uuid.UUID("22222222-2222-2222-2222-222222222222")
 
 
 if TestClient is not None:
     async def workspace_access_override(workspace_id: uuid.UUID = Path(...)):
         return workspace_id
+
+    async def current_user_override():
+        return User(id=USER_ID, email="test@example.com", password_hash="test")
+
+    async def db_override():
+        yield None
 
 
 @unittest.skipIf(TestClient is None, "FastAPI dependencies are not installed")
@@ -31,6 +40,8 @@ class MemoryApiTest(unittest.TestCase):
         self.original_memory_root = settings.MEMORY_ROOT
         settings.MEMORY_ROOT = self.tmp.name
         app.dependency_overrides[require_workspace_access] = workspace_access_override
+        app.dependency_overrides[get_current_user] = current_user_override
+        app.dependency_overrides[get_db] = db_override
         self.client = TestClient(app)
 
     def tearDown(self):

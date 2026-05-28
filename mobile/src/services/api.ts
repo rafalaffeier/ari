@@ -87,6 +87,20 @@ export type GoogleIntegrationStartResponse = {
   scopes: string[];
 };
 
+export type GoogleDriveFileMetadata = {
+  id: string;
+  name: string;
+  mimeType?: string | null;
+  webViewLink?: string | null;
+  modifiedTime?: string | null;
+  owners: string[];
+};
+
+export type GoogleDriveSearchResponse = {
+  files: GoogleDriveFileMetadata[];
+  nextPageToken?: string | null;
+};
+
 export type ActionResponse = {
   id: string;
   workspace_id: string;
@@ -121,7 +135,9 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
     let detail = "";
     try {
       const body = await res.json();
-      detail = body.detail ? `: ${body.detail}` : "";
+      if (body.detail) {
+        detail = `: ${typeof body.detail === "string" ? body.detail : JSON.stringify(body.detail)}`;
+      }
     } catch {
       detail = "";
     }
@@ -146,6 +162,11 @@ export const api = {
       token,
       body: JSON.stringify({ client, return_to: returnTo }),
     }),
+  searchGoogleDriveFiles: (token: string, query = "", pageSize = 10) =>
+    request<GoogleDriveSearchResponse>(
+      `/integrations/google/drive/files?q=${encodeURIComponent(query)}&page_size=${encodeURIComponent(String(pageSize))}`,
+      { token },
+    ),
   login: (email: string, password: string) =>
     request<AuthResponse>("/auth/login", {
       method: "POST",

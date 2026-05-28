@@ -97,6 +97,23 @@
     }
   },
   {
+    "name": "search_google_drive_files",
+    "version": "1.0",
+    "scope": "backend",
+    "permission_key": "google.drive.metadata.read",
+    "risk_level": "low",
+    "requires_confirmation": false,
+    "retryable": true,
+    "schema": {
+      "type": "object",
+      "required": [],
+      "properties": {
+        "query": {"type": "string"},
+        "page_size": {"type": "integer", "default": 10}
+      }
+    }
+  },
+  {
     "name": "create_google_calendar_event",
     "version": "1.0",
     "scope": "backend",

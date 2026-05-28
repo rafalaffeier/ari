@@ -406,14 +406,18 @@ Definition of done:
 
 Checklist:
 
-- [ ] Add/request `drive.metadata.readonly` scope.
-- [ ] Add backend Drive service.
-- [ ] Add Drive search/list endpoint.
-- [ ] Add `search_google_drive_files` tool.
-- [ ] Add "needs permission" response when Drive scope is missing.
-- [ ] Add chat status: `ARI esta buscando en Drive`.
-- [ ] Add tests for connected/missing-scope/error cases.
-- [ ] Update web, desktop, mobile app, and mobile responsive UI states.
+- [x] Register implementation checklist before code changes.
+- [x] Add/request `drive.metadata.readonly` scope.
+- [x] Add backend Drive metadata service.
+- [x] Add Drive search/list endpoint.
+- [x] Add `search_google_drive_files` tool.
+- [x] Add "needs permission" response when Drive scope is missing.
+- [x] Add chat status: `ARI esta buscando en Drive`.
+- [x] Add tests for connected/missing-scope/error cases.
+- [x] Update web, desktop, mobile app, and mobile responsive UI states.
+- [x] Run backend/web/mobile/desktop verification.
+- [x] Deploy to production and check `/ready`.
+- [x] Commit with Spanish summary.
 
 ### Gmail Phase
 

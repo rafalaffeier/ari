@@ -17,6 +17,11 @@ from app.core.database import get_db
 from app.core.token_crypto import decrypt_token, encrypt_token
 from app.models.integration import Integration
 from app.models.user import User
+from app.services.google_drive import (
+    GOOGLE_DRIVE_METADATA_SCOPE,
+    GoogleDriveSearchResponse,
+    search_google_drive_files_with_token,
+)
 
 router = APIRouter()
 
@@ -25,6 +30,7 @@ GOOGLE_INTEGRATION_STATE_TTL_MINUTES = 10
 GOOGLE_INTEGRATION_SCOPES = [
     "https://www.googleapis.com/auth/calendar.events",
     "https://www.googleapis.com/auth/contacts.readonly",
+    GOOGLE_DRIVE_METADATA_SCOPE,
 ]
 GOOGLE_CALENDAR_EVENTS_URL = "https://www.googleapis.com/calendar/v3/calendars/primary/events"
 GOOGLE_PEOPLE_CONNECTIONS_URL = "https://people.googleapis.com/v1/people/me/connections"
@@ -166,6 +172,27 @@ async def search_google_contacts(
     return {"contacts": matches[:20]}
 
 
+@router.get("/google/drive/files", response_model=GoogleDriveSearchResponse)
+async def search_google_drive_files(
+    q: str | None = Query(None, max_length=200),
+    page_size: int = Query(10, ge=1, le=25),
+    page_token: str | None = Query(None, max_length=500),
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    access_token = await _valid_google_access_token(db, current_user.id, required_scope=GOOGLE_DRIVE_METADATA_SCOPE)
+    try:
+        return await search_google_drive_files_with_token(
+            access_token=access_token,
+            query=q,
+            page_size=page_size,
+            page_token=page_token,
+        )
+    except httpx.HTTPStatusError as exc:
+        status_code = exc.response.status_code if exc.response else 502
+        raise HTTPException(status_code=status_code, detail="Google Drive metadata request failed") from exc
+
+
 @router.post("/google/start", response_model=GoogleIntegrationStartResponse)
 async def google_start(
     body: GoogleIntegrationStartRequest,
@@ -283,10 +310,15 @@ async def _get_google_integration(db: AsyncSession, user_id: uuid.UUID) -> Integ
     return result.scalar_one_or_none()
 
 
-async def _valid_google_access_token(db: AsyncSession, user_id: uuid.UUID) -> str:
+async def _valid_google_access_token(
+    db: AsyncSession,
+    user_id: uuid.UUID,
+    required_scope: str | None = None,
+) -> str:
     integration = await _get_google_integration(db, user_id)
     if not integration or integration.status != "connected" or not integration.refresh_token_encrypted:
         raise HTTPException(status_code=403, detail="Google integration is not connected")
+    _require_google_scope(integration, required_scope)
     now = datetime.now(timezone.utc)
     if integration.access_token_encrypted and integration.expires_at and integration.expires_at > now + timedelta(minutes=2):
         return decrypt_token(integration.access_token_encrypted)
@@ -317,7 +349,22 @@ async def _valid_google_access_token(db: AsyncSession, user_id: uuid.UUID) -> st
     integration.status = "connected"
     db.add(integration)
     await db.commit()
+    _require_google_scope(integration, required_scope)
     return access_token
+
+
+def _require_google_scope(integration: Integration, required_scope: str | None) -> None:
+    if not required_scope or required_scope in (integration.scopes or []):
+        return
+    raise HTTPException(
+        status_code=403,
+        detail={
+            "code": "needs_scope",
+            "provider": GOOGLE_PROVIDER,
+            "scope": required_scope,
+            "message": "Google Drive needs permission before ARI can search file metadata.",
+        },
+    )
 
 
 async def _upsert_google_integration(
