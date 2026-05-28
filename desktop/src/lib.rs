@@ -645,6 +645,18 @@ async fn create_backend_action(
 }
 
 #[tauri::command]
+async fn list_backend_actions(
+    state: State<'_, AppState>,
+    limit: Option<u32>,
+    include_confirmation_tokens: bool,
+) -> Result<Vec<ActionResponse>, DesktopError> {
+    let client = memory_client_from_state(&state).await?;
+    Ok(client
+        .list_actions(limit, include_confirmation_tokens)
+        .await?)
+}
+
+#[tauri::command]
 async fn confirm_backend_action(
     state: State<'_, AppState>,
     action_id: String,
@@ -1161,6 +1173,7 @@ pub fn run() {
             audit_tool_event,
             list_audit_events,
             create_backend_action,
+            list_backend_actions,
             confirm_backend_action,
             reject_backend_action,
             complete_backend_action,

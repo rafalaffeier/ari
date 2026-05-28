@@ -441,6 +441,29 @@ body.app-ready #auth-screen { display: none; }
 .connected-scope.ready span:last-child { color: #65d38b; }
 .connected-scope.next span:last-child { color: var(--gold); }
 .connected-note { margin: 14px 0 0; color: var(--t3); font-size: 11px; line-height: 1.45; }
+.pending-action-list { display: flex; flex-direction: column; gap: 10px; margin-top: 4px; }
+.pending-action {
+  border: 1px solid rgba(217,154,61,.16);
+  border-radius: 12px;
+  background: rgba(255,255,255,.025);
+  padding: 12px;
+}
+.pending-action-top { display: flex; justify-content: space-between; gap: 10px; align-items: flex-start; }
+.pending-action-title { color: var(--t1); font-size: 13px; font-weight: 650; line-height: 1.35; }
+.pending-action-risk { color: var(--gold); font-size: 10px; text-transform: uppercase; letter-spacing: 1px; flex-shrink: 0; }
+.pending-action-pre {
+  margin: 10px 0 0;
+  padding: 10px;
+  max-height: 160px;
+  overflow: auto;
+  border-radius: 8px;
+  background: rgba(0,0,0,.22);
+  color: var(--t2);
+  font: 11px/1.45 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  white-space: pre-wrap;
+}
+.pending-action-controls { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+.pending-action-empty { color: var(--t2); font-size: 12px; line-height: 1.45; padding: 10px 0; }
 @media (max-width: 560px) {
   .connected-modal { align-items: flex-end; padding: 10px; }
   .connected-panel { width: 100%; border-radius: 16px 16px 10px 10px; }
@@ -1080,6 +1103,10 @@ body.app-ready #auth-screen { display: none; }
         <i data-lucide="plug-zap"></i>
         <span class="sb-foot-label">Apps conectadas</span>
       </button>
+      <button class="sb-foot-row" type="button" onclick="openPendingActions()" title="Acciones pendientes">
+        <i data-lucide="shield-check"></i>
+        <span class="sb-foot-label">Acciones pendientes</span>
+      </button>
       <div class="sb-foot-row" onclick="logoutDesktop()" title="Cerrar sesión">
         <i data-lucide="rotate-ccw"></i>
         <span class="sb-foot-label">Cerrar sesión</span>
@@ -1249,6 +1276,30 @@ body.app-ready #auth-screen { display: none; }
   </main>
 </div>
 
+<div class="connected-modal" id="pending-actions-modal" aria-hidden="true" onclick="closePendingActionsFromBackdrop(event)">
+  <section class="connected-panel" role="dialog" aria-modal="true" aria-labelledby="pending-actions-title">
+    <div class="connected-head">
+      <div>
+        <h2 class="connected-title" id="pending-actions-title">Acciones pendientes</h2>
+        <p class="connected-sub">ARI nunca ejecuta acciones externas sensibles en silencio. Revisa cada acción antes de confirmarla.</p>
+      </div>
+      <button class="connected-close" type="button" onclick="closePendingActions()" title="Cerrar">
+        <i data-lucide="x"></i>
+      </button>
+    </div>
+    <div class="connected-body">
+      <div class="connected-actions">
+        <button class="connected-action" id="pending-refresh-btn" type="button" onclick="loadPendingActions()">
+          <i data-lucide="refresh-cw"></i>
+          <span>Actualizar</span>
+        </button>
+      </div>
+      <div class="pending-action-list" id="pending-action-list"></div>
+      <p class="connected-note">Enviar emails, crear eventos importantes y otras acciones externas siempre deben pasar por confirmación explícita.</p>
+    </div>
+  </section>
+</div>
+
 <div class="ari-work-overlay" id="ari-work-overlay" aria-hidden="true">
   <div class="ari-work-core" role="status" aria-live="polite">
     <div class="ari-work-mark">
@@ -1322,6 +1373,7 @@ let currentSpeechAudio = null;
 let ariBusy = false;
 let thinkingRow = null;
 let googleIntegration = { connected: false, scopes: [], status: 'unknown' };
+let pendingActions = [];
 
 const googleScopeCatalog = [
   { label: 'Agenda', scope: 'https://www.googleapis.com/auth/calendar.events', planned: false },
@@ -1425,6 +1477,145 @@ function closeConnectedAppsFromBackdrop(event) {
   if (event.target?.id === 'connected-apps-modal') closeConnectedApps();
 }
 
+function openPendingActions() {
+  const modal = document.getElementById('pending-actions-modal');
+  modal?.classList.add('open');
+  modal?.setAttribute('aria-hidden', 'false');
+  renderPendingActions();
+  loadPendingActions();
+}
+
+function closePendingActions() {
+  const modal = document.getElementById('pending-actions-modal');
+  modal?.classList.remove('open');
+  modal?.setAttribute('aria-hidden', 'true');
+}
+
+function closePendingActionsFromBackdrop(event) {
+  if (event.target?.id === 'pending-actions-modal') closePendingActions();
+}
+
+function actionLabel(action) {
+  const labels = {
+    create_google_calendar_event: 'Crear evento en Google Calendar',
+    create_calendar_event: 'Crear evento local',
+    send_gmail_message: 'Enviar email',
+    create_gmail_draft: 'Crear borrador de email',
+  };
+  return labels[action?.tool_name] || action?.tool_name || 'Acción pendiente';
+}
+
+function renderPendingActions(message = '') {
+  const list = document.getElementById('pending-action-list');
+  if (!list) return;
+  const pending = pendingActions.filter((action) => action.status === 'pending_confirmation');
+  if (message) {
+    list.innerHTML = `<div class="pending-action-empty">${escHtml(message)}</div>`;
+  } else if (!pending.length) {
+    list.innerHTML = '<div class="pending-action-empty">No hay acciones esperando confirmación.</div>';
+  } else {
+    list.innerHTML = pending.map((action) => `
+      <div class="pending-action">
+        <div class="pending-action-top">
+          <div class="pending-action-title">${escHtml(actionLabel(action))}</div>
+          <div class="pending-action-risk">${escHtml(action.risk_level || 'riesgo')}</div>
+        </div>
+        <pre class="pending-action-pre">${escHtml(JSON.stringify(action.params || {}, null, 2))}</pre>
+        <div class="pending-action-controls">
+          <button class="connected-action primary" type="button" onclick="confirmPendingAction('${escHtml(action.id)}')" ${action.confirmation_token ? '' : 'disabled'}>
+            <i data-lucide="check"></i><span>Confirmar</span>
+          </button>
+          <button class="connected-action" type="button" onclick="rejectPendingAction('${escHtml(action.id)}')">
+            <i data-lucide="x"></i><span>Rechazar</span>
+          </button>
+        </div>
+      </div>`).join('');
+  }
+  lucide.createIcons();
+}
+
+async function apiListActions() {
+  if (isDesktop) return await tauriInvoke('list_backend_actions', { limit: 50, includeConfirmationTokens: true });
+  const response = await fetch(apiPath(`/api/v1/actions/${ari.workspaceId}?limit=50&include_confirmation_tokens=true`), {
+    headers: authHeaders(),
+  });
+  if (!response.ok) throw new Error(await readError(response));
+  return await response.json();
+}
+
+async function apiConfirmAction(action) {
+  if (isDesktop) {
+    return await tauriInvoke('confirm_backend_action', {
+      actionId: action.id,
+      confirmationToken: action.confirmation_token,
+    });
+  }
+  const response = await fetch(apiPath(`/api/v1/actions/${ari.workspaceId}/${encodeURIComponent(action.id)}/confirm`), {
+    method: 'POST',
+    headers: authHeaders({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify({ confirmation_token: action.confirmation_token }),
+  });
+  if (!response.ok) throw new Error(await readError(response));
+  return await response.json();
+}
+
+async function apiRejectAction(actionId) {
+  if (isDesktop) return await tauriInvoke('reject_backend_action', { actionId });
+  const response = await fetch(apiPath(`/api/v1/actions/${ari.workspaceId}/${encodeURIComponent(actionId)}/reject`), {
+    method: 'POST',
+    headers: authHeaders(),
+  });
+  if (!response.ok) throw new Error(await readError(response));
+  return await response.json();
+}
+
+async function loadPendingActions() {
+  if (!hasSession()) {
+    renderPendingActions('Inicia sesión para revisar acciones pendientes.');
+    return;
+  }
+  document.getElementById('pending-refresh-btn')?.toggleAttribute('disabled', true);
+  setAriWorkOverlay(true, 'ARI está revisando acciones');
+  try {
+    pendingActions = await apiListActions();
+    renderPendingActions();
+  } catch (error) {
+    renderPendingActions(commandError(error));
+  } finally {
+    document.getElementById('pending-refresh-btn')?.toggleAttribute('disabled', false);
+    setAriWorkOverlay(false);
+  }
+}
+
+async function confirmPendingAction(actionId) {
+  const action = pendingActions.find((item) => item.id === actionId);
+  if (!action?.confirmation_token) {
+    renderPendingActions('Esta acción necesita recrear su confirmación.');
+    return;
+  }
+  setAriWorkOverlay(true, 'ARI está confirmando la acción');
+  try {
+    await apiConfirmAction(action);
+    await loadPendingActions();
+  } catch (error) {
+    renderPendingActions(commandError(error));
+  } finally {
+    setAriWorkOverlay(false);
+  }
+}
+
+async function rejectPendingAction(actionId) {
+  setAriWorkOverlay(true, 'ARI está rechazando la acción');
+  try {
+    await apiRejectAction(actionId);
+    await loadPendingActions();
+  } catch (error) {
+    renderPendingActions(commandError(error));
+  } finally {
+    setAriWorkOverlay(false);
+  }
+}
+
 async function apiGoogleIntegrationStatus() {
   if (isDesktop) return await tauriInvoke('google_integration_status');
   const response = await fetch(apiPath('/api/v1/integrations/google/status'), {
@@ -1503,7 +1694,10 @@ async function connectGoogleIntegration() {
 }
 
 document.addEventListener('keydown', (event) => {
-  if (event.key === 'Escape') closeConnectedApps();
+  if (event.key === 'Escape') {
+    closeConnectedApps();
+    closePendingActions();
+  }
 });
 
 function setVoiceButtonRecording(recording) {

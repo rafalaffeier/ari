@@ -87,6 +87,23 @@ export type GoogleIntegrationStartResponse = {
   scopes: string[];
 };
 
+export type ActionResponse = {
+  id: string;
+  workspace_id: string;
+  user_id: string;
+  device_id?: string | null;
+  tool_name: string;
+  tool_version: string;
+  params: Record<string, unknown>;
+  status: string;
+  risk_level: string;
+  requires_confirmation: boolean;
+  confirmation_token?: string | null;
+  confirmed_at?: string | null;
+  result?: Record<string, unknown> | null;
+  created_at: string;
+};
+
 type RequestOptions = RequestInit & {
   token?: string | null;
 };
@@ -151,7 +168,22 @@ export const api = {
       body: JSON.stringify({ token, password }),
     }),
   getWorkspaces: (token: string) => request<Workspace[]>("/workspaces/", { token }),
-  getActions: (token: string) => request<any[]>("/actions/", { token }),
+  getActions: (token: string, workspaceId: string, includeConfirmationTokens = false, limit = 50) =>
+    request<ActionResponse[]>(
+      `/actions/${workspaceId}?limit=${limit}&include_confirmation_tokens=${includeConfirmationTokens ? "true" : "false"}`,
+      { token },
+    ),
+  confirmAction: (token: string, workspaceId: string, actionId: string, confirmationToken: string) =>
+    request<ActionResponse>(`/actions/${workspaceId}/${encodeURIComponent(actionId)}/confirm`, {
+      method: "POST",
+      token,
+      body: JSON.stringify({ confirmation_token: confirmationToken }),
+    }),
+  rejectAction: (token: string, workspaceId: string, actionId: string) =>
+    request<ActionResponse>(`/actions/${workspaceId}/${encodeURIComponent(actionId)}/reject`, {
+      method: "POST",
+      token,
+    }),
   getTimeline: (token: string, workspaceId: string, limit = 30) =>
     request<TimelineDay[]>(`/memory/${workspaceId}/timeline?limit=${limit}`, { token }),
   getJournalDay: (token: string, workspaceId: string, day: string) =>

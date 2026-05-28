@@ -543,6 +543,27 @@ Checklist:
 - [ ] Add a "never execute silently" rule to tool execution.
 - [ ] Add tests for denied confirmation and approved confirmation paths.
 
+Current implementation checklist:
+
+- [x] Add/update this checklist before implementation starts.
+- [x] Define done: pending sensitive actions are visible and can be confirmed or
+  rejected from web, desktop, and mobile app before execution.
+- [x] Web: add pending actions entry point.
+- [x] Web: list pending confirmation actions.
+- [x] Web: show structured preview of tool name, risk, and params.
+- [x] Web: confirm/reject via existing `/api/v1/actions` endpoints.
+- [x] Desktop: add pending actions entry point.
+- [x] Desktop: list pending confirmation actions.
+- [x] Desktop: confirm/reject through native backend action commands.
+- [x] Mobile app: add pending actions entry point.
+- [x] Mobile app: list pending confirmation actions.
+- [x] Mobile app: confirm/reject via mobile API service.
+- [x] Mobile responsive: verify pending actions panel layout.
+- [x] Run web/desktop inline JS syntax checks.
+- [x] Run mobile typecheck.
+- [x] Deploy web if changed.
+- [x] Commit completed scope.
+
 ### Google Improvements by Phase
 
 Calendar:

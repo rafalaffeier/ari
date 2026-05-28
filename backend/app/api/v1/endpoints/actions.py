@@ -112,6 +112,7 @@ async def create_action(
 @router.get("/{workspace_id}", response_model=list[ActionOut])
 async def list_actions(
     limit: int = 50,
+    include_confirmation_tokens: bool = False,
     workspace_id: uuid.UUID = Depends(require_workspace_access),
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
@@ -123,7 +124,15 @@ async def list_actions(
         .order_by(Action.created_at.desc())
         .limit(bounded_limit)
     )
-    return [_action_out(action) for action in result.scalars()]
+    actions = list(result.scalars())
+    token_by_action: dict[uuid.UUID, str] = {}
+    if include_confirmation_tokens:
+        for action in actions:
+            if action.status == ActionStatus.pending_confirmation and action.requires_confirmation:
+                token_by_action[action.id] = await _renew_confirmation_token(db, action)
+        if token_by_action:
+            await db.commit()
+    return [_action_out(action, token_by_action.get(action.id)) for action in actions]
 
 
 @router.get("/{workspace_id}/{action_id}", response_model=ActionOut)
@@ -251,6 +260,24 @@ async def _validate_device(
 
 def _hash_confirmation_token(token: str) -> str:
     return hashlib.sha256(token.encode("utf-8")).hexdigest()
+
+
+async def _renew_confirmation_token(db: AsyncSession, action: Action) -> str:
+    raw_token = secrets.token_urlsafe(32)
+    token = await db.get(ConfirmationToken, action.id)
+    if token:
+        token.token_hash = _hash_confirmation_token(raw_token)
+        token.expires_at = datetime.now(timezone.utc) + timedelta(minutes=5)
+        token.used_at = None
+    else:
+        db.add(
+            ConfirmationToken(
+                action_id=action.id,
+                token_hash=_hash_confirmation_token(raw_token),
+                expires_at=datetime.now(timezone.utc) + timedelta(minutes=5),
+            )
+        )
+    return raw_token
 
 
 def _enum_value(value) -> str:

@@ -21,6 +21,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import {
   api,
+  ActionResponse,
   ConversationMessage,
   GoogleIntegrationStatus,
   JournalOverview,
@@ -500,6 +501,10 @@ export default function App() {
   const [googleIntegrationBusy, setGoogleIntegrationBusy] = useState(false);
   const [googleIntegrationMessage, setGoogleIntegrationMessage] = useState("");
   const [ariWorkOverlay, setAriWorkOverlay] = useState({ active: false, label: "ARI está pensando" });
+  const [pendingActionsOpen, setPendingActionsOpen] = useState(false);
+  const [pendingActions, setPendingActions] = useState<ActionResponse[]>([]);
+  const [pendingActionsBusy, setPendingActionsBusy] = useState(false);
+  const [pendingActionsMessage, setPendingActionsMessage] = useState("");
   const ariWorkPulse = useRef(new Animated.Value(0)).current;
   const uiLanguage = translationLanguage(language);
   const t = STRINGS[uiLanguage];
@@ -535,6 +540,21 @@ export default function App() {
       uiLanguage === "es"
         ? "Espera un momento. ARI esta trabajando en tu solicitud."
         : "One moment. ARI is working on your request.",
+  };
+  const actionText = {
+    title: uiLanguage === "es" ? "Acciones pendientes" : "Pending actions",
+    subtitle:
+      uiLanguage === "es"
+        ? "ARI nunca ejecuta acciones externas sensibles en silencio. Revisa cada accion antes de confirmarla."
+        : "ARI never runs sensitive external actions silently. Review each action before confirming.",
+    refresh: uiLanguage === "es" ? "Actualizar" : "Refresh",
+    confirm: uiLanguage === "es" ? "Confirmar" : "Confirm",
+    reject: uiLanguage === "es" ? "Rechazar" : "Reject",
+    empty: uiLanguage === "es" ? "No hay acciones esperando confirmacion." : "No actions are waiting for confirmation.",
+    note:
+      uiLanguage === "es"
+        ? "Emails, eventos importantes y acciones externas siempre requieren confirmacion explicita."
+        : "Emails, important events, and external actions always require explicit confirmation.",
   };
   const authText = {
     forgotPassword: uiLanguage === "es" ? "Olvidaste tu contrasena?" : "Forgot password?",
@@ -758,9 +778,72 @@ export default function App() {
     return "ARI está pensando";
   }
 
+  function mobileActionLabel(action: ActionResponse) {
+    const labels: Record<string, string> = {
+      create_google_calendar_event: "Crear evento en Google Calendar",
+      create_calendar_event: "Crear evento local",
+      send_gmail_message: "Enviar email",
+      create_gmail_draft: "Crear borrador de email",
+    };
+    return labels[action.tool_name] || action.tool_name || "Acción pendiente";
+  }
+
   async function openConnectedApps() {
     setConnectedAppsOpen(true);
     await refreshGoogleIntegrationStatus(true);
+  }
+
+  async function openPendingActions() {
+    setPendingActionsOpen(true);
+    await loadPendingActions();
+  }
+
+  async function loadPendingActions() {
+    if (!token || !workspaceId) return;
+    setPendingActionsBusy(true);
+    setPendingActionsMessage("");
+    setMobileWorkOverlay(true, "ARI está revisando acciones");
+    try {
+      const actions = await api.getActions(token, workspaceId, true);
+      setPendingActions(actions);
+      setIsOffline(false);
+    } catch (error) {
+      setIsOffline(true);
+      setPendingActionsMessage(error instanceof Error ? error.message : "No se pudieron cargar acciones");
+    } finally {
+      setPendingActionsBusy(false);
+      setMobileWorkOverlay(false);
+    }
+  }
+
+  async function confirmPendingAction(action: ActionResponse) {
+    if (!token || !workspaceId || !action.confirmation_token) return;
+    setPendingActionsBusy(true);
+    setMobileWorkOverlay(true, "ARI está confirmando la acción");
+    try {
+      await api.confirmAction(token, workspaceId, action.id, action.confirmation_token);
+      await loadPendingActions();
+    } catch (error) {
+      setPendingActionsMessage(error instanceof Error ? error.message : "No se pudo confirmar");
+    } finally {
+      setPendingActionsBusy(false);
+      setMobileWorkOverlay(false);
+    }
+  }
+
+  async function rejectPendingAction(action: ActionResponse) {
+    if (!token || !workspaceId) return;
+    setPendingActionsBusy(true);
+    setMobileWorkOverlay(true, "ARI está rechazando la acción");
+    try {
+      await api.rejectAction(token, workspaceId, action.id);
+      await loadPendingActions();
+    } catch (error) {
+      setPendingActionsMessage(error instanceof Error ? error.message : "No se pudo rechazar");
+    } finally {
+      setPendingActionsBusy(false);
+      setMobileWorkOverlay(false);
+    }
   }
 
   async function refreshGoogleIntegrationStatus(silent = false) {
@@ -1161,6 +1244,9 @@ export default function App() {
         <Pressable onPress={openConnectedApps} style={[styles.railButton, connectedAppsOpen && styles.railButtonActive]}>
           <Text style={styles.railIcon}>⌁</Text>
         </Pressable>
+        <Pressable onPress={openPendingActions} style={[styles.railButton, pendingActionsOpen && styles.railButtonActive]}>
+          <Text style={styles.railIcon}>◇</Text>
+        </Pressable>
         <View style={styles.railSpacer} />
         <Pressable onPress={signOut} style={styles.railSmallButton}><Text style={styles.railSmallIcon}>↻</Text></Pressable>
       </View>
@@ -1311,6 +1397,78 @@ export default function App() {
             </View>
 
             <Text style={styles.connectedNote}>{connectedText.privacy}</Text>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal animationType="fade" transparent visible={pendingActionsOpen} onRequestClose={() => setPendingActionsOpen(false)}>
+        <View style={styles.connectedOverlay}>
+          <Pressable style={styles.connectedBackdrop} onPress={() => setPendingActionsOpen(false)} />
+          <View style={styles.connectedSheet}>
+            <View style={styles.connectedHeader}>
+              <View style={styles.connectedTitleWrap}>
+                <Text style={styles.connectedTitle}>{actionText.title}</Text>
+                <Text style={styles.connectedSubtitle}>{actionText.subtitle}</Text>
+              </View>
+              <Pressable onPress={() => setPendingActionsOpen(false)} style={styles.connectedCloseButton}>
+                <Text style={styles.connectedCloseText}>×</Text>
+              </Pressable>
+            </View>
+
+            <View style={styles.connectedActions}>
+              <Pressable
+                disabled={pendingActionsBusy}
+                onPress={loadPendingActions}
+                style={[styles.connectedActionSecondary, pendingActionsBusy && styles.connectedActionDisabled]}
+              >
+                <Text style={styles.connectedActionSecondaryText}>{actionText.refresh}</Text>
+              </Pressable>
+            </View>
+
+            {pendingActionsBusy && (
+              <View style={styles.connectedLoading}>
+                <ActivityIndicator color="#D99A3D" />
+                <Text style={styles.connectedLoadingText}>{t.working}</Text>
+              </View>
+            )}
+
+            {pendingActionsMessage ? <Text style={styles.pendingActionEmpty}>{pendingActionsMessage}</Text> : null}
+
+            <ScrollView style={styles.pendingActionScroll} showsVerticalScrollIndicator={false}>
+              {pendingActions.filter((action) => action.status === "pending_confirmation").length ? (
+                pendingActions
+                  .filter((action) => action.status === "pending_confirmation")
+                  .map((action) => (
+                    <View key={action.id} style={styles.pendingActionCard}>
+                      <View style={styles.pendingActionTop}>
+                        <Text style={styles.pendingActionTitle}>{mobileActionLabel(action)}</Text>
+                        <Text style={styles.pendingActionRisk}>{action.risk_level}</Text>
+                      </View>
+                      <Text style={styles.pendingActionParams}>{JSON.stringify(action.params || {}, null, 2)}</Text>
+                      <View style={styles.pendingActionControls}>
+                        <Pressable
+                          disabled={pendingActionsBusy || !action.confirmation_token}
+                          onPress={() => confirmPendingAction(action)}
+                          style={[styles.connectedActionPrimary, (pendingActionsBusy || !action.confirmation_token) && styles.connectedActionDisabled]}
+                        >
+                          <Text style={styles.connectedActionPrimaryText}>{actionText.confirm}</Text>
+                        </Pressable>
+                        <Pressable
+                          disabled={pendingActionsBusy}
+                          onPress={() => rejectPendingAction(action)}
+                          style={[styles.connectedActionSecondary, pendingActionsBusy && styles.connectedActionDisabled]}
+                        >
+                          <Text style={styles.connectedActionSecondaryText}>{actionText.reject}</Text>
+                        </Pressable>
+                      </View>
+                    </View>
+                  ))
+              ) : (
+                <Text style={styles.pendingActionEmpty}>{actionText.empty}</Text>
+              )}
+            </ScrollView>
+
+            <Text style={styles.connectedNote}>{actionText.note}</Text>
           </View>
         </View>
       </Modal>
@@ -2418,6 +2576,58 @@ const styles = StyleSheet.create({
     color: "#6F604D",
     fontSize: 12,
     lineHeight: 18,
+  },
+  pendingActionScroll: {
+    maxHeight: 330,
+  },
+  pendingActionCard: {
+    backgroundColor: "rgba(255, 255, 255, 0.025)",
+    borderColor: "rgba(217, 154, 61, 0.16)",
+    borderRadius: 12,
+    borderWidth: 1,
+    gap: 10,
+    marginBottom: 10,
+    padding: 12,
+  },
+  pendingActionTop: {
+    alignItems: "flex-start",
+    flexDirection: "row",
+    gap: 10,
+    justifyContent: "space-between",
+  },
+  pendingActionTitle: {
+    color: "#F4EFE7",
+    flex: 1,
+    fontSize: 14,
+    fontWeight: "700",
+    lineHeight: 19,
+  },
+  pendingActionRisk: {
+    color: "#D99A3D",
+    fontSize: 10,
+    fontWeight: "700",
+    letterSpacing: 1,
+    textTransform: "uppercase",
+  },
+  pendingActionParams: {
+    backgroundColor: "rgba(0, 0, 0, 0.22)",
+    borderRadius: 8,
+    color: "#A89A88",
+    fontFamily: Platform.select({ ios: "Menlo", android: "monospace", default: "monospace" }),
+    fontSize: 11,
+    lineHeight: 16,
+    padding: 10,
+  },
+  pendingActionControls: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+  },
+  pendingActionEmpty: {
+    color: "#A89A88",
+    fontSize: 13,
+    lineHeight: 19,
+    paddingVertical: 8,
   },
   ariWorkOverlay: {
     alignItems: "center",

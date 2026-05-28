@@ -755,6 +755,25 @@ impl MemoryClient {
         .await
     }
 
+    pub async fn list_actions(
+        &self,
+        limit: Option<u32>,
+        include_confirmation_tokens: bool,
+    ) -> Result<Vec<ActionResponse>, MemoryClientError> {
+        let url = format!("{}/api/v1/actions/{}", self.backend_url, self.workspace_id);
+        let limit_value = limit.unwrap_or(50).to_string();
+        let include_value = if include_confirmation_tokens {
+            "true"
+        } else {
+            "false"
+        };
+        self.send_json(self.authorized(self.http.get(url))?.query(&[
+            ("limit", limit_value.as_str()),
+            ("include_confirmation_tokens", include_value),
+        ]))
+        .await
+    }
+
     pub async fn confirm_action(
         &self,
         action_id: &str,
