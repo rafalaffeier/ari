@@ -497,6 +497,7 @@ export default function App() {
   const [chatBusy, setChatBusy] = useState(false);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [connectedAppsOpen, setConnectedAppsOpen] = useState(false);
+  const [memoryPanelOpen, setMemoryPanelOpen] = useState(false);
   const [googleIntegration, setGoogleIntegration] = useState<GoogleIntegrationStatus | null>(null);
   const [googleIntegrationBusy, setGoogleIntegrationBusy] = useState(false);
   const [googleIntegrationMessage, setGoogleIntegrationMessage] = useState("");
@@ -796,6 +797,14 @@ export default function App() {
   async function openPendingActions() {
     setPendingActionsOpen(true);
     await loadPendingActions();
+  }
+
+  async function openVisibleMemory() {
+    setMemoryPanelOpen(true);
+    if (token && workspaceId) {
+      await refreshTimeline();
+      await loadDay(selectedDay);
+    }
   }
 
   async function loadPendingActions() {
@@ -1247,6 +1256,9 @@ export default function App() {
         <Pressable onPress={openPendingActions} style={[styles.railButton, pendingActionsOpen && styles.railButtonActive]}>
           <Text style={styles.railIcon}>◇</Text>
         </Pressable>
+        <Pressable onPress={openVisibleMemory} style={[styles.railButton, memoryPanelOpen && styles.railButtonActive]}>
+          <Text style={styles.railIcon}>◌</Text>
+        </Pressable>
         <View style={styles.railSpacer} />
         <Pressable onPress={signOut} style={styles.railSmallButton}><Text style={styles.railSmallIcon}>↻</Text></Pressable>
       </View>
@@ -1312,7 +1324,7 @@ export default function App() {
             {sheetOpen && (
               <View style={styles.mobileSheetTabs}>
                 <Text style={[styles.mobileTab, styles.mobileTabActive]}>○ Texto</Text>
-                <Text style={styles.mobileTab}>Memoria</Text>
+                <Text onPress={openVisibleMemory} style={styles.mobileTab}>Memoria</Text>
                 <Text style={styles.mobileTab}>Actividad</Text>
               </View>
             )}
@@ -1469,6 +1481,80 @@ export default function App() {
             </ScrollView>
 
             <Text style={styles.connectedNote}>{actionText.note}</Text>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal animationType="fade" transparent visible={memoryPanelOpen} onRequestClose={() => setMemoryPanelOpen(false)}>
+        <View style={styles.connectedOverlay}>
+          <Pressable style={styles.connectedBackdrop} onPress={() => setMemoryPanelOpen(false)} />
+          <View style={styles.connectedSheet}>
+            <View style={styles.connectedHeader}>
+              <View style={styles.connectedTitleWrap}>
+                <Text style={styles.connectedTitle}>Memoria de ARI</Text>
+                <Text style={styles.connectedSubtitle}>Recuerdos guardados en Markdown/text files para este workspace.</Text>
+              </View>
+              <Pressable onPress={() => setMemoryPanelOpen(false)} style={styles.connectedCloseButton}>
+                <Text style={styles.connectedCloseText}>×</Text>
+              </Pressable>
+            </View>
+
+            <View style={styles.connectedActions}>
+              <Pressable disabled={isBusy} onPress={refreshTimeline} style={[styles.connectedActionSecondary, isBusy && styles.connectedActionDisabled]}>
+                <Text style={styles.connectedActionSecondaryText}>Actualizar</Text>
+              </Pressable>
+            </View>
+
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.memoryDayStrip}>
+              {timeline.length ? (
+                timeline.map((day) => (
+                  <Pressable
+                    key={day.date}
+                    onPress={() => loadDay(day.date)}
+                    style={[styles.memoryDayPill, selectedDay === day.date && styles.memoryDayPillActive]}
+                  >
+                    <Text style={[styles.memoryDayPillDate, selectedDay === day.date && styles.memoryDayPillTextActive]}>{day.date}</Text>
+                    <Text style={styles.memoryDayPillMeta}>{sectionSummary(day.sections) || `${day.entry_count} entradas`}</Text>
+                  </Pressable>
+                ))
+              ) : (
+                <Text style={styles.pendingActionEmpty}>Todavía no hay días guardados.</Text>
+              )}
+            </ScrollView>
+
+            <Overview overview={overview} sections={SECTIONS} />
+
+            <View style={styles.memorySearchRow}>
+              <TextInput
+                onChangeText={setQuery}
+                onSubmitEditing={search}
+                placeholder="Buscar en memoria..."
+                placeholderTextColor="rgba(168,154,136,0.55)"
+                style={[styles.input, styles.memorySearchInput]}
+                value={query}
+              />
+              <Pressable disabled={isBusy || !query.trim()} onPress={search} style={[styles.connectedActionPrimary, (isBusy || !query.trim()) && styles.connectedActionDisabled]}>
+                <Text style={styles.connectedActionPrimaryText}>Buscar</Text>
+              </Pressable>
+            </View>
+
+            <ScrollView style={styles.memoryContentScroll} showsVerticalScrollIndicator={false}>
+              <Text style={styles.markdown}>{dayContent || "Abre un día para ver la memoria."}</Text>
+              {results.length ? (
+                <View style={styles.memoryResultList}>
+                  {results.map((item) => (
+                    <View key={`${item.date}-${item.line_number}`} style={styles.memoryResultItem}>
+                      <Text style={styles.memoryResultTitle}>{item.date} · línea {item.line_number}</Text>
+                      <Text style={styles.resultLine}>{item.line}</Text>
+                    </View>
+                  ))}
+                </View>
+              ) : (
+                <Text style={styles.pendingActionEmpty}>Busca algo para ver coincidencias.</Text>
+              )}
+            </ScrollView>
+
+            <Text style={styles.connectedNote}>Esta vista lee memoria en Markdown. No mueve el historial a PostgreSQL.</Text>
           </View>
         </View>
       </Modal>
@@ -2576,6 +2662,67 @@ const styles = StyleSheet.create({
     color: "#6F604D",
     fontSize: 12,
     lineHeight: 18,
+  },
+  memoryDayStrip: {
+    maxHeight: 82,
+  },
+  memoryDayPill: {
+    backgroundColor: "rgba(255, 255, 255, 0.025)",
+    borderColor: "rgba(217, 154, 61, 0.16)",
+    borderRadius: 12,
+    borderWidth: 1,
+    justifyContent: "center",
+    marginRight: 8,
+    minHeight: 64,
+    minWidth: 138,
+    paddingHorizontal: 12,
+  },
+  memoryDayPillActive: {
+    backgroundColor: "rgba(217, 154, 61, 0.10)",
+    borderColor: "rgba(217, 154, 61, 0.42)",
+  },
+  memoryDayPillDate: {
+    color: "#F4EFE7",
+    fontSize: 13,
+    fontWeight: "700",
+  },
+  memoryDayPillMeta: {
+    color: "#A89A88",
+    fontSize: 10,
+    marginTop: 4,
+  },
+  memoryDayPillTextActive: {
+    color: "#F0B85A",
+  },
+  memorySearchRow: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: 8,
+  },
+  memorySearchInput: {
+    flex: 1,
+    fontSize: 13,
+    minHeight: 44,
+  },
+  memoryContentScroll: {
+    maxHeight: 330,
+  },
+  memoryResultList: {
+    gap: 8,
+    marginTop: 10,
+  },
+  memoryResultItem: {
+    backgroundColor: "rgba(255, 255, 255, 0.025)",
+    borderColor: "rgba(217, 154, 61, 0.14)",
+    borderRadius: 10,
+    borderWidth: 1,
+    padding: 10,
+  },
+  memoryResultTitle: {
+    color: "#F4EFE7",
+    fontSize: 12,
+    fontWeight: "700",
+    marginBottom: 4,
   },
   pendingActionScroll: {
     maxHeight: 330,

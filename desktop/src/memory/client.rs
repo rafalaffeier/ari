@@ -116,6 +116,14 @@ pub struct SearchResult {
     pub line: String,
 }
 
+#[derive(Debug, Deserialize, Serialize)]
+pub struct TimelineDayResponse {
+    pub date: String,
+    pub path: String,
+    pub entry_count: u32,
+    pub sections: serde_json::Value,
+}
+
 #[derive(Debug, Serialize)]
 pub struct ChatRequest<'a> {
     pub message: &'a str,
@@ -499,6 +507,22 @@ impl MemoryClient {
             self.backend_url, self.workspace_id, date
         );
         self.send_json(self.authorized(self.http.get(url))?).await
+    }
+
+    pub async fn read_timeline(
+        &self,
+        limit: Option<u32>,
+    ) -> Result<Vec<TimelineDayResponse>, MemoryClientError> {
+        let url = format!(
+            "{}/api/v1/memory/{}/timeline",
+            self.backend_url, self.workspace_id
+        );
+        let limit_value = limit.unwrap_or(30).to_string();
+        self.send_json(
+            self.authorized(self.http.get(url))?
+                .query(&[("limit", limit_value.as_str())]),
+        )
+        .await
     }
 
     pub async fn search_memory(

@@ -365,6 +365,15 @@ async fn read_journal_overview(
 }
 
 #[tauri::command]
+async fn list_memory_timeline(
+    state: State<'_, AppState>,
+    limit: Option<u32>,
+) -> Result<Vec<memory::client::TimelineDayResponse>, DesktopError> {
+    let client = memory_client_from_state(&state).await?;
+    Ok(client.read_timeline(limit).await?)
+}
+
+#[tauri::command]
 async fn search_memory(
     state: State<'_, AppState>,
     query: String,
@@ -1168,6 +1177,7 @@ pub fn run() {
             append_journal_entry,
             read_journal_day,
             read_journal_overview,
+            list_memory_timeline,
             search_memory,
             chat_with_ari,
             voice_with_ari,

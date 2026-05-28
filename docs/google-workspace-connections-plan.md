@@ -611,6 +611,21 @@ Checklist:
 - [ ] Let the user export memory.
 - [ ] Show source hints in answers: memory, Drive, email, calendar, or tool result.
 
+Current implementation checklist:
+
+- [x] Add/update this checklist before implementation starts.
+- [x] Define done: user can open a memory panel, inspect recent Markdown memory
+  days, open a day, and search memory from web, desktop, mobile app, and mobile responsive.
+- [x] Web: add "Memoria de ARI" panel using existing memory endpoints.
+- [x] Desktop: add matching panel and native memory timeline command.
+- [x] Mobile app: add matching memory modal reusing existing timeline/day/search APIs.
+- [x] Keep memory source of truth in Markdown/text files.
+- [x] Run web/desktop inline JS checks.
+- [x] Run mobile typecheck.
+- [x] Run desktop cargo check.
+- [x] Deploy web if changed and check `/ready`.
+- [x] Commit completed scope with Spanish summary.
+
 ### Debug and Operations Backlog
 
 Use this when it helps diagnose real issues without cluttering the product too

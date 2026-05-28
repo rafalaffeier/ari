@@ -464,10 +464,48 @@ body.app-ready #auth-screen { display: none; }
 }
 .pending-action-controls { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
 .pending-action-empty { color: var(--t2); font-size: 12px; line-height: 1.45; padding: 10px 0; }
+.memory-panel { width: min(720px, calc(100vw - 28px)); }
+.memory-layout { display: grid; grid-template-columns: 190px minmax(0, 1fr); gap: 14px; }
+.memory-days { display: flex; flex-direction: column; gap: 8px; max-height: 420px; overflow: auto; }
+.memory-day {
+  min-height: 54px; padding: 9px 10px; border-radius: 10px;
+  border: 1px solid rgba(217,154,61,.15);
+  background: rgba(255,255,255,.025);
+  color: var(--t2); text-align: left; cursor: pointer;
+}
+.memory-day.active { border-color: rgba(217,154,61,.45); background: rgba(217,154,61,.08); color: var(--t1); }
+.memory-day strong { display: block; font-size: 12px; color: inherit; }
+.memory-day span { display: block; margin-top: 4px; font-size: 10px; color: var(--t3); }
+.memory-detail { min-width: 0; display: flex; flex-direction: column; gap: 10px; }
+.memory-search { display: flex; gap: 8px; align-items: center; }
+.memory-input {
+  min-width: 0; flex: 1; height: 36px; border-radius: 999px;
+  border: 1px solid rgba(217,154,61,.22); background: rgba(0,0,0,.18);
+  color: var(--t1); padding: 0 13px; font: 12px var(--font-ui); outline: none;
+}
+.memory-overview { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.memory-chip {
+  border: 1px solid rgba(217,154,61,.14); border-radius: 10px;
+  background: rgba(255,255,255,.025); padding: 8px 10px;
+}
+.memory-chip span { display: block; color: var(--t3); font-size: 10px; }
+.memory-chip strong { color: var(--t1); font-size: 16px; }
+.memory-markdown, .memory-results {
+  max-height: 220px; overflow: auto; border-radius: 10px;
+  border: 1px solid rgba(217,154,61,.14); background: rgba(0,0,0,.20);
+  color: var(--t2); padding: 12px; font: 11px/1.5 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  white-space: pre-wrap;
+}
+.memory-result { padding: 8px 0; border-bottom: 1px solid rgba(217,154,61,.10); }
+.memory-result:last-child { border-bottom: 0; }
+.memory-result strong { display: block; color: var(--t1); font: 600 12px var(--font-ui); margin-bottom: 4px; }
 @media (max-width: 560px) {
   .connected-modal { align-items: flex-end; padding: 10px; }
   .connected-panel { width: 100%; border-radius: 16px 16px 10px 10px; }
   .connected-scope-grid { grid-template-columns: 1fr; }
+  .memory-layout { grid-template-columns: 1fr; }
+  .memory-days { max-height: 150px; }
+  .memory-overview { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
 /* ── MAIN CHAT AREA ───────────────────────────── */
@@ -1107,6 +1145,10 @@ body.app-ready #auth-screen { display: none; }
         <i data-lucide="shield-check"></i>
         <span class="sb-foot-label">Acciones pendientes</span>
       </button>
+      <button class="sb-foot-row" type="button" onclick="openAriMemory()" title="Memoria de ARI">
+        <i data-lucide="brain"></i>
+        <span class="sb-foot-label">Memoria de ARI</span>
+      </button>
       <div class="sb-foot-row" onclick="logoutDesktop()" title="Cerrar sesión">
         <i data-lucide="rotate-ccw"></i>
         <span class="sb-foot-label">Cerrar sesión</span>
@@ -1223,7 +1265,7 @@ body.app-ready #auth-screen { display: none; }
 
       <!-- Action chips (visible at mid/open) -->
       <div class="bs-chips" id="bs-chips">
-        <div class="chip">
+        <div class="chip" onclick="openAriMemory()">
           <i data-lucide="search"></i> Buscar en memoria
         </div>
         <div class="chip">
@@ -1310,6 +1352,44 @@ body.app-ready #auth-screen { display: none; }
   </div>
 </div>
 
+<div class="connected-modal" id="ari-memory-modal" aria-hidden="true" onclick="closeAriMemoryFromBackdrop(event)">
+  <section class="connected-panel memory-panel" role="dialog" aria-modal="true" aria-labelledby="ari-memory-title">
+    <div class="connected-head">
+      <div>
+        <h2 class="connected-title" id="ari-memory-title">Memoria de ARI</h2>
+        <p class="connected-sub">Consulta los recuerdos guardados en Markdown/text files para este workspace.</p>
+      </div>
+      <button class="connected-close" type="button" onclick="closeAriMemory()" title="Cerrar">
+        <i data-lucide="x"></i>
+      </button>
+    </div>
+    <div class="connected-body">
+      <div class="connected-actions">
+        <button class="connected-action" id="memory-refresh-btn" type="button" onclick="loadAriMemory()">
+          <i data-lucide="refresh-cw"></i>
+          <span>Actualizar</span>
+        </button>
+      </div>
+      <div class="memory-layout">
+        <div class="memory-days" id="memory-days"></div>
+        <div class="memory-detail">
+          <div class="memory-search">
+            <input class="memory-input" id="memory-search-input" placeholder="Buscar en memoria..." onkeydown="handleMemorySearchKey(event)" />
+            <button class="connected-action primary" type="button" onclick="searchAriMemory()">
+              <i data-lucide="search"></i>
+              <span>Buscar</span>
+            </button>
+          </div>
+          <div class="memory-overview" id="memory-overview"></div>
+          <pre class="memory-markdown" id="memory-content">Abre la memoria para cargar los últimos días.</pre>
+          <div class="memory-results" id="memory-results"></div>
+        </div>
+      </div>
+      <p class="connected-note">Esta vista lee los archivos Markdown de memoria. No mueve el historial a PostgreSQL.</p>
+    </div>
+  </section>
+</div>
+
 <div class="connected-modal" id="connected-apps-modal" aria-hidden="true" onclick="closeConnectedAppsFromBackdrop(event)">
   <section class="connected-panel" role="dialog" aria-modal="true" aria-labelledby="connected-apps-title">
     <div class="connected-head">
@@ -1374,6 +1454,8 @@ let ariBusy = false;
 let thinkingRow = null;
 let googleIntegration = { connected: false, scopes: [], status: 'unknown' };
 let pendingActions = [];
+let memoryTimeline = [];
+let memorySelectedDay = '';
 
 const googleScopeCatalog = [
   { label: 'Agenda', scope: 'https://www.googleapis.com/auth/calendar.events', planned: false },
@@ -1613,6 +1695,164 @@ async function rejectPendingAction(actionId) {
     renderPendingActions(commandError(error));
   } finally {
     setAriWorkOverlay(false);
+  }
+}
+
+async function apiMemoryTimeline(limit = 12) {
+  if (isDesktop) return await tauriInvoke('list_memory_timeline', { limit });
+  const response = await fetch(apiPath(`/api/v1/memory/${ari.workspaceId}/timeline?limit=${limit}`), {
+    headers: authHeaders(),
+  });
+  if (!response.ok) throw new Error(await readError(response));
+  return await response.json();
+}
+
+async function apiMemoryDay(day) {
+  if (isDesktop) {
+    const [dayData, overview] = await Promise.all([
+      tauriInvoke('read_journal_day', { date: day }),
+      tauriInvoke('read_journal_overview', { date: day }),
+    ]);
+    return { day: dayData, overview };
+  }
+  const [dayResponse, overviewResponse] = await Promise.all([
+    fetch(apiPath(`/api/v1/memory/${ari.workspaceId}/journal/${encodeURIComponent(day)}`), { headers: authHeaders() }),
+    fetch(apiPath(`/api/v1/memory/${ari.workspaceId}/journal/${encodeURIComponent(day)}/overview`), { headers: authHeaders() }),
+  ]);
+  if (!dayResponse.ok) throw new Error(await readError(dayResponse));
+  if (!overviewResponse.ok) throw new Error(await readError(overviewResponse));
+  return { day: await dayResponse.json(), overview: await overviewResponse.json() };
+}
+
+async function apiSearchMemoryPanel(query, limit = 12) {
+  if (isDesktop) return await tauriInvoke('search_memory', { query, limit });
+  const response = await fetch(apiPath(`/api/v1/memory/${ari.workspaceId}/search?q=${encodeURIComponent(query)}&limit=${limit}`), {
+    headers: authHeaders(),
+  });
+  if (!response.ok) throw new Error(await readError(response));
+  return await response.json();
+}
+
+function openAriMemory() {
+  const modal = document.getElementById('ari-memory-modal');
+  modal?.classList.add('open');
+  modal?.setAttribute('aria-hidden', 'false');
+  renderMemoryShell('Cargando memoria...');
+  loadAriMemory();
+}
+
+function closeAriMemory() {
+  const modal = document.getElementById('ari-memory-modal');
+  modal?.classList.remove('open');
+  modal?.setAttribute('aria-hidden', 'true');
+}
+
+function closeAriMemoryFromBackdrop(event) {
+  if (event.target?.id === 'ari-memory-modal') closeAriMemory();
+}
+
+function renderMemoryShell(message = '') {
+  const days = document.getElementById('memory-days');
+  const overview = document.getElementById('memory-overview');
+  const content = document.getElementById('memory-content');
+  const results = document.getElementById('memory-results');
+  if (days && !memoryTimeline.length) days.innerHTML = `<p class="pending-action-empty">${escHtml(message || 'Sin días de memoria todavía.')}</p>`;
+  if (overview && !overview.innerHTML) overview.innerHTML = '';
+  if (content && message) content.textContent = message;
+  if (results && !results.innerHTML) results.innerHTML = '<p class="pending-action-empty">Busca algo para ver coincidencias en memoria.</p>';
+}
+
+async function loadAriMemory() {
+  if (!hasSession()) {
+    renderMemoryShell('Inicia sesión para ver la memoria de ARI.');
+    return;
+  }
+  const refresh = document.getElementById('memory-refresh-btn');
+  refresh?.toggleAttribute('disabled', true);
+  try {
+    memoryTimeline = await apiMemoryTimeline(12);
+    memorySelectedDay = memorySelectedDay || memoryTimeline[0]?.date || '';
+    renderMemoryDays();
+    if (memorySelectedDay) await openMemoryDay(memorySelectedDay);
+    else renderMemoryShell('Todavía no hay archivos de memoria para este workspace.');
+  } catch (error) {
+    renderMemoryShell(commandError(error));
+  } finally {
+    refresh?.toggleAttribute('disabled', false);
+    lucide.createIcons();
+  }
+}
+
+function renderMemoryDays() {
+  const days = document.getElementById('memory-days');
+  if (!days) return;
+  if (!memoryTimeline.length) {
+    days.innerHTML = '<p class="pending-action-empty">Todavía no hay días guardados.</p>';
+    return;
+  }
+  days.innerHTML = memoryTimeline.map((day) => {
+    const summary = Object.entries(day.sections || {})
+      .filter(([, count]) => Number(count) > 0)
+      .map(([name, count]) => `${name}:${count}`)
+      .join(' · ') || `${day.entry_count || 0} entradas`;
+    const active = day.date === memorySelectedDay ? ' active' : '';
+    return `<button class="memory-day${active}" type="button" onclick="openMemoryDay('${escHtml(day.date)}')"><strong>${escHtml(day.date)}</strong><span>${escHtml(summary)}</span></button>`;
+  }).join('');
+}
+
+async function openMemoryDay(day) {
+  memorySelectedDay = day;
+  renderMemoryDays();
+  const content = document.getElementById('memory-content');
+  if (content) content.textContent = 'Cargando día...';
+  try {
+    const data = await apiMemoryDay(day);
+    renderMemoryOverview(data.overview?.sections || {});
+    if (content) content.textContent = data.day?.content || 'Este día no tiene contenido.';
+  } catch (error) {
+    if (content) content.textContent = commandError(error);
+  }
+}
+
+function renderMemoryOverview(sections) {
+  const overview = document.getElementById('memory-overview');
+  if (!overview) return;
+  const entries = Object.entries(sections || {});
+  if (!entries.length) {
+    overview.innerHTML = '';
+    return;
+  }
+  overview.innerHTML = entries.map(([name, items]) => (
+    `<div class="memory-chip"><span>${escHtml(name)}</span><strong>${Array.isArray(items) ? items.length : 0}</strong></div>`
+  )).join('');
+}
+
+function handleMemorySearchKey(event) {
+  if (event.key === 'Enter') searchAriMemory();
+}
+
+async function searchAriMemory() {
+  const input = document.getElementById('memory-search-input');
+  const results = document.getElementById('memory-results');
+  const query = input?.value?.trim() || '';
+  if (!query) {
+    if (results) results.innerHTML = '<p class="pending-action-empty">Escribe una búsqueda para revisar la memoria.</p>';
+    return;
+  }
+  if (results) results.innerHTML = '<p class="pending-action-empty">Buscando...</p>';
+  try {
+    const matches = await apiSearchMemoryPanel(query, 12);
+    if (!matches.length) {
+      if (results) results.innerHTML = '<p class="pending-action-empty">No encontré coincidencias en memoria.</p>';
+      return;
+    }
+    if (results) {
+      results.innerHTML = matches.map((item) => (
+        `<div class="memory-result"><strong>${escHtml(item.date)} · línea ${escHtml(item.line_number)}</strong><span>${escHtml(item.line)}</span></div>`
+      )).join('');
+    }
+  } catch (error) {
+    if (results) results.innerHTML = `<p class="pending-action-empty">${escHtml(commandError(error))}</p>`;
   }
 }
 
