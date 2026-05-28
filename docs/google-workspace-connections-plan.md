@@ -507,6 +507,25 @@ Checklist:
 - [ ] Add timeout/error state: `La accion tardo demasiado. Puedes intentar otra vez.`
 - [ ] Verify that the overlay always clears after success, error, or cancellation.
 
+Current implementation checklist:
+
+- [x] Add/update this checklist before implementation starts.
+- [x] Define done: overlay appears for ARI work, blocks conflicting actions, and
+  clears on success/error across web, desktop, mobile app, and mobile responsive.
+- [x] Web: add full-screen overlay markup/CSS.
+- [x] Web: connect overlay to existing `setAriWorking(...)`.
+- [x] Web: connect overlay to Google integration status/start actions where useful.
+- [x] Desktop: add full-screen overlay markup/CSS.
+- [x] Desktop: connect overlay to existing `setAriWorking(...)`.
+- [x] Desktop: connect overlay to Google integration status/start actions where useful.
+- [x] Mobile app: add full-screen overlay component/styles.
+- [x] Mobile app: connect overlay to chat and Google integration actions.
+- [x] Mobile web/responsive: verify overlay layout rules.
+- [x] Run web/desktop inline JS syntax checks.
+- [x] Run mobile typecheck.
+- [x] Deploy web if changed.
+- [x] Commit completed scope.
+
 ### Sensitive Actions
 
 Goal:

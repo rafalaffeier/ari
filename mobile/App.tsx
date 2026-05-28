@@ -1,7 +1,9 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  Animated,
+  Easing,
   KeyboardAvoidingView,
   Linking,
   Modal,
@@ -497,6 +499,8 @@ export default function App() {
   const [googleIntegration, setGoogleIntegration] = useState<GoogleIntegrationStatus | null>(null);
   const [googleIntegrationBusy, setGoogleIntegrationBusy] = useState(false);
   const [googleIntegrationMessage, setGoogleIntegrationMessage] = useState("");
+  const [ariWorkOverlay, setAriWorkOverlay] = useState({ active: false, label: "ARI está pensando" });
+  const ariWorkPulse = useRef(new Animated.Value(0)).current;
   const uiLanguage = translationLanguage(language);
   const t = STRINGS[uiLanguage];
   const connectedText = {
@@ -527,6 +531,10 @@ export default function App() {
       uiLanguage === "es"
         ? "ARI solo activara permisos con tu autorizacion. Las conversaciones siguen viviendo en Markdown/text files."
         : "ARI only activates permissions with your authorization. Conversations remain in Markdown/text files.",
+    workSub:
+      uiLanguage === "es"
+        ? "Espera un momento. ARI esta trabajando en tu solicitud."
+        : "One moment. ARI is working on your request.",
   };
   const authText = {
     forgotPassword: uiLanguage === "es" ? "Olvidaste tu contrasena?" : "Forgot password?",
@@ -579,6 +587,32 @@ export default function App() {
   useEffect(() => {
     if (signedIn) refreshGoogleIntegrationStatus(true);
   }, [signedIn, token]);
+
+  useEffect(() => {
+    if (!ariWorkOverlay.active) {
+      ariWorkPulse.stopAnimation();
+      ariWorkPulse.setValue(0);
+      return;
+    }
+    const animation = Animated.loop(
+      Animated.sequence([
+        Animated.timing(ariWorkPulse, {
+          toValue: 1,
+          duration: 950,
+          easing: Easing.inOut(Easing.quad),
+          useNativeDriver: true,
+        }),
+        Animated.timing(ariWorkPulse, {
+          toValue: 0,
+          duration: 950,
+          easing: Easing.inOut(Easing.quad),
+          useNativeDriver: true,
+        }),
+      ]),
+    );
+    animation.start();
+    return () => animation.stop();
+  }, [ariWorkOverlay.active, ariWorkPulse]);
 
   const visiblePending = useMemo(
     () => pendingEntries.filter((entry) => entry.workspaceId === workspaceId),
@@ -700,6 +734,30 @@ export default function App() {
     return Boolean(googleIntegration?.connected);
   }
 
+  function setMobileWorkOverlay(active: boolean, label = "ARI está pensando") {
+    setAriWorkOverlay({ active, label });
+  }
+
+  function mobileWorkingLabelForMessage(text: string) {
+    const value = text.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    if (/\b(vuelo|vuelos|flight|flights|aeropuerto|airport|origen|destino)\b/.test(value)) {
+      return "ARI está buscando vuelos";
+    }
+    if (/\b(drive|archivo|documento|file|folder|carpeta|pdf)\b/.test(value)) {
+      return "ARI está buscando en Drive";
+    }
+    if (/\b(email|mail|gmail|correo|borrador|responder)\b/.test(value)) {
+      return "ARI está revisando emails";
+    }
+    if (/\b(calendar|agenda|meeting|reunion|evento|cita)\b/.test(value)) {
+      return "ARI está revisando tu calendario";
+    }
+    if (/\b(viaje|travel|hotel|madrid|berlin|valencia|resultado|resultados)\b/.test(value)) {
+      return "ARI está revisando el viaje";
+    }
+    return "ARI está pensando";
+  }
+
   async function openConnectedApps() {
     setConnectedAppsOpen(true);
     await refreshGoogleIntegrationStatus(true);
@@ -708,6 +766,7 @@ export default function App() {
   async function refreshGoogleIntegrationStatus(silent = false) {
     if (!token) return;
     setGoogleIntegrationBusy(true);
+    if (!silent) setMobileWorkOverlay(true, "ARI está revisando Google");
     try {
       const integration = await api.getGoogleIntegrationStatus(token);
       setGoogleIntegration(integration);
@@ -720,6 +779,7 @@ export default function App() {
       }
     } finally {
       setGoogleIntegrationBusy(false);
+      if (!silent) setMobileWorkOverlay(false);
     }
   }
 
@@ -727,6 +787,7 @@ export default function App() {
     if (!token) return;
     setGoogleIntegrationBusy(true);
     setGoogleIntegrationMessage(connectedText.opening);
+    setMobileWorkOverlay(true, "ARI está conectando Google");
     try {
       const start = await api.startGoogleIntegration(token, "mobile", "/");
       await Linking.openURL(start.authorization_url);
@@ -736,6 +797,7 @@ export default function App() {
       setGoogleIntegrationMessage(error instanceof Error ? error.message : "No se pudo abrir Google");
     } finally {
       setGoogleIntegrationBusy(false);
+      setMobileWorkOverlay(false);
     }
   }
 
@@ -908,6 +970,7 @@ export default function App() {
   async function startMobileChat() {
     if (!token || !workspaceId) return;
     setChatBusy(true);
+    setMobileWorkOverlay(true, "ARI está preparando el chat");
     try {
       const thread = await api.createThread(token, workspaceId, null);
       setCurrentThreadId(thread.id);
@@ -918,6 +981,7 @@ export default function App() {
       setStatus(error instanceof Error ? error.message : "No se pudo crear el chat");
     } finally {
       setChatBusy(false);
+      setMobileWorkOverlay(false);
     }
   }
 
@@ -935,6 +999,7 @@ export default function App() {
     if (!text || !token || !workspaceId || chatBusy) return;
     setChatInput("");
     setChatBusy(true);
+    setMobileWorkOverlay(true, mobileWorkingLabelForMessage(text));
     const optimistic: ConversationMessage[] = [...chatMessages, { role: "user", content: text }];
     setChatMessages(optimistic);
     try {
@@ -949,6 +1014,7 @@ export default function App() {
       setStatus("ARI · attention required");
     } finally {
       setChatBusy(false);
+      setMobileWorkOverlay(false);
     }
   }
 
@@ -1073,6 +1139,18 @@ export default function App() {
   const googleIsConnected = googleConnected();
   const googleStatusCopy =
     googleIntegrationMessage || (googleIsConnected ? connectedText.connected : connectedText.missing);
+  const ariWorkWashAnimatedStyle = {
+    opacity: ariWorkPulse.interpolate({ inputRange: [0, 1], outputRange: [0.22, 0.78] }),
+    transform: [
+      { rotate: "18deg" },
+      { translateX: ariWorkPulse.interpolate({ inputRange: [0, 1], outputRange: [-80, 80] }) },
+    ],
+  };
+  const ariWorkMarkAnimatedStyle = {
+    transform: [
+      { scale: ariWorkPulse.interpolate({ inputRange: [0, 1], outputRange: [0.98, 1.04] }) },
+    ],
+  };
 
   return (
     <SafeAreaView style={styles.mobileShell}>
@@ -1233,6 +1311,27 @@ export default function App() {
             </View>
 
             <Text style={styles.connectedNote}>{connectedText.privacy}</Text>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal animationType="fade" transparent visible={ariWorkOverlay.active}>
+        <View style={styles.ariWorkOverlay}>
+          <Animated.View style={[styles.ariWorkWash, ariWorkWashAnimatedStyle]} />
+          <View style={styles.ariWorkCore}>
+            <Animated.View style={[styles.ariWorkMark, ariWorkMarkAnimatedStyle]}>
+              <View style={styles.ariWorkBars}>
+                {[18, 32, 44, 32, 18].map((height, index) => (
+                  <View
+                    // eslint-disable-next-line react/no-array-index-key
+                    key={index}
+                    style={[styles.ariWorkBar, { height }]}
+                  />
+                ))}
+              </View>
+            </Animated.View>
+            <Text style={styles.ariWorkLabel}>{ariWorkOverlay.label}</Text>
+            <Text style={styles.ariWorkSub}>{connectedText.workSub}</Text>
           </View>
         </View>
       </Modal>
@@ -2319,5 +2418,71 @@ const styles = StyleSheet.create({
     color: "#6F604D",
     fontSize: 12,
     lineHeight: 18,
+  },
+  ariWorkOverlay: {
+    alignItems: "center",
+    backgroundColor: "rgba(0, 0, 0, 0.62)",
+    bottom: 0,
+    justifyContent: "center",
+    left: 0,
+    overflow: "hidden",
+    position: "absolute",
+    right: 0,
+    top: 0,
+  },
+  ariWorkWash: {
+    backgroundColor: "rgba(217, 154, 61, 0.18)",
+    height: "140%",
+    position: "absolute",
+    width: 110,
+  },
+  ariWorkCore: {
+    alignItems: "center",
+    gap: 16,
+    maxWidth: 320,
+    paddingHorizontal: 24,
+  },
+  ariWorkMark: {
+    alignItems: "center",
+    backgroundColor: "rgba(11, 8, 5, 0.78)",
+    borderColor: "rgba(217, 154, 61, 0.52)",
+    borderRadius: 28,
+    borderWidth: 1,
+    height: 88,
+    justifyContent: "center",
+    shadowColor: "#D99A3D",
+    shadowOpacity: 0.36,
+    shadowRadius: 28,
+    width: 88,
+  },
+  ariWorkBars: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: 6,
+    height: 48,
+    justifyContent: "center",
+  },
+  ariWorkBar: {
+    backgroundColor: "#D99A3D",
+    borderRadius: 999,
+    shadowColor: "#D99A3D",
+    shadowOpacity: 0.72,
+    shadowRadius: 12,
+    width: 5,
+  },
+  ariWorkLabel: {
+    color: "#F4EFE7",
+    fontSize: 14,
+    fontWeight: "700",
+    letterSpacing: 2,
+    textAlign: "center",
+    textTransform: "uppercase",
+  },
+  ariWorkSub: {
+    color: "#A89A88",
+    fontSize: 12,
+    lineHeight: 18,
+    maxWidth: 280,
+    textAlign: "center",
   },
 });

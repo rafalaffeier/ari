@@ -614,6 +614,83 @@ body.app-ready #auth-screen { display: none; }
   0%, 100% { opacity: .28; transform: translateY(0); }
   50% { opacity: 1; transform: translateY(-2px); }
 }
+
+/* ARI full-screen working overlay */
+.ari-work-overlay {
+  position: fixed; inset: 0; z-index: 95;
+  display: none; place-items: center;
+  background:
+    linear-gradient(125deg, rgba(11,8,5,.76), rgba(217,154,61,.08), rgba(11,8,5,.82)),
+    rgba(0,0,0,.58);
+  backdrop-filter: blur(8px);
+  pointer-events: auto;
+  overflow: hidden;
+}
+.ari-work-overlay.open { display: grid; }
+.ari-work-overlay::before {
+  content: "";
+  position: absolute; inset: -20%;
+  background:
+    linear-gradient(90deg, transparent 0%, rgba(217,154,61,.08) 42%, rgba(240,184,90,.18) 50%, rgba(217,154,61,.08) 58%, transparent 100%);
+  opacity: .75;
+  transform: translateX(-35%);
+  animation: ariWorkWash 2.8s ease-in-out infinite;
+}
+.ari-work-core {
+  position: relative;
+  width: min(360px, calc(100vw - 48px));
+  min-height: 220px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 18px;
+  color: var(--t1);
+  text-align: center;
+}
+.ari-work-mark {
+  width: 88px; height: 88px;
+  border: 1px solid rgba(217,154,61,.52);
+  border-radius: 28px;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(11,8,5,.72);
+  box-shadow: 0 0 42px rgba(217,154,61,.28), inset 0 0 18px rgba(217,154,61,.08);
+  animation: ariWorkPulse 1.6s ease-in-out infinite;
+}
+.ari-work-bars { display: flex; align-items: center; gap: 6px; height: 46px; }
+.ari-work-bars span {
+  width: 5px; border-radius: 999px;
+  background: var(--gold);
+  box-shadow: 0 0 12px rgba(217,154,61,.72);
+  animation: ariWorkBars 1.05s ease-in-out infinite;
+}
+.ari-work-bars span:nth-child(1),
+.ari-work-bars span:nth-child(5) { height: 20px; animation-delay: .1s; }
+.ari-work-bars span:nth-child(2),
+.ari-work-bars span:nth-child(4) { height: 34px; animation-delay: .22s; }
+.ari-work-bars span:nth-child(3) { height: 46px; animation-delay: .34s; }
+.ari-work-label {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 650;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+.ari-work-sub {
+  margin: 0;
+  color: var(--t2);
+  font-size: 12px;
+  line-height: 1.5;
+}
+@keyframes ariWorkWash {
+  0%, 100% { transform: translateX(-38%); opacity: .42; }
+  50% { transform: translateX(38%); opacity: .9; }
+}
+@keyframes ariWorkPulse {
+  0%, 100% { transform: scale(.98); box-shadow: 0 0 30px rgba(217,154,61,.22), inset 0 0 14px rgba(217,154,61,.08); }
+  50% { transform: scale(1.03); box-shadow: 0 0 58px rgba(240,184,90,.38), inset 0 0 22px rgba(217,154,61,.14); }
+}
+@keyframes ariWorkBars {
+  0%, 100% { opacity: .5; transform: scaleY(.72); }
+  50% { opacity: 1; transform: scaleY(1); }
+}
 .msg-connector {
   display: flex; flex-direction: column; align-items: center;
 }
@@ -1172,6 +1249,16 @@ body.app-ready #auth-screen { display: none; }
   </main>
 </div>
 
+<div class="ari-work-overlay" id="ari-work-overlay" aria-hidden="true">
+  <div class="ari-work-core" role="status" aria-live="polite">
+    <div class="ari-work-mark">
+      <div class="ari-work-bars" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></div>
+    </div>
+    <p class="ari-work-label" id="ari-work-label">ARI está pensando</p>
+    <p class="ari-work-sub">Espera un momento. ARI está trabajando en tu solicitud.</p>
+  </div>
+</div>
+
 <div class="connected-modal" id="connected-apps-modal" aria-hidden="true" onclick="closeConnectedAppsFromBackdrop(event)">
   <section class="connected-panel" role="dialog" aria-modal="true" aria-labelledby="connected-apps-title">
     <div class="connected-head">
@@ -1376,6 +1463,7 @@ async function loadGoogleIntegrationStatus(options = {}) {
   }
   const refresh = document.getElementById('google-refresh-btn');
   refresh?.toggleAttribute('disabled', true);
+  if (!options.silent) setAriWorkOverlay(true, 'ARI está revisando Google');
   try {
     const status = await apiGoogleIntegrationStatus();
     googleIntegration = status;
@@ -1386,6 +1474,7 @@ async function loadGoogleIntegrationStatus(options = {}) {
     return null;
   } finally {
     refresh?.toggleAttribute('disabled', false);
+    if (!options.silent) setAriWorkOverlay(false);
   }
 }
 
@@ -1397,6 +1486,7 @@ async function connectGoogleIntegration() {
   }
   button?.toggleAttribute('disabled', true);
   renderGoogleIntegrationStatus(googleIntegration, 'Abriendo Google para pedir autorización...');
+  setAriWorkOverlay(true, 'ARI está conectando Google');
   try {
     const start = await apiStartGoogleIntegration();
     await openGoogleAuthorizationUrl(start.authorization_url);
@@ -1404,9 +1494,11 @@ async function connectGoogleIntegration() {
       renderGoogleIntegrationStatus(googleIntegration, 'Autoriza Google en el navegador, vuelve a ARI y pulsa Actualizar.');
       button?.toggleAttribute('disabled', false);
     }
+    setAriWorkOverlay(false);
   } catch (error) {
     renderGoogleIntegrationStatus({ connected: false, scopes: [], status: 'error' }, commandError(error));
     button?.toggleAttribute('disabled', false);
+    setAriWorkOverlay(false);
   }
 }
 
@@ -1454,11 +1546,21 @@ function clearThinkingMessage() {
   thinkingRow = null;
 }
 
+function setAriWorkOverlay(active, label = 'ARI está pensando') {
+  const overlay = document.getElementById('ari-work-overlay');
+  const copy = document.getElementById('ari-work-label');
+  if (!overlay) return;
+  if (copy) copy.textContent = label;
+  overlay.classList.toggle('open', active);
+  overlay.setAttribute('aria-hidden', active ? 'false' : 'true');
+}
+
 function setAriWorking(active, label = 'ARI está pensando') {
   ariBusy = active;
   document.querySelector('.voice-pill')?.classList.toggle('thinking', active);
   document.querySelector('.bs-send')?.toggleAttribute('disabled', active);
   document.getElementById('voice-btn')?.toggleAttribute('disabled', active);
+  setAriWorkOverlay(active, label);
   if (active) {
     setVoiceStatus(label, 'loader-circle');
     showThinkingMessage(label);
