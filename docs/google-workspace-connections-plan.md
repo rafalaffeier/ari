@@ -337,6 +337,19 @@ Product implication:
 Use this checklist as the working control board. A task is not closed until web,
 desktop, mobile app, and mobile responsive behavior are accounted for.
 
+### Checklist Workflow Rule
+
+For every new feature or product change:
+
+- [ ] Add or update the checklist before implementation starts.
+- [ ] Define what "done" means in user-facing terms.
+- [ ] Split the work by surface: web, desktop, mobile app, and mobile responsive.
+- [ ] Track backend/API, UI, tests, deploy, and documentation separately.
+- [ ] Update checklist status before committing.
+- [ ] Record any known limitation or blocked item explicitly.
+- [ ] Do not mark the task complete if one platform is missing unless the
+  limitation is written down and accepted.
+
 ### Rule for Every UI Feature
 
 - [ ] Web updated.
