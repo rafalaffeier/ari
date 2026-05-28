@@ -429,14 +429,33 @@ Definition of done:
 
 Checklist:
 
-- [ ] Add/request Gmail readonly scope only when Gmail read is implemented.
-- [ ] Add Gmail search/read endpoints.
-- [ ] Add `search_gmail_messages` and `read_gmail_thread` tools.
+- [x] Add/request Gmail readonly scope only when Gmail read is implemented.
+- [x] Add Gmail search/read endpoints.
+- [x] Add `search_gmail_messages` and `read_gmail_thread` tools.
 - [ ] Add Gmail draft endpoint/tool.
 - [ ] Add Gmail send endpoint/tool.
 - [ ] Add high-risk confirmation flow for send.
 - [ ] Add audit event for send/draft actions.
-- [ ] Update web, desktop, mobile app, and mobile responsive UI states.
+- [x] Update web, desktop, mobile app, and mobile responsive UI states.
+
+Current implementation checklist:
+
+- [x] Add/update this checklist before implementation starts.
+- [x] Define done: ARI can search Gmail messages and read a selected thread
+  only after explicit Gmail readonly permission.
+- [x] Add/request `gmail.readonly` scope for this read phase.
+- [x] Add backend Gmail readonly service.
+- [x] Add Gmail message search endpoint.
+- [x] Add Gmail thread read endpoint.
+- [x] Add `search_gmail_messages` and `read_gmail_thread` tools.
+- [x] Add "needs permission" response when Gmail scope is missing.
+- [x] Add chat status: `ARI esta revisando emails`.
+- [x] Keep draft/send out of this phase.
+- [x] Update web, desktop, mobile app, and mobile responsive UI states.
+- [x] Add tests for search/read formatting and missing-scope handling.
+- [x] Run backend/web/mobile/desktop verification.
+- [x] Deploy to production and check `/ready`.
+- [x] Commit with Spanish summary.
 
 ## ARI Product Backlog
 

@@ -729,6 +729,27 @@ async fn search_google_drive_files(
         .await?)
 }
 
+#[tauri::command]
+async fn search_gmail_messages(
+    state: State<'_, AppState>,
+    query: String,
+    max_results: Option<u8>,
+) -> Result<serde_json::Value, DesktopError> {
+    let client = memory_client_from_state(&state).await?;
+    Ok(client
+        .search_gmail_messages(&query, max_results.unwrap_or(10))
+        .await?)
+}
+
+#[tauri::command]
+async fn read_gmail_thread(
+    state: State<'_, AppState>,
+    thread_id: String,
+) -> Result<serde_json::Value, DesktopError> {
+    let client = memory_client_from_state(&state).await?;
+    Ok(client.read_gmail_thread(&thread_id).await?)
+}
+
 // Local tool commands are the last permission gate before touching the host OS.
 // The backend may propose actions, but execution still depends on desktop policy.
 #[tauri::command]
@@ -1202,6 +1223,8 @@ pub fn run() {
             google_integration_status,
             start_google_integration,
             search_google_drive_files,
+            search_gmail_messages,
+            read_gmail_thread,
             open_browser_url,
             call_phone_number,
             list_calendars,

@@ -22,6 +22,13 @@ from app.services.google_drive import (
     GoogleDriveSearchResponse,
     search_google_drive_files_with_token,
 )
+from app.services.google_gmail import (
+    GOOGLE_GMAIL_READONLY_SCOPE,
+    GmailSearchResponse,
+    GmailThreadResponse,
+    read_gmail_thread_with_token,
+    search_gmail_messages_with_token,
+)
 
 router = APIRouter()
 
@@ -31,6 +38,7 @@ GOOGLE_INTEGRATION_SCOPES = [
     "https://www.googleapis.com/auth/calendar.events",
     "https://www.googleapis.com/auth/contacts.readonly",
     GOOGLE_DRIVE_METADATA_SCOPE,
+    GOOGLE_GMAIL_READONLY_SCOPE,
 ]
 GOOGLE_CALENDAR_EVENTS_URL = "https://www.googleapis.com/calendar/v3/calendars/primary/events"
 GOOGLE_PEOPLE_CONNECTIONS_URL = "https://people.googleapis.com/v1/people/me/connections"
@@ -191,6 +199,41 @@ async def search_google_drive_files(
     except httpx.HTTPStatusError as exc:
         status_code = exc.response.status_code if exc.response else 502
         raise HTTPException(status_code=status_code, detail="Google Drive metadata request failed") from exc
+
+
+@router.get("/google/gmail/messages", response_model=GmailSearchResponse)
+async def search_google_gmail_messages(
+    q: str | None = Query(None, max_length=500),
+    max_results: int = Query(10, ge=1, le=20),
+    page_token: str | None = Query(None, max_length=500),
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    access_token = await _valid_google_access_token(db, current_user.id, required_scope=GOOGLE_GMAIL_READONLY_SCOPE)
+    try:
+        return await search_gmail_messages_with_token(
+            access_token=access_token,
+            query=q,
+            max_results=max_results,
+            page_token=page_token,
+        )
+    except httpx.HTTPStatusError as exc:
+        status_code = exc.response.status_code if exc.response else 502
+        raise HTTPException(status_code=status_code, detail="Gmail message search request failed") from exc
+
+
+@router.get("/google/gmail/threads/{thread_id}", response_model=GmailThreadResponse)
+async def read_google_gmail_thread(
+    thread_id: str,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    access_token = await _valid_google_access_token(db, current_user.id, required_scope=GOOGLE_GMAIL_READONLY_SCOPE)
+    try:
+        return await read_gmail_thread_with_token(access_token=access_token, thread_id=thread_id)
+    except httpx.HTTPStatusError as exc:
+        status_code = exc.response.status_code if exc.response else 502
+        raise HTTPException(status_code=status_code, detail="Gmail thread read request failed") from exc
 
 
 @router.post("/google/start", response_model=GoogleIntegrationStartResponse)
@@ -356,13 +399,18 @@ async def _valid_google_access_token(
 def _require_google_scope(integration: Integration, required_scope: str | None) -> None:
     if not required_scope or required_scope in (integration.scopes or []):
         return
+    permission_name = "Google"
+    if "drive" in required_scope:
+        permission_name = "Google Drive"
+    elif "gmail" in required_scope:
+        permission_name = "Gmail"
     raise HTTPException(
         status_code=403,
         detail={
             "code": "needs_scope",
             "provider": GOOGLE_PROVIDER,
             "scope": required_scope,
-            "message": "Google Drive needs permission before ARI can search file metadata.",
+            "message": f"{permission_name} needs permission before ARI can continue.",
         },
     )
 

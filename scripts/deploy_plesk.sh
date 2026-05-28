@@ -25,6 +25,7 @@ echo "==> Uploading app files"
 "${SCP[@]}" backend/app/api/v1/endpoints/integrations.py "$SERVER:$TMP_DIR/backend/app/api/v1/endpoints/integrations.py"
 "${SCP[@]}" backend/app/api/v1/endpoints/messages.py "$SERVER:$TMP_DIR/backend/app/api/v1/endpoints/messages.py"
 "${SCP[@]}" backend/app/services/google_drive.py "$SERVER:$TMP_DIR/backend/app/services/google_drive.py"
+"${SCP[@]}" backend/app/services/google_gmail.py "$SERVER:$TMP_DIR/backend/app/services/google_gmail.py"
 "${SCP[@]}" backend/app/web/index.html "$SERVER:$TMP_DIR/backend/app/web/index.html"
 "${SCP[@]}" backend/app/web/assets/ari-icon.svg "$SERVER:$TMP_DIR/backend/app/web/assets/ari-icon.svg"
 "${SCP[@]}" mobile/App.tsx "$SERVER:$TMP_DIR/mobile/App.tsx"
@@ -37,6 +38,7 @@ echo "==> Updating server checkout"
   cp '$TMP_DIR/backend/app/api/v1/endpoints/integrations.py' '$REMOTE_ROOT/backend/app/api/v1/endpoints/integrations.py' && \
   cp '$TMP_DIR/backend/app/api/v1/endpoints/messages.py' '$REMOTE_ROOT/backend/app/api/v1/endpoints/messages.py' && \
   cp '$TMP_DIR/backend/app/services/google_drive.py' '$REMOTE_ROOT/backend/app/services/google_drive.py' && \
+  cp '$TMP_DIR/backend/app/services/google_gmail.py' '$REMOTE_ROOT/backend/app/services/google_gmail.py' && \
   cp '$TMP_DIR/backend/app/web/index.html' '$REMOTE_ROOT/backend/app/web/index.html' && \
   cp '$TMP_DIR/backend/app/web/assets/ari-icon.svg' '$REMOTE_ROOT/backend/app/web/assets/ari-icon.svg' && \
   cp '$TMP_DIR/mobile/App.tsx' '$REMOTE_ROOT/mobile/App.tsx' && \
@@ -53,6 +55,7 @@ else
     docker cp '$TMP_DIR/backend/app/api/v1/endpoints/integrations.py' '$BACKEND_CONTAINER':/app/app/api/v1/endpoints/integrations.py && \
     docker cp '$TMP_DIR/backend/app/api/v1/endpoints/messages.py' '$BACKEND_CONTAINER':/app/app/api/v1/endpoints/messages.py && \
     docker cp '$TMP_DIR/backend/app/services/google_drive.py' '$BACKEND_CONTAINER':/app/app/services/google_drive.py && \
+    docker cp '$TMP_DIR/backend/app/services/google_gmail.py' '$BACKEND_CONTAINER':/app/app/services/google_gmail.py && \
     docker cp '$TMP_DIR/backend/app/web/index.html' '$BACKEND_CONTAINER':/app/app/web/index.html && \
     docker cp '$TMP_DIR/backend/app/web/assets/ari-icon.svg' '$BACKEND_CONTAINER':/app/app/web/assets/ari-icon.svg && \
     docker cp '$TMP_DIR/shared/tools/catalog.json' '$BACKEND_CONTAINER':/app/shared/tools/catalog.json && \

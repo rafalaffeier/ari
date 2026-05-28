@@ -1395,7 +1395,7 @@ body.app-ready #auth-screen { display: none; }
     <div class="connected-head">
       <div>
         <h2 class="connected-title" id="connected-apps-title">Apps conectadas</h2>
-        <p class="connected-sub">Conecta Google para que ARI pueda ayudarte con agenda, contactos y Drive; Gmail queda para una fase posterior.</p>
+        <p class="connected-sub">Conecta Google para que ARI pueda ayudarte con agenda, contactos, Drive y lectura de Gmail.</p>
       </div>
       <button class="connected-close" type="button" onclick="closeConnectedApps()" title="Cerrar">
         <i data-lucide="x"></i>
@@ -1461,7 +1461,7 @@ const googleScopeCatalog = [
   { label: 'Agenda', scope: 'https://www.googleapis.com/auth/calendar.events', planned: false },
   { label: 'Contactos', scope: 'https://www.googleapis.com/auth/contacts.readonly', planned: false },
   { label: 'Drive', scope: 'https://www.googleapis.com/auth/drive.metadata.readonly', planned: false },
-  { label: 'Gmail', scope: 'https://www.googleapis.com/auth/gmail.modify', planned: true },
+  { label: 'Gmail lectura', scope: 'https://www.googleapis.com/auth/gmail.readonly', planned: false },
 ];
 
 function apiPath(path) {
@@ -1524,7 +1524,7 @@ function renderGoogleIntegrationStatus(state = googleIntegration, message = '') 
   }
   if (copy) {
     copy.textContent = message || (connected
-      ? 'Google está conectado. ARI ya puede usar agenda, contactos y metadatos de Drive cuando lo autorices en la conversación.'
+      ? 'Google está conectado. ARI ya puede usar agenda, contactos, Drive y lectura de Gmail cuando lo autorices en la conversación.'
       : 'Google todavía no está conectado para esta cuenta.');
   }
   if (button) {

@@ -26,6 +26,13 @@ from app.services.google_drive import (
     GoogleDriveSearchResponse,
     search_google_drive_files_with_token,
 )
+from app.services.google_gmail import (
+    GOOGLE_GMAIL_READONLY_SCOPE,
+    GmailSearchResponse,
+    GmailThreadResponse,
+    read_gmail_thread_with_token,
+    search_gmail_messages_with_token,
+)
 from app.models.usage import AiUsageLog
 from app.services.duffel import FlightSearchRequest, FlightSearchResponse, search_flights
 from app.services.tool_registry import get_tool
@@ -50,6 +57,8 @@ EXECUTABLE_TOOL_NAMES = {
     "search_memory",
     "search_flights",
     "search_google_drive_files",
+    "search_gmail_messages",
+    "read_gmail_thread",
 }
 
 _FLEXIBLE_TRAVEL_MARKERS = (
@@ -553,6 +562,8 @@ async def _maybe_run_chat_tool(
 
     if response.tool_name == "search_google_drive_files":
         return await _run_google_drive_search_from_orchestration(response, db, current_user_id)
+    if response.tool_name in {"search_gmail_messages", "read_gmail_thread"}:
+        return await _run_gmail_from_orchestration(response, db, current_user_id)
 
     if response.tool_name != "search_flights":
         return None
@@ -603,6 +614,17 @@ def _should_try_tool_orchestration(user_message: str, recent_context: str) -> bo
             "files",
             "folder",
             "carpeta",
+            "gmail",
+            "email",
+            "emails",
+            "mail",
+            "correo",
+            "correos",
+            "inbox",
+            "bandeja",
+            "asunto",
+            "thread",
+            "hilo",
         )
     )
 
@@ -693,6 +715,103 @@ def _format_drive_file_type(mime_type: str | None) -> str:
         "image/png": "Imagen",
     }
     return labels.get(mime_type or "", mime_type or "tipo no indicado")
+
+
+async def _run_gmail_from_orchestration(
+    response: OrchestrateResponse,
+    db: AsyncSession | None,
+    current_user_id: uuid.UUID | None,
+) -> str | None:
+    if response.mode == "ask":
+        return response.reply
+    if response.mode != "tool_ready":
+        return None
+    if not db or not current_user_id:
+        return "Necesito que inicies sesión para revisar Gmail dentro de ARI."
+
+    try:
+        access_token = await _valid_google_access_token(
+            db,
+            current_user_id,
+            required_scope=GOOGLE_GMAIL_READONLY_SCOPE,
+        )
+        if response.tool_name == "read_gmail_thread":
+            thread_id = str(response.params.get("thread_id") or "").strip()
+            if not thread_id:
+                return "Necesito el ID del hilo de Gmail que quieres leer."
+            thread = await read_gmail_thread_with_token(access_token=access_token, thread_id=thread_id)
+            return _format_gmail_thread_results(thread)
+
+        query = str(response.params.get("query") or response.params.get("q") or "").strip()
+        try:
+            max_results = int(response.params.get("max_results") or 10)
+        except (TypeError, ValueError):
+            max_results = 10
+        results = await search_gmail_messages_with_token(
+            access_token=access_token,
+            query=query,
+            max_results=max(1, min(max_results, 10)),
+        )
+        return _format_gmail_search_results(query, results)
+    except HTTPException as exc:
+        return _format_gmail_error(exc)
+    except Exception as exc:
+        return (
+            "Intenté revisar Gmail, pero la conexión falló. "
+            f"Detalle técnico: {exc}"
+        )
+
+
+def _format_gmail_error(exc: HTTPException) -> str:
+    detail = exc.detail
+    if exc.status_code == status.HTTP_403_FORBIDDEN and isinstance(detail, dict):
+        if detail.get("code") == "needs_scope":
+            return (
+                "Necesito permiso de lectura de Gmail para revisar emails. "
+                "Abre Apps conectadas y pulsa Reconectar Google para autorizar Gmail; "
+                "en esta fase solo puedo buscar y leer, no crear borradores ni enviar."
+            )
+    if exc.status_code == status.HTTP_403_FORBIDDEN:
+        return (
+            "Gmail todavía no está conectado. "
+            "Conecta Google desde Apps conectadas y vuelve a pedirme la búsqueda."
+        )
+    return f"Intenté revisar Gmail, pero Google devolvió un error: {detail}"
+
+
+def _format_gmail_search_results(query: str, results: GmailSearchResponse) -> str:
+    subject = f'para "{query}"' if query else "recientes"
+    if not results.messages:
+        return f"He buscado emails {subject}, pero no encontré mensajes visibles con el permiso actual."
+    lines = [f"Encontré {len(results.messages)} email(s) {subject}:"]
+    for index, message in enumerate(results.messages, start=1):
+        sender = message.from_email or "remitente no indicado"
+        subject_line = message.subject or "sin asunto"
+        date_text = message.date or "fecha no indicada"
+        snippet = f" - {message.snippet}" if message.snippet else ""
+        lines.append(
+            f"{index}. {subject_line} - {sender} - {date_text} - hilo {message.threadId}{snippet}"
+        )
+    if results.nextPageToken:
+        lines.append("Hay más resultados disponibles; puedo seguir buscando si quieres.")
+    lines.append("Para leer uno, dime el ID del hilo que aparece en el resultado.")
+    return "\n".join(lines)
+
+
+def _format_gmail_thread_results(thread: GmailThreadResponse) -> str:
+    if not thread.messages:
+        return f"He abierto el hilo {thread.id}, pero no encontré mensajes legibles."
+    lines = [f"Hilo de Gmail {thread.id}, {len(thread.messages)} mensaje(s):"]
+    for index, message in enumerate(thread.messages, start=1):
+        sender = message.from_email or "remitente no indicado"
+        subject_line = message.subject or "sin asunto"
+        date_text = message.date or "fecha no indicada"
+        text = (message.text or message.snippet or "").strip()
+        if len(text) > 900:
+            text = text[:900].rstrip() + "..."
+        lines.append(f"{index}. {subject_line} - {sender} - {date_text}\n{text or '(sin texto legible)'}")
+    lines.append("Esto es lectura de Gmail: todavía no creo borradores ni envío emails.")
+    return "\n\n".join(lines)
 
 
 def _format_flight_search_error(body: FlightSearchRequest, exc: HTTPException) -> str:
@@ -1027,6 +1146,8 @@ For search_flights, Duffel requires fixed IATA airport or city codes for both or
 Convert clear city/airport names to IATA codes when unambiguous, such as Barcelona -> BCN, Lisbon/Lisboa -> LIS, Berlin -> BER, Tokyo -> NRT or TYO when the user is flexible.
 If the user says "anywhere", "cualquier parte", "anywhere in the world", or leaves origin/destination flexible, ask for one fixed origin and one fixed destination before searching.
 For search_google_drive_files, search only file metadata. Use query for file names or topics the user mentions. If no specific query is given, leave query empty to list recent files. Do not claim to read file content.
+For search_gmail_messages, search Gmail only when the user asks to find/check emails. Use query for sender, subject, keywords, or Gmail-style search terms. If no specific query is given, leave query empty to list recent messages.
+For read_gmail_thread, use the thread_id returned by search_gmail_messages or explicitly provided by the user. Reading is allowed, but never draft or send emails in this phase.
 For map or directions requests, prepare open_browser_url when the place or route is clear:
 - Place/search URL: https://www.google.com/maps/search/?api=1&query={url_encoded_query}
 - Route URL: https://www.google.com/maps/dir/?api=1&origin={url_encoded_origin}&destination={url_encoded_destination}

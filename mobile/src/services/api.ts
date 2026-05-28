@@ -101,6 +101,33 @@ export type GoogleDriveSearchResponse = {
   nextPageToken?: string | null;
 };
 
+export type GmailMessageSummary = {
+  id: string;
+  threadId: string;
+  snippet?: string | null;
+  subject?: string | null;
+  from_email?: string | null;
+  to?: string | null;
+  date?: string | null;
+  internalDate?: string | null;
+  labelIds?: string[];
+};
+
+export type GmailSearchResponse = {
+  messages: GmailMessageSummary[];
+  nextPageToken?: string | null;
+  resultSizeEstimate?: number | null;
+};
+
+export type GmailThreadMessage = GmailMessageSummary & {
+  text?: string | null;
+};
+
+export type GmailThreadResponse = {
+  id: string;
+  messages: GmailThreadMessage[];
+};
+
 export type ActionResponse = {
   id: string;
   workspace_id: string;
@@ -167,6 +194,13 @@ export const api = {
       `/integrations/google/drive/files?q=${encodeURIComponent(query)}&page_size=${encodeURIComponent(String(pageSize))}`,
       { token },
     ),
+  searchGmailMessages: (token: string, query = "", maxResults = 10) =>
+    request<GmailSearchResponse>(
+      `/integrations/google/gmail/messages?q=${encodeURIComponent(query)}&max_results=${encodeURIComponent(String(maxResults))}`,
+      { token },
+    ),
+  readGmailThread: (token: string, threadId: string) =>
+    request<GmailThreadResponse>(`/integrations/google/gmail/threads/${encodeURIComponent(threadId)}`, { token }),
   login: (email: string, password: string) =>
     request<AuthResponse>("/auth/login", {
       method: "POST",

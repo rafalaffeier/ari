@@ -61,7 +61,7 @@ const GOOGLE_SCOPE_CATALOG = [
   { label: "Agenda", scope: "https://www.googleapis.com/auth/calendar.events", planned: false },
   { label: "Contactos", scope: "https://www.googleapis.com/auth/contacts.readonly", planned: false },
   { label: "Drive", scope: "https://www.googleapis.com/auth/drive.metadata.readonly", planned: false },
-  { label: "Gmail", scope: "https://www.googleapis.com/auth/gmail.modify", planned: true },
+  { label: "Gmail lectura", scope: "https://www.googleapis.com/auth/gmail.readonly", planned: false },
 ] as const;
 
 const STRINGS = {
@@ -513,13 +513,13 @@ export default function App() {
     title: uiLanguage === "es" ? "Apps conectadas" : "Connected apps",
     subtitle:
       uiLanguage === "es"
-        ? "Conecta Google para que ARI pueda ayudarte con agenda, contactos y Drive. Gmail queda para una fase posterior."
-        : "Connect Google so ARI can help with calendar, contacts, and Drive. Gmail comes in a later phase.",
+        ? "Conecta Google para que ARI pueda ayudarte con agenda, contactos, Drive y lectura de Gmail."
+        : "Connect Google so ARI can help with calendar, contacts, Drive, and Gmail read access.",
     google: "Google Workspace",
     connected:
       uiLanguage === "es"
-        ? "Google esta conectado. ARI puede usar agenda, contactos y metadatos de Drive cuando lo autorices en la conversacion."
-        : "Google is connected. ARI can use calendar, contacts, and Drive metadata when you authorize it in the conversation.",
+        ? "Google esta conectado. ARI puede usar agenda, contactos, Drive y lectura de Gmail cuando lo autorices en la conversacion."
+        : "Google is connected. ARI can use calendar, contacts, Drive, and Gmail read access when you authorize it in the conversation.",
     missing: uiLanguage === "es" ? "Google todavia no esta conectado." : "Google is not connected yet.",
     opening: uiLanguage === "es" ? "Abriendo Google para pedir autorizacion..." : "Opening Google for authorization...",
     browserReturn:

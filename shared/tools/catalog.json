@@ -114,6 +114,39 @@
     }
   },
   {
+    "name": "search_gmail_messages",
+    "version": "1.0",
+    "scope": "backend",
+    "permission_key": "google.gmail.read",
+    "risk_level": "medium",
+    "requires_confirmation": false,
+    "retryable": true,
+    "schema": {
+      "type": "object",
+      "required": [],
+      "properties": {
+        "query": {"type": "string"},
+        "max_results": {"type": "integer", "default": 10}
+      }
+    }
+  },
+  {
+    "name": "read_gmail_thread",
+    "version": "1.0",
+    "scope": "backend",
+    "permission_key": "google.gmail.read",
+    "risk_level": "medium",
+    "requires_confirmation": false,
+    "retryable": true,
+    "schema": {
+      "type": "object",
+      "required": ["thread_id"],
+      "properties": {
+        "thread_id": {"type": "string"}
+      }
+    }
+  },
+  {
     "name": "create_google_calendar_event",
     "version": "1.0",
     "scope": "backend",

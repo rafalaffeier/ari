@@ -5,6 +5,9 @@ from fastapi import HTTPException, status
 
 from app.api.v1.endpoints import messages
 from app.api.v1.endpoints.messages import (
+    _format_gmail_error,
+    _format_gmail_search_results,
+    _format_gmail_thread_results,
     _format_google_drive_search_error,
     _format_google_drive_search_results,
     _format_flight_search_error,
@@ -15,6 +18,7 @@ from app.api.v1.endpoints.messages import (
 )
 from app.services.duffel import FlightOffer, FlightSearchRequest, FlightSearchResponse, FlightSegment
 from app.services.google_drive import GoogleDriveFileMetadata, GoogleDriveSearchResponse
+from app.services.google_gmail import GmailMessageSummary, GmailSearchResponse, GmailThreadMessage, GmailThreadResponse
 
 
 class FlightChatToolsTest(unittest.TestCase):
@@ -28,6 +32,9 @@ class FlightChatToolsTest(unittest.TestCase):
 
     def test_should_try_tool_orchestration_for_drive_search(self):
         self.assertTrue(_should_try_tool_orchestration("busca contrato marco en Drive", ""))
+
+    def test_should_try_tool_orchestration_for_gmail_search(self):
+        self.assertTrue(_should_try_tool_orchestration("busca correos de Laura en Gmail", ""))
 
     def test_format_flight_search_results_includes_real_offer_details(self):
         request = FlightSearchRequest(origin="VLC", destination="BER", departure_date=date(2026, 5, 27))
@@ -110,6 +117,58 @@ class FlightChatToolsTest(unittest.TestCase):
 
         self.assertIn("Reconectar Google", formatted)
         self.assertIn("solo buscaré metadatos", formatted)
+
+    def test_format_gmail_search_results_includes_thread_ids(self):
+        formatted = _format_gmail_search_results(
+            "from:laura",
+            GmailSearchResponse(
+                messages=[
+                    GmailMessageSummary(
+                        id="msg_1",
+                        threadId="thr_1",
+                        subject="Viaje",
+                        from_email="Laura <laura@example.com>",
+                        date="2026-05-28T10:15:00+00:00",
+                        snippet="Te paso opciones.",
+                    )
+                ]
+            ),
+        )
+
+        self.assertIn("Viaje", formatted)
+        self.assertIn("thr_1", formatted)
+        self.assertIn("Para leer uno", formatted)
+
+    def test_format_gmail_thread_results_does_not_offer_send(self):
+        formatted = _format_gmail_thread_results(
+            GmailThreadResponse(
+                id="thr_1",
+                messages=[
+                    GmailThreadMessage(
+                        id="msg_1",
+                        threadId="thr_1",
+                        subject="Viaje",
+                        from_email="Laura <laura@example.com>",
+                        date="2026-05-28T10:15:00+00:00",
+                        text="Hola, te paso opciones para el viaje.",
+                    )
+                ],
+            )
+        )
+
+        self.assertIn("Hola, te paso opciones", formatted)
+        self.assertIn("todavía no creo borradores ni envío emails", formatted)
+
+    def test_format_gmail_missing_scope_asks_to_reconnect(self):
+        formatted = _format_gmail_error(
+            HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail={"code": "needs_scope", "scope": "https://www.googleapis.com/auth/gmail.readonly"},
+            )
+        )
+
+        self.assertIn("Reconectar Google", formatted)
+        self.assertIn("solo puedo buscar y leer", formatted)
 
     def test_normalize_orchestration_maps_city_names_to_iata(self):
         response = _normalize_orchestration(
@@ -271,6 +330,69 @@ class FlightChatToolExecutionTest(unittest.IsolatedAsyncioTestCase):
         self.assertIsNotNone(reply)
         self.assertIn("Contrato marco", reply)
         self.assertIn("PDF", reply)
+
+    async def test_maybe_run_chat_tool_executes_ready_gmail_search(self):
+        original_complete = messages.complete
+        original_valid_token = messages._valid_google_access_token
+        original_search_gmail = messages.search_gmail_messages_with_token
+
+        async def fake_complete(prompt, system_prompt=None):
+            return """
+            {
+              "mode": "tool_ready",
+              "reply": "Buscando en Gmail.",
+              "tool_name": "search_gmail_messages",
+              "params": {
+                "query": "from:laura",
+                "max_results": 5
+              },
+              "missing": [],
+              "requires_confirmation": false,
+              "confidence": 0.95,
+              "language": "es"
+            }
+            """
+
+        async def fake_valid_token(db, user_id, required_scope=None):
+            self.assertEqual(required_scope, "https://www.googleapis.com/auth/gmail.readonly")
+            return "token"
+
+        async def fake_search_gmail(access_token, query, max_results=10, page_token=None):
+            self.assertEqual(access_token, "token")
+            self.assertEqual(query, "from:laura")
+            self.assertEqual(max_results, 5)
+            return GmailSearchResponse(
+                messages=[
+                    GmailMessageSummary(
+                        id="msg_1",
+                        threadId="thr_1",
+                        subject="Viaje",
+                        from_email="Laura <laura@example.com>",
+                        date="2026-05-28T10:15:00+00:00",
+                    )
+                ]
+            )
+
+        messages.complete = fake_complete
+        messages._valid_google_access_token = fake_valid_token
+        messages.search_gmail_messages_with_token = fake_search_gmail
+        try:
+            reply = await _maybe_run_chat_tool(
+                "busca emails de Laura",
+                "",
+                "",
+                [],
+                db=object(),
+                current_user_id=messages.uuid.UUID("22222222-2222-2222-2222-222222222222"),
+            )
+        finally:
+            messages.complete = original_complete
+            messages._valid_google_access_token = original_valid_token
+            messages.search_gmail_messages_with_token = original_search_gmail
+
+        self.assertIsNotNone(reply)
+        self.assertIn("Viaje", reply)
+        self.assertIn("thr_1", reply)
 
 
 if __name__ == "__main__":

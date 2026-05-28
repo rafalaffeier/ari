@@ -1034,6 +1034,31 @@ impl MemoryClient {
         .await
     }
 
+    pub async fn search_gmail_messages(
+        &self,
+        query: &str,
+        max_results: u8,
+    ) -> Result<serde_json::Value, MemoryClientError> {
+        let url = format!("{}/api/v1/integrations/google/gmail/messages", self.backend_url);
+        let max_results_value = max_results.clamp(1, 20).to_string();
+        self.send_json(
+            self.authorized(self.http.get(url))?
+                .query(&[("q", query), ("max_results", max_results_value.as_str())]),
+        )
+        .await
+    }
+
+    pub async fn read_gmail_thread(
+        &self,
+        thread_id: &str,
+    ) -> Result<serde_json::Value, MemoryClientError> {
+        let url = format!(
+            "{}/api/v1/integrations/google/gmail/threads/{}",
+            self.backend_url, thread_id
+        );
+        self.send_json(self.authorized(self.http.get(url))?).await
+    }
+
     fn build(
         backend_url: String,
         access_token: Option<String>,
